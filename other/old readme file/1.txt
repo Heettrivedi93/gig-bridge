@@ -1,0 +1,1067 @@
+# 🛒 Freelance Marketplace — Mini Fiverr Clone
+
+A full-stack freelance marketplace platform where users can buy and sell services (gigs). Built with **Laravel 13** and **React** (via Vite), featuring role-based access control, payments, subscriptions, real-time messaging, and more.
+
+> 🚧 Project is under active development.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Laravel 13, MySQL, Queues (DB/Redis) |
+| Frontend | React, Tailwind CSS, React Router, Axios |
+| Auth | Laravel Built-in Authentication |
+| RBAC | Spatie Laravel Permission |
+| Payments | Stripe / Razorpay |
+| Build Tool | Vite |
+
+---
+
+## Architecture
+
+Monolithic Laravel application with an integrated React frontend served via Vite. The backend handles all business logic and database operations while React manages the UI layer.
+
+---
+
+## User Roles
+
+| Role | Description |
+|---|---|
+| **Super Admin** | Full platform access — manages users, gigs, categories, subscriptions, and settings |
+| **Seller** | Creates and manages gigs, fulfills orders, communicates with buyers |
+| **Buyer** | Browses gigs, places orders, communicates with sellers, leaves reviews |
+
+- Buyers and Sellers self-select their role during registration
+- Super Admin is created manually via seeder or Artisan command
+- Admin can modify any user's role and permissions
+
+---
+
+## Core Features
+
+- 🔐 Authentication & Role-Based Access Control (RBAC)
+- 📦 Gig management — CRUD with images, pricing, and delivery time
+- 🗂️ Hierarchical category & subcategory system
+- 🔄 Order lifecycle — `pending → active → completed → cancelled`
+- 💬 Buyer–Seller messaging system
+- ⭐ Reviews and ratings (post-order)
+- 🔔 Notifications — email + database
+- 💳 Payment integration (Stripe / Razorpay)
+- 📋 Subscription plans — Free, Basic, Pro (controls gig limits & features)
+- 📊 Role-based dashboards — Admin, Seller, Buyer
+
+---
+
+## Key Flows
+
+1. User registers and selects role (Buyer or Seller)
+2. Sellers create gigs under categories
+3. Buyers browse, filter, and purchase gigs
+4. Orders progress through lifecycle states
+5. Payments are processed and verified securely
+6. Buyer and Seller communicate via messaging
+7. Buyer submits a review after order completion
+8. Subscription plan enforces seller feature limits
+
+---
+
+## Folder Structure
+
+```
+├── app/
+│   ├── Models/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   ├── Middleware/
+│   │   └── Requests/
+│   ├── Services/
+│   ├── Events/
+│   ├── Listeners/
+│   └── Notifications/
+│
+├── resources/
+│   └── js/
+│       ├── components/
+│       ├── pages/
+│       ├── layouts/
+│       ├── hooks/
+│       ├── context/
+│       └── routes/
+│
+├── routes/
+│   ├── web.php
+│   └── api.php
+│
+└── database/
+    ├── migrations/
+    └── seeders/
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- PHP 8.2+
+- Composer
+- Node.js 18+
+- MySQL
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd <project-folder>
+
+# 2. Install PHP dependencies
+composer install
+
+# 3. Configure environment
+cp .env.example .env
+php artisan key:generate
+# Edit .env — set DB credentials, Stripe/Razorpay keys, mail config
+
+# 4. Run migrations and seeders
+php artisan migrate --seed
+
+# 5. Install frontend dependencies
+npm install
+
+# 6. Start development servers
+npm run dev          # Vite dev server
+php artisan serve    # Laravel dev server
+```
+
+---
+
+## Database Entities
+
+`Users` · `Roles & Permissions` · `Gigs` · `Categories` · `Orders` · `Messages` · `Reviews` · `Payments` · `Plans` · `Subscriptions`
+
+---
+
+## Deployment
+
+- Laravel backend deployable on **VPS**, **Laravel Forge**, or **AWS**
+- Frontend compiled for production via `npm run build`
+- Configure queue worker: `php artisan queue:work`
+- Configure scheduler in crontab for subscription expiration tasks
+
+---
+
+## Advanced Features
+
+- [ ] Real-time chat (WebSockets / Laravel Echo)
+- [ ] Advanced search & filtering
+- [ ] Admin approval system
+- [ ] Subscription-based feature gating
+- [ ] Scheduled tasks (subscription expiration)
+- [ ] Event-driven architecture
+
+---
+
+## Roadmap
+
+- [ ] Dispute resolution system
+- [ ] Invoice generation
+- [ ] Admin analytics dashboard
+- [ ] Mobile app (React Native)
+- [ ] AI-based gig recommendations
+- [ ] Multi-language support
+
+---
+
+## License
+
+This project is for educational and portfolio purposes, demonstrating full-stack development with Laravel and React — covering RBAC, payments, subscriptions, and scalable architecture.
+
+
+
+## 📄 Pages & Fields
+
+### 🔐 Register Page
+| Field | Type | Required |
+|-------|------|----------|
+| name | text | ✅ |
+| email | email | ✅ |
+| password | password | ✅ |
+| password_confirmation | password | ✅ |
+| role | select (buyer/seller) | ✅ |
+
+---
+
+### 🔑 Login Page
+| Field | Type | Required |
+|-------|------|----------|
+| email | email | ✅ |
+| password | password | ✅ |
+
+---
+
+### 👤 Profile Page (Edit)
+| Field | Type | Required |
+|-------|------|----------|
+| name | text | ✅ |
+| email | email | ✅ |
+| bio | textarea | ❌ |
+| phone | text | ❌ |
+| profile_picture | file | ❌ |
+| skills | text/tags | ❌ |
+| location | text | ❌ |
+| website | url | ❌ |
+
+---
+
+### 🎯 Create / Edit Gig Page (Seller)
+
+Purpose: Seller creates a gig and defines packages
+
+| Field | Type | Required |
+|-------|------|----------|
+| title | text | ✅ |
+| description | textarea | ✅ |
+| category | select | ✅ |
+| subcategory | select | ✅ |
+| images | file (multiple) | ✅ |
+| tags | text/tags | ❌ |
+| status | select (active/inactive) | ✅ |
+
+#### Packages Section
+| Field | Type | Required |
+|-------|------|----------|
+| packages | array/object | ✅ |
+| → name | enum (basic/standard/premium) | ✅ |
+| → title | text | ✅ |
+| → description | textarea | ✅ |
+| → price | number | ✅ |
+| → delivery_time | number (days) | ✅ |
+| → revision_count | number | ✅ |
+
+---
+
+### 🛒 Place Order Page (Buyer)
+| Field | Type | Required |
+|-------|------|----------|
+| gig_id | hidden | ✅ |
+| packages | select/radio | ✅ |
+| requirements | textarea | ✅ |
+| quantity | number | ✅ |
+| coupon_code | text | ❌ |
+
+---
+
+### 💳 Payment Page
+| Field | Type | Required |
+|-------|------|----------|
+| order_id | hidden | ✅ |
+| payment_method | select (stripe/razorpay) | ✅ |
+| card_number | text | ✅ |
+| card_expiry | text | ✅ |
+| card_cvc | text | ✅ |
+| billing_name | text | ✅ |
+| billing_email | email | ✅ |
+
+---
+
+### 💬 Message / Chat Page
+| Field | Type | Required |
+|-------|------|----------|
+| receiver_id | hidden | ✅ |
+| message | textarea | ✅ |
+| attachment | file | ❌ |
+
+---
+
+### ⭐ Review Page (Buyer)
+| Field | Type | Required |
+|-------|------|----------|
+| order_id | hidden | ✅ |
+| rating | number (1–5) | ✅ |
+| comment | textarea | ✅ |
+
+---
+
+### 📦 Order Detail Page
+
+Purpose: Manages the full order lifecycle with escrow-based payment hold
+
+**Buyer Fields**
+| Field | Type | Required |
+|-------|------|----------|
+| requirements | textarea | ✅ |
+| cancellation_reason | textarea | ✅ (if cancel) |
+| revision_note | textarea | ✅ (if revision) |
+| review_action | radio (accept/revision) | ✅ (on delivery) |
+
+**Seller Fields**
+| Field | Type | Required |
+|-------|------|----------|
+| delivery_file | file | ✅ |
+| delivery_note | textarea | ❌ |
+| cancellation_reason | textarea | ✅ (if cancel) |
+
+**System / Status Fields**
+| Field | Type | Description |
+|-------|------|-------------|
+| status | enum | pending → active → delivered → completed / cancelled |
+| payment_status | enum | pending → paid → released / refunded |
+| escrow_held | boolean | true while funds are held by platform |
+| delivered_at | timestamp | when seller submits delivery |
+| completed_at | timestamp | when buyer accepts / auto-completes |
+| cancelled_at | timestamp | when order is cancelled |
+
+**Status Change Permissions**
+| Status Change | Who |
+|---------------|-----|
+| pending → active | System (auto, after payment captured) |
+| active → delivered | Seller (submits delivery) |
+| delivered → completed | Buyer (accepts) or System (auto after X days) |
+| delivered → active | Buyer (requests revision) |
+| active → cancelled | Buyer or Seller (with reason) |
+| payment: pending → paid | System (after payment gateway confirms) |
+| payment: paid → released | System (after order completed) |
+| payment: paid → refunded | System (after cancellation approved) |
+
+---
+
+### 🗂️ Category Management Page (Admin)
+| Field | Type | Required |
+|-------|------|----------|
+| name | text | ✅ |
+| slug | text | ✅ |
+| parent_id | select | ❌ |
+| icon | file/text | ❌ |
+| status | select (active/inactive) | ✅ |
+
+---
+
+### 👥 User Management Page (Admin)
+| Field | Type | Required |
+|-------|------|----------|
+| name | text | ✅ |
+| email | email | ✅ |
+| role | select | ✅ |
+| status | select (active/banned) | ✅ |
+
+---
+
+### 💼 Subscription Plans Page (Admin)
+| Field | Type | Required |
+|-------|------|----------|
+| name | text | ✅ |
+| price | number | ✅ |
+| duration_days | number | ✅ |
+| gig_limit | number | ✅ |
+| features | textarea/json | ✅ |
+| status | select (active/inactive) | ✅ |
+
+---
+
+### 🔔 Notification Settings Page
+| Field | Type | Required |
+|-------|------|----------|
+| email_notifications | checkbox | ❌ |
+| order_updates | checkbox | ❌ |
+| message_alerts | checkbox | ❌ |
+| review_alerts | checkbox | ❌ |
+
+---
+
+### 🔍 Search / Filter Page
+| Field | Type | Required |
+|-------|------|----------|
+| keyword | text | ❌ |
+| category_id | select | ❌ |
+| subcategory_id | select | ❌ |
+| min_price | number | ❌ |
+| max_price | number | ❌ |
+| delivery_time | select | ❌ |
+| rating | select | ❌ |
+| sort_by | select | ❌ |
+
+---
+
+### 🔑 Forgot Password Page
+| Field | Type | Required |
+|-------|------|----------|
+| email | email | ✅ |
+
+---
+
+### 🔄 Reset Password Page
+| Field | Type | Required |
+|-------|------|----------|
+| token | hidden | ✅ |
+| email | email | ✅ |
+| password | password | ✅ |
+| password_confirmation | password | ✅ |
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 💼 Freelance Marketplace (Mini Fiverr Clone)
+
+## 🚀 Overview
+This is a full-stack freelance marketplace platform similar to Fiverr where users can buy and sell services (gigs). The project is built using **Laravel 13** with a **React frontend integrated via Vite**.
+
+The application includes real-world features such as:
+- Role-based access control
+- Payments & subscriptions
+- Messaging system
+- Notifications
+- Scalable architecture design
+
+---
+
+## 🧱 Tech Stack
+
+### 🔧 Backend
+- Laravel 13
+- Laravel built-in authentication
+- Spatie Laravel Permission (RBAC)
+- MySQL Database
+- Queue System (Database / Redis)
+- Events & Listeners
+
+### 🎨 Frontend
+- React (with Vite)
+- Axios
+- React Router
+- Tailwind CSS
+
+---
+
+## 🏗️ Architecture
+
+- Monolithic Laravel application with integrated React frontend
+- React components rendered using Vite
+- Backend handles business logic and database operations
+- Frontend handles UI and user interaction
+
+---
+
+## 👥 User Roles
+
+### 🛡️ Super Admin
+- Full system access
+- Manages users, categories, subscriptions, and platform settings
+
+### 🧑‍💼 Seller
+- Creates and manages gigs
+- Receives and fulfills orders
+- Communicates with buyers
+
+### 🛒 Buyer
+- Browses gigs
+- Places orders
+- Communicates with sellers
+- Leaves reviews
+
+---
+
+## 🔐 Role Assignment Logic
+
+- Users can select their role (**Buyer or Seller**) during registration
+- Role is assigned based on user selection
+- Super Admin is **not publicly accessible**
+- Created manually via Seeder or Artisan command
+- Admin can modify roles anytime
+
+---
+
+## ✨ Core Features
+
+- Authentication system (Laravel built-in)
+- Role-Based Access Control (RBAC)
+- Gig Management (CRUD with images, pricing, delivery time)
+- Category & Subcategory system (hierarchical)
+- Order lifecycle:
+  - Pending → Active → Completed → Cancelled
+- Messaging system (Buyer ↔ Seller chat)
+- Reviews & Ratings
+- Notifications (Email + In-app)
+- Payment integration (PayPal)
+- Subscription plans (Free / Basic / Pro)
+- Role-based dashboards
+
+---
+
+## 🗃️ Database Entities
+
+- Users  
+- Roles & Permissions  
+- Gigs  
+- Gig Packages  
+- Gig Images  
+- Categories (Parent → Child)  
+- Orders  
+- Order Deliveries  
+- Order Revisions  
+- Messages  
+- Reviews  
+- Payments  
+- Plans  
+- Subscriptions  
+- Notifications  
+
+---
+
+| Entity | Key Fields |
+|--------|-----------|
+| users | id, name, email, password, role, bio, phone, profile_picture, skills, location, website, status |
+| roles | id, name, guard_name |
+| permissions | id, name, guard_name |
+| gigs | id, user_id, category_id, subcategory_id, title, description, status |
+| gig_packages | id, gig_id, name (basic/standard/premium), title, description, price, delivery_days, revisions |
+| gig_images | id, gig_id, image_path |
+| categories | id, parent_id, name, slug, status |
+| orders | id, buyer_id, seller_id, gig_id, package_id, requirements, requirements_file, reference_link, style_preferences, quantity, coupon_code, price, status, payment_status, escrow_held, delivered_at, completed_at, cancelled_at |
+| order_deliveries | id, order_id, delivery_file, delivery_note, delivered_at |
+| order_revisions | id, order_id, revision_note, created_at |
+| order_cancellations | id, order_id, cancelled_by, cancellation_reason, created_at |
+| messages | id, sender_id, receiver_id, order_id, message, attachment |
+| reviews | id, order_id, buyer_id, seller_id, gig_id, rating, comment |
+| payments | id, order_id, user_id, method (paypal), amount, status, transaction_id, paypal_order_id, paypal_payer_id |
+| plans | id, name, price, duration_days, gig_limit, features, status |
+| subscriptions | id, user_id, plan_id, starts_at, ends_at, status |
+| notifications | id, user_id, type, data, read_at |
+
+---
+
+## 🔄 Key Functional Flows
+
+- User registers and selects role
+- Admin manages platform
+- Sellers create gigs
+- Buyers purchase gigs
+- Orders move through lifecycle stages
+- Payments are securely processed
+- Messaging enables communication
+- Reviews after order completion
+- Subscriptions control feature access
+
+---
+
+## 📄 Pages & Fields
+
+### 🔐 Register
+| Field | Type | Required |
+|------|------|----------|
+| name | text | ✅ |
+| email | email | ✅ |
+| password | password | ✅ |
+| password_confirmation | password | ✅ |
+| role | select (buyer/seller) | ✅ |
+
+---
+
+### 🔑 Login
+| Field | Type | Required |
+|------|------|----------|
+| email | email | ✅ |
+| password | password | ✅ |
+
+---
+
+### 👤 Profile (Edit)
+| Field | Type | Required |
+|------|------|----------|
+| name | text | ✅ |
+| email | email | ✅ |
+| bio | textarea | ❌ |
+| phone | text | ❌ |
+| profile_picture | file | ❌ |
+| skills | tags | ❌ |
+| location | text | ❌ |
+| website | url | ❌ |
+
+---
+
+### 🎯 Gig (Create / Edit)
+| Field | Type | Required |
+|------|------|----------|
+| title | text | ✅ |
+| description | textarea | ✅ |
+| category_id | select | ✅ |
+| subcategory_id | select | ✅ |
+| images | file (multiple) | ✅ |
+| tags | tags | ❌ |
+| status | select (active/inactive) | ✅ |
+
+#### 📦 Packages
+| Field | Type | Required |
+|------|------|----------|
+| name | enum (basic/standard/premium) | ✅ |
+| title | text | ✅ |
+| description | textarea | ✅ |
+| price | number | ✅ |
+| delivery_days | number | ✅ |
+| revisions | number | ✅ |
+
+---
+
+### 🛒 Order (Place)
+| Field | Type | Required |
+|------|------|----------|
+| gig_id | hidden | ✅ |
+| package | select | ✅ |
+| requirements | textarea | ✅ |
+| requirements_file | file | ❌ |
+| reference link | text | ❌ |
+| style/preferences | text | ❌ |
+| quantity | number | ✅ |
+| coupon_code | text | ❌ |
+
+---
+
+### 📦 Order Details
+
+#### Buyer Actions
+| Field | Type | Condition |
+|------|------|-----------|
+| revision_note | textarea | On revision |
+| cancellation_reason | textarea | On cancel |
+| action | radio (accept/revision) | On delivery |
+
+#### Seller Actions
+| Field | Type | Condition |
+|------|------|-----------|
+| delivery_file | file | On delivery |
+| delivery_note | textarea | Optional |
+| cancellation_reason | textarea | On cancel |
+
+#### 🛡️ Super Admin Actions
+
+| Action | Description |
+|--------|------------|
+| update_status | Manually change order status (pending, active, delivered, completed, cancelled) |
+| control_payment | Update payment status (paid, released, refunded) |
+| escrow_control | Hold or release funds |
+| adjust_timestamps | Update delivered_at, completed_at, cancelled_at |
+| monitor_order | View messages, files, and activity |
+
+---
+
+### 💳 Payment
+| Field | Type | Required |
+|------|------|----------|
+| order_id | hidden | ✅ |
+| payment_method | PayPal (only) | ✅ |
+| billing_name | text | ✅ |
+| billing_email | email | ✅ |
+| paypal_order_id | hidden (returned by PayPal) | ✅ |
+| paypal_payer_id | hidden (returned by PayPal) | ✅ |
+
+---
+
+### 💬 Messages
+| Field | Type | Required |
+|------|------|----------|
+| receiver_id | hidden | ✅ |
+| message | textarea | ✅ |
+| attachment | file | ❌ |
+
+---
+
+### ⭐ Review
+| Field | Type | Required |
+|------|------|----------|
+| order_id | hidden | ✅ |
+| rating | number (1–5) | ✅ |
+| comment | textarea | ✅ |
+
+---
+
+### 🗂️ Categories (Admin)
+
+#### ➕ Create Category (Parent)
+| Field | Type | Required |
+|------|------|----------|
+| name | text | ✅ |
+| slug | text | ✅ |
+| status | select (active/inactive) | ✅ |
+
+---
+
+#### 📁 Create Subcategory
+| Field | Type | Required |
+|------|------|----------|
+| name | text | ✅ |
+| slug | text | ✅ |
+| parent_id | select (category) | ✅ |
+| status | select (active/inactive) | ✅ |
+
+---
+
+### 👥 Users (Admin)
+| Field | Type | Required |
+|------|------|----------|
+| name | text | ✅ |
+| email | email | ✅ |
+| role | select | ✅ |
+| status | select (active/banned) | ✅ |
+
+---
+
+### 📧 Email Settings (Super Admin)
+
+Purpose: Configure the platform's outgoing email (SMTP)
+
+| Field | Type | Required |
+|------|------|----------|
+| mail_driver | select (smtp/sendmail/mailgun) | ✅ |
+| mail_host | text | ✅ |
+| mail_port | number | ✅ |
+| mail_username | text | ✅ |
+| mail_password | password | ✅ |
+| mail_encryption | select (tls/ssl/none) | ✅ |
+| mail_from_address | email | ✅ |
+| mail_from_name | text | ✅ |
+
+---
+
+### 🎨 Brand Settings (Super Admin)
+
+Purpose: Customize platform identity and appearance
+
+| Field | Type | Required |
+|------|------|----------|
+| site_name | text | ✅ |
+| site_logo | file | ✅ |
+| site_favicon | file | ❌ |
+| site_tagline | text | ❌ |
+| primary_color | color picker | ❌ |
+| secondary_color | color picker | ❌ |
+| footer_text | textarea | ❌ |
+| contact_email | email | ✅ |
+| contact_phone | text | ❌ |
+| address | textarea | ❌ |
+| social_facebook | url | ❌ |
+| social_twitter | url | ❌ |
+| social_instagram | url | ❌ |
+| social_linkedin | url | ❌ |
+
+---
+
+### 💳 Payment Settings (Super Admin)
+
+Purpose: Configure PayPal gateway and platform fee
+
+| Field | Type | Required |
+|------|------|----------|
+| paypal_mode | select (sandbox/live) | ✅ |
+| paypal_client_id | text | ✅ |
+| paypal_client_secret | text | ✅ |
+| paypal_currency | select (USD/EUR/etc.) | ✅ |
+| platform_fee_percentage | number (e.g. 10–20) | ✅ |
+| auto_release_days | number (days after delivery) | ✅ |
+| refund_policy | textarea | ❌ |
+
+---
+
+### 🔔 Notification Settings (Super Admin)
+
+Purpose: Control which system notifications are sent and how
+
+**Email Notification Triggers**
+| Trigger | Toggle |
+|---------|--------|
+| New user registration | checkbox |
+| New order placed | checkbox |
+| Order completed | checkbox |
+| Order cancelled | checkbox |
+| New message received | checkbox |
+| New review submitted | checkbox |
+| Payment received | checkbox |
+| Withdrawal requested | checkbox |
+| Subscription purchased | checkbox |
+
+**In-App Notification Triggers**
+| Trigger | Toggle |
+|---------|--------|
+| New order placed | checkbox |
+| Order status changed | checkbox |
+| New message received | checkbox |
+| New review submitted | checkbox |
+| Payment released | checkbox |
+
+**Notification Channels**
+| Field | Type | Required |
+|------|------|----------|
+| enable_email_notifications | checkbox | ❌ |
+| enable_inapp_notifications | checkbox | ❌ |
+| admin_alert_email | email | ❌ |
+
+---
+
+### 💼 Subscription Plans (Admin)
+| Field | Type | Required |
+|------|------|----------|
+| name | text | ✅ |
+| price | number | ✅ |
+| duration_days | number | ✅ |
+| gig_limit | number | ✅ |
+| features | json | ✅ |
+| status | select | ✅ |
+
+---
+
+### 🔔 Notifications
+| Field | Type |
+|------|------|
+| email_notifications | checkbox |
+| order_updates | checkbox |
+| message_alerts | checkbox |
+| review_alerts | checkbox |
+
+---
+
+### 🔍 Search & Filters
+| Field | Type |
+|------|------|
+| keyword | text |
+| category_id | select |
+| min_price | number |
+| max_price | number |
+| delivery_days | select |
+| rating | select |
+| sort_by | select |
+
+---
+
+### 🔑 Forgot Password
+| Field | Type | Required |
+|------|------|----------|
+| email | email | ✅ |
+
+---
+
+### 🔄 Reset Password
+| Field | Type | Required |
+|------|------|----------|
+| token | hidden | ✅ |
+| email | email | ✅ |
+| password | password | ✅ |
+| password_confirmation | password | ✅ |
+
+---
+
+## 💰 Payment Flow (Buyer → Seller)
+
+### Step-by-step
+
+1. **Buyer places an order** — selects a gig package, fills requirements, and proceeds to payment
+2. **Payment is initiated** — buyer is redirected to PayPal to complete payment
+3. **Payment is captured** — amount is charged from buyer and held by the platform (escrow-like)
+4. **Order becomes Active** — seller is notified to start working
+5. **Seller delivers work** — uploads delivery file and note
+6. **Buyer reviews delivery** — accepts or requests revision
+7. **Order marked Completed** — funds are released to seller's account
+8. **Seller can withdraw** — earnings become available for payout
+
+### Payment States
+
+| State | Description |
+|-------|-------------|
+| pending | Payment initiated but not confirmed |
+| paid | Payment successfully captured |
+| failed | Payment attempt failed |
+| refunded | Payment refunded to buyer (on cancellation) |
+| released | Funds released to seller after order completion |
+
+### Platform Fee Logic
+
+- Platform deducts a **service fee** (e.g. 10–20%) from the order amount
+- Remaining amount is credited to the seller
+- Example: Buyer pays **$100** → Platform fee **$10** → Seller receives **$90**
+
+### Cancellation & Refund
+
+- If order is cancelled **before** seller starts → full refund to buyer
+- If order is cancelled **after** work started → partial refund based on dispute resolution
+- Refunds are processed back via PayPal
+
+### Key Database Fields Involved
+
+| Table | Relevant Fields |
+|-------|-----------------|
+| orders | buyer_id, seller_id, gig_id, package, price, status |
+| payments | order_id, user_id, method, amount, status, transaction_id |
+| subscriptions | user_id, plan_id, starts_at, ends_at, status |
+
+---
+
+## ⚡ Advanced Features
+
+- Real-time chat (WebSockets / Laravel Echo / Pusher)
+- Advanced search & filtering
+- Admin approval system
+- Subscription-based restrictions
+- Scheduled tasks (cron jobs)
+- Event-driven architecture
+
+---
+
+## 📁 Folder Structure
+
+### 📦 Laravel + React (Monolithic)
+
+```
+app/
+├── Models/
+├── Http/
+│   ├── Controllers/
+│   ├── Middleware/
+│   └── Requests/
+├── Services/
+├── Events/
+├── Listeners/
+└── Notifications/
+
+resources/
+└── js/
+    ├── components/
+    ├── pages/
+    ├── layouts/
+    ├── hooks/
+    ├── context/
+    └── routes/
+
+routes/
+├── web.php
+└── api.php
+
+database/
+├── migrations/
+└── seeders/
+```
+
+---
+
+
+
+## ⚙️ Setup Instructions
+
+### 🔹 Backend
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+
+Configure `.env` file (DB, mail, queue)
+
+```bash
+php artisan migrate --seed
+php artisan serve
+```
+
+### 🔹 Frontend
+
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## 🚀 Deployment
+- Backend: VPS / Laravel Forge / AWS
+- Frontend: Built via Vite for production
+
+---
+
+## 📌 TODO
+- [ ] Real-time chat
+- [ ] Advanced search filters
+- [ ] Dispute system
+- [ ] Invoice generation
+- [ ] Admin dashboard analytics
+- [ ] UI/UX improvements
+
+---
+
+## 🔮 Future Improvements
+- Mobile app (React Native)
+- AI-based recommendations
+- Multi-language support
+- Performance optimization
+
+---
+
+## 📊 Status
+🚧 Project is under active development
+
+---
+
+## 🧠 Notes
+
+This project demonstrates:
+- Full-stack Laravel + React
+- SaaS-level architecture
+- RBAC system
+- Payments & subscriptions
+- Scalable design patterns
+
+---
+
+## 🤝 Contribution
+
+Contributions are welcome! Feel free to fork and improve.
+
+---
+
+## 📜 License
+
+This project is open-source under the MIT License.
+
+
+
+
+
