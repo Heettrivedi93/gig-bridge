@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Lock, Pencil, ShieldCheck, UserCog } from 'lucide-react';
+import { Pencil, ShieldCheck, UserCog } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -203,18 +203,11 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label>Role</Label>
-                                <div className="flex items-center justify-between rounded-md border border-input bg-muted/20 px-3 py-2.5">
-                                    <span className="text-sm font-medium capitalize">
-                                        {editTarget?.roles?.[0]?.replace('_', ' ') ?? '—'}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-                                        <Lock className="size-3" />
-                                        Fixed
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Role is selected at registration and cannot be changed here.
-                                </p>
+                                <Input
+                                    value={editTarget?.roles?.[0]?.replace('_', ' ') ?? '—'}
+                                    disabled
+                                    className="capitalize"
+                                />
                             </div>
 
                             <div className="grid gap-2">

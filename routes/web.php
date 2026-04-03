@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminPlanController;
+use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminUserController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -27,6 +29,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Users
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::put('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+
+    // Subscription plans
+    Route::get('plans', [AdminPlanController::class, 'index'])->name('plans.index');
+    Route::post('plans', [AdminPlanController::class, 'store'])->name('plans.store');
+    Route::put('plans/{plan}', [AdminPlanController::class, 'update'])->name('plans.update');
+    Route::delete('plans/{plan}', [AdminPlanController::class, 'destroy'])->name('plans.destroy');
+
+    // System settings
+    Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
+    Route::put('settings', [AdminSettingController::class, 'update'])->name('settings.update');
 });
 
 require __DIR__.'/settings.php';

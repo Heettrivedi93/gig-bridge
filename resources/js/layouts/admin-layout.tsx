@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Tag, Users } from 'lucide-react';
+import { LayoutGrid, Package, Settings, Tag, Users } from 'lucide-react';
 import { AppContent } from '@/components/app-content';
 import AppLogo from '@/components/app-logo';
 import { AppShell } from '@/components/app-shell';
@@ -21,7 +21,9 @@ import type { NavItem } from '@/types';
 const adminNavItems: NavItem[] = [
     { title: 'Dashboard',  href: admin.dashboard.url(),           icon: LayoutGrid },
     { title: 'Categories', href: admin.categories.index.url(),    icon: Tag },
+    { title: 'Plans', href: '/admin/plans', icon: Package },
     { title: 'Users', href: '/admin/users', icon: Users },
+    { title: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 function AdminSidebar() {
