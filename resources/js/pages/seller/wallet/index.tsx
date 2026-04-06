@@ -143,7 +143,7 @@ export default function SellerWalletIndex({ seller, wallet, withdrawals }: Props
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <Badge variant={withdrawal.status === 'paid' ? 'default' : 'secondary'}>
+                                        <Badge variant={withdrawal.status === 'approved' || withdrawal.status === 'paid' ? 'default' : 'secondary'}>
                                             {withdrawal.status}
                                         </Badge>
                                         {withdrawal.reviewed_at && (

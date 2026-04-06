@@ -30,17 +30,17 @@ class AdminWithdrawalController extends Controller
                 [
                     'label' => 'Total Requests',
                     'value' => $requests->count(),
-                    'detail' => sprintf('%d paid', $requests->where('status', 'paid')->count()),
+                    'detail' => sprintf('%d approved', $requests->whereIn('status', ['approved', 'paid'])->count()),
                 ],
                 [
                     'label' => 'Pending Review',
                     'value' => $requests->where('status', 'pending')->count(),
-                    'detail' => sprintf('%d approved', $requests->where('status', 'approved')->count()),
+                    'detail' => sprintf('%d rejected', $requests->where('status', 'rejected')->count()),
                 ],
                 [
-                    'label' => 'Paid Out',
-                    'value' => number_format($requests->where('status', 'paid')->sum(fn (WithdrawalRequest $item) => (float) $item->amount), 2, '.', ''),
-                    'detail' => 'Completed seller payouts',
+                    'label' => 'Approved Payouts',
+                    'value' => number_format($requests->whereIn('status', ['approved', 'paid'])->sum(fn (WithdrawalRequest $item) => (float) $item->amount), 2, '.', ''),
+                    'detail' => 'Finalized withdrawal approvals',
                 ],
                 [
                     'label' => 'Rejected',
@@ -66,14 +66,13 @@ class AdminWithdrawalController extends Controller
                 ] : null,
                 'wallet_currency' => $withdrawal->wallet?->currency ?? 'USD',
             ])->values(),
-            'statusOptions' => ['pending', 'approved', 'rejected', 'paid'],
         ]);
     }
 
     public function update(Request $request, WithdrawalRequest $withdrawal): RedirectResponse
     {
         $data = $request->validate([
-            'status' => ['required', Rule::in(['approved', 'rejected', 'paid'])],
+            'status' => ['required', Rule::in(['approved', 'rejected'])],
             'note' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -84,11 +83,20 @@ class AdminWithdrawalController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($withdrawal->id);
 
-            if ($locked->status === 'paid' || $locked->status === 'rejected') {
+            if (in_array($locked->status, ['approved', 'paid', 'rejected'], true)) {
                 return;
             }
 
             if ($data['status'] === 'approved') {
+                $this->wallets->debitPending(
+                    $locked->wallet,
+                    (float) $locked->amount,
+                    'withdrawal_approved',
+                    null,
+                    ['withdrawal_request_id' => $locked->id],
+                    sprintf('Withdrawal request #%d approved', $locked->id),
+                );
+
                 $locked->update([
                     'status' => 'approved',
                     'note' => $data['note'] ?: $locked->note,
@@ -130,22 +138,6 @@ class AdminWithdrawalController extends Controller
 
                 return;
             }
-
-            $this->wallets->debitPending(
-                $locked->wallet,
-                (float) $locked->amount,
-                'withdrawal_approved',
-                null,
-                ['withdrawal_request_id' => $locked->id],
-                sprintf('Withdrawal paid for request #%d', $locked->id),
-            );
-
-            $locked->update([
-                'status' => 'paid',
-                'note' => $data['note'] ?: $locked->note,
-                'reviewed_by' => $request->user()->id,
-                'reviewed_at' => now(),
-            ]);
         });
 
         return back()->with('success', sprintf('Withdrawal request #%d updated.', $withdrawal->id));

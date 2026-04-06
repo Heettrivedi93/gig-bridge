@@ -372,3 +372,56 @@ test('buyer can cancel order with audit trail', function () {
     expect($order->cancelled_at)->not->toBeNull();
     expect(OrderCancellation::query()->where('order_id', $order->id)->first()?->cancelled_by)->toBe('buyer');
 });
+
+test('buyer cannot request more revisions than the purchased package allows', function () {
+    [$category, $subcategory] = activeCategoryWithChild();
+    $seller = sellerMarketUser();
+    $buyer = buyerUser();
+    $gig = publishedGig($seller, $category, $subcategory);
+    $package = $gig->packages()->where('tier', 'basic')->firstOrFail();
+
+    $order = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Need revisions capped properly.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'delivered',
+        'payment_status' => 'paid',
+        'escrow_held' => true,
+        'delivered_at' => now(),
+    ]);
+
+    OrderRevision::create([
+        'order_id' => $order->id,
+        'requested_by' => $buyer->id,
+        'note' => 'Revision round 1',
+    ]);
+
+    OrderRevision::create([
+        'order_id' => $order->id,
+        'requested_by' => $buyer->id,
+        'note' => 'Revision round 2',
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.revision', $order), [
+            'revision_note' => 'Revision round 3 should fail.',
+        ])
+        ->assertSessionHasErrors('revision_note');
+
+    expect($order->revisions()->count())->toBe(2);
+
+    $this->actingAs($buyer)
+        ->get(route('buyer.orders.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('buyer/orders/index')
+            ->where('orders.0.used_revisions', 2)
+            ->where('orders.0.remaining_revisions', 0));
+});

@@ -42,6 +42,8 @@ type OrderItem = {
     delivered_at: string | null;
     completed_at: string | null;
     cancelled_at: string | null;
+    used_revisions: number;
+    remaining_revisions: number;
     deliveries: {
         id: number;
         file_url: string;
@@ -420,7 +422,7 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                     {order.payment_status === 'pending' && (
                                                         <Button size="sm" onClick={() => openCheckout(order)} disabled={!paypal.enabled}>Pay</Button>
                                                     )}
-                                                    {order.status === 'delivered' && order.payment_status === 'paid' && order.revisions.length < (order.package?.revision_count ?? 0) && (
+                                                    {order.status === 'delivered' && order.payment_status === 'paid' && order.remaining_revisions > 0 && (
                                                         <Button size="sm" variant="outline" onClick={() => setRevisionTarget(order)}>Revision</Button>
                                                     )}
                                                 </div>
@@ -452,7 +454,7 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         {order.payment_status === 'pending' && (
                                             <Button size="sm" onClick={() => openCheckout(order)} disabled={!paypal.enabled}>Pay</Button>
                                         )}
-                                        {order.status === 'delivered' && order.payment_status === 'paid' && order.revisions.length < (order.package?.revision_count ?? 0) && (
+                                        {order.status === 'delivered' && order.payment_status === 'paid' && order.remaining_revisions > 0 && (
                                             <Button size="sm" variant="outline" onClick={() => setRevisionTarget(order)}>Revision</Button>
                                         )}
                                     </div>
@@ -486,12 +488,15 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                     </div>
                                 </div>
                                 <div className="mt-4 flex flex-wrap gap-3">
+                                    <Badge variant="outline">
+                                        {selectedOrder.remaining_revisions} revision{selectedOrder.remaining_revisions === 1 ? '' : 's'} left
+                                    </Badge>
                                     {selectedOrder.payment_status === 'pending' && (
                                         <Button onClick={() => openCheckout(selectedOrder)} disabled={!paypal.enabled}>
                                             Pay with PayPal
                                         </Button>
                                     )}
-                                    {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && selectedOrder.revisions.length < (selectedOrder.package?.revision_count ?? 0) && (
+                                    {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && selectedOrder.remaining_revisions > 0 && (
                                         <Button variant="outline" onClick={() => setRevisionTarget(selectedOrder)}>
                                             Request revision
                                         </Button>

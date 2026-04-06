@@ -44,54 +44,61 @@ class BuyerOrderController extends Controller
                 ->latest('updated_at')
                 ->latest('id')
                 ->get()
-                ->map(fn (Order $order) => [
-                    'id' => $order->id,
-                    'gig_title' => $order->gig?->title,
-                    'package' => $order->package ? [
-                        'title' => $order->package->title,
-                        'tier' => $order->package->tier,
-                        'delivery_days' => $order->package->delivery_days,
-                        'revision_count' => $order->package->revision_count,
-                    ] : null,
-                    'seller' => $order->seller ? [
-                        'name' => $order->seller->name,
-                        'email' => $order->seller->email,
-                    ] : null,
-                    'quantity' => $order->quantity,
-                    'requirements' => $order->requirements,
-                    'reference_link' => $order->reference_link,
-                    'style_notes' => $order->style_notes,
-                    'coupon_code' => $order->coupon_code,
-                    'brief_file_url' => $order->brief_file_path ? Storage::disk('public')->url($order->brief_file_path) : null,
-                    'price' => (string) $order->price,
-                    'unit_price' => (string) $order->unit_price,
-                    'status' => $order->status,
-                    'payment_status' => $order->payment_status,
-                    'paypal_order_id' => $order->paypal_order_id,
-                    'created_at' => $order->created_at?->toIso8601String(),
-                    'delivered_at' => $order->delivered_at?->toIso8601String(),
-                    'completed_at' => $order->completed_at?->toIso8601String(),
-                    'cancelled_at' => $order->cancelled_at?->toIso8601String(),
-                    'deliveries' => $order->deliveries->map(fn ($delivery) => [
-                        'id' => $delivery->id,
-                        'file_url' => Storage::disk('public')->url($delivery->file_path),
-                        'note' => $delivery->note,
-                        'delivered_at' => $delivery->delivered_at?->toIso8601String(),
-                        'delivered_by' => $delivery->user?->name,
-                    ])->values(),
-                    'revisions' => $order->revisions->map(fn ($revision) => [
-                        'id' => $revision->id,
-                        'note' => $revision->note,
-                        'requested_by' => $revision->requester?->name,
-                        'created_at' => $revision->created_at?->toIso8601String(),
-                    ])->values(),
-                    'cancellations' => $order->cancellations->map(fn ($cancellation) => [
-                        'id' => $cancellation->id,
-                        'cancelled_by' => $cancellation->cancelled_by,
-                        'reason' => $cancellation->reason,
-                        'created_at' => $cancellation->created_at?->toIso8601String(),
-                    ])->values(),
-                ]),
+                ->map(function (Order $order) {
+                    $usedRevisions = $order->revisions->count();
+                    $allowedRevisions = (int) ($order->package?->revision_count ?? 0);
+
+                    return [
+                        'id' => $order->id,
+                        'gig_title' => $order->gig?->title,
+                        'package' => $order->package ? [
+                            'title' => $order->package->title,
+                            'tier' => $order->package->tier,
+                            'delivery_days' => $order->package->delivery_days,
+                            'revision_count' => $order->package->revision_count,
+                        ] : null,
+                        'seller' => $order->seller ? [
+                            'name' => $order->seller->name,
+                            'email' => $order->seller->email,
+                        ] : null,
+                        'quantity' => $order->quantity,
+                        'requirements' => $order->requirements,
+                        'reference_link' => $order->reference_link,
+                        'style_notes' => $order->style_notes,
+                        'coupon_code' => $order->coupon_code,
+                        'brief_file_url' => $order->brief_file_path ? Storage::disk('public')->url($order->brief_file_path) : null,
+                        'price' => (string) $order->price,
+                        'unit_price' => (string) $order->unit_price,
+                        'status' => $order->status,
+                        'payment_status' => $order->payment_status,
+                        'paypal_order_id' => $order->paypal_order_id,
+                        'created_at' => $order->created_at?->toIso8601String(),
+                        'delivered_at' => $order->delivered_at?->toIso8601String(),
+                        'completed_at' => $order->completed_at?->toIso8601String(),
+                        'cancelled_at' => $order->cancelled_at?->toIso8601String(),
+                        'used_revisions' => $usedRevisions,
+                        'remaining_revisions' => max(0, $allowedRevisions - $usedRevisions),
+                        'deliveries' => $order->deliveries->map(fn ($delivery) => [
+                            'id' => $delivery->id,
+                            'file_url' => Storage::disk('public')->url($delivery->file_path),
+                            'note' => $delivery->note,
+                            'delivered_at' => $delivery->delivered_at?->toIso8601String(),
+                            'delivered_by' => $delivery->user?->name,
+                        ])->values(),
+                        'revisions' => $order->revisions->map(fn ($revision) => [
+                            'id' => $revision->id,
+                            'note' => $revision->note,
+                            'requested_by' => $revision->requester?->name,
+                            'created_at' => $revision->created_at?->toIso8601String(),
+                        ])->values(),
+                        'cancellations' => $order->cancellations->map(fn ($cancellation) => [
+                            'id' => $cancellation->id,
+                            'cancelled_by' => $cancellation->cancelled_by,
+                            'reason' => $cancellation->reason,
+                            'created_at' => $cancellation->created_at?->toIso8601String(),
+                        ])->values(),
+                    ];
+                }),
             'paypal' => $this->paypal->publicConfig(),
         ]);
     }
@@ -333,10 +340,11 @@ class BuyerOrderController extends Controller
             ]);
         }
 
-        $allowedRevisions = (int) ($order->package?->revision_count ?? 0);
+        $allowedRevisions = max(0, (int) ($order->package?->revision_count ?? 0));
         $usedRevisions = $order->revisions()->count();
+        $remainingRevisions = $allowedRevisions - $usedRevisions;
 
-        if ($usedRevisions >= $allowedRevisions) {
+        if ($remainingRevisions <= 0) {
             throw ValidationException::withMessages([
                 'revision_note' => 'This order has already used all included revisions.',
             ]);

@@ -87,9 +87,11 @@ test('super admin can approve withdrawal request', function () {
         ->assertRedirect();
 
     $withdrawal->refresh();
+    $wallet->refresh();
 
     expect($withdrawal->status)->toBe('approved');
     expect($withdrawal->reviewed_by)->toBe($admin->id);
+    expect($wallet->pending_balance)->toEqual('0.00');
 });
 
 test('super admin can reject withdrawal request and restore seller balance', function () {
@@ -129,7 +131,7 @@ test('super admin can reject withdrawal request and restore seller balance', fun
     expect($wallet->pending_balance)->toEqual('0.00');
 });
 
-test('super admin can mark approved withdrawal as paid', function () {
+test('approved withdrawal cannot be moved into an extra paid state', function () {
     $admin = superAdminWithdrawalUser();
     $seller = sellerWithdrawalUser();
 
@@ -138,7 +140,7 @@ test('super admin can mark approved withdrawal as paid', function () {
         'owner_type' => 'seller',
         'currency' => 'USD',
         'available_balance' => 100,
-        'pending_balance' => 50,
+        'pending_balance' => 0,
         'escrow_balance' => 0,
         'status' => 'active',
     ]);
@@ -153,7 +155,7 @@ test('super admin can mark approved withdrawal as paid', function () {
 
     $this->actingAs($admin)
         ->put(route('admin.withdrawals.update', $withdrawal), [
-            'status' => 'paid',
+            'status' => 'approved',
             'note' => 'Transferred successfully.',
         ])
         ->assertRedirect();
@@ -161,6 +163,6 @@ test('super admin can mark approved withdrawal as paid', function () {
     $wallet->refresh();
     $withdrawal->refresh();
 
-    expect($withdrawal->status)->toBe('paid');
+    expect($withdrawal->status)->toBe('approved');
     expect($wallet->pending_balance)->toEqual('0.00');
 });

@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { CheckCircle2, CircleOff, CreditCard } from 'lucide-react';
+import { CheckCircle2, CircleOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -53,11 +53,10 @@ type StatCard = {
 type Props = {
     stats: StatCard[];
     requests: WithdrawalRow[];
-    statusOptions: WithdrawalStatus[];
 };
 
 type ReviewForm = {
-    status: 'approved' | 'rejected' | 'paid';
+    status: 'approved' | 'rejected';
     note: string;
 };
 
@@ -90,7 +89,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
         setReviewTarget(withdrawal);
         form.clearErrors();
         form.setData({
-            status: withdrawal.status === 'pending' ? 'approved' : withdrawal.status === 'approved' ? 'paid' : 'approved',
+            status: 'approved',
             note: withdrawal.note ?? '',
         });
     };
@@ -121,7 +120,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
                     title="Withdrawals"
-                    description="Review seller payout requests, move them through approval, and keep payout balances reconciled."
+                    description="Review seller payout requests and either approve them or return the reserved funds back to the seller."
                 />
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -129,7 +128,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                         <div key={item.label} className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
                             <p className="text-sm text-muted-foreground">{item.label}</p>
                             <p className="mt-2 text-2xl font-semibold">
-                                {item.label === 'Paid Out' ? `USD ${item.value}` : item.value}
+                                {item.label === 'Approved Payouts' ? `USD ${item.value}` : item.value}
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
                         </div>
@@ -166,7 +165,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Badge variant={request.status === 'paid' ? 'default' : 'secondary'}>
+                                        <Badge variant={request.status === 'approved' || request.status === 'paid' ? 'default' : 'secondary'}>
                                             {request.status}
                                         </Badge>
                                     </td>
@@ -178,7 +177,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
-                                            {request.status !== 'rejected' && request.status !== 'paid' && (
+                                            {request.status === 'pending' && (
                                                 <Button variant="outline" size="sm" onClick={() => openReview(request)}>
                                                     Review
                                                 </Button>
@@ -214,28 +213,18 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {reviewTarget.status === 'pending' && (
-                                            <SelectItem value="approved">
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle2 className="size-4" />
-                                                    Approve
-                                                </div>
-                                            </SelectItem>
-                                        )}
+                                        <SelectItem value="approved">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="size-4" />
+                                                Approve
+                                            </div>
+                                        </SelectItem>
                                         <SelectItem value="rejected">
                                             <div className="flex items-center gap-2">
                                                 <CircleOff className="size-4" />
                                                 Reject
                                             </div>
                                         </SelectItem>
-                                        {reviewTarget.status === 'approved' && (
-                                            <SelectItem value="paid">
-                                                <div className="flex items-center gap-2">
-                                                    <CreditCard className="size-4" />
-                                                    Mark Paid
-                                                </div>
-                                            </SelectItem>
-                                        )}
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.status} />
@@ -249,7 +238,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                                     value={form.data.note}
                                     onChange={(event) => form.setData('note', event.target.value)}
                                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                    placeholder="Add review note or payout reference."
+                                    placeholder="Add approval or rejection note."
                                 />
                                 <InputError message={form.errors.note} />
                             </div>
