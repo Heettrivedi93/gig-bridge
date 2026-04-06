@@ -12,9 +12,9 @@ class LoginResponse implements LoginResponseContract
         $user = Auth::user();
 
         if ($user->hasRole('super_admin')) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('admin.dashboard')->with('success', 'Welcome back!');
         }
 
-        return redirect()->intended(config('fortify.home', '/dashboard'));
+        return redirect()->intended(config('fortify.home', '/dashboard'))->with('success', 'Welcome back!');
     }
 }

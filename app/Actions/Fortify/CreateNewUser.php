@@ -4,6 +4,8 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -33,6 +35,24 @@ class CreateNewUser implements CreatesNewUsers
         ]);
 
         $user->assignRole($input['role']);
+
+        if ($input['role'] === 'seller') {
+            $defaultPlan = Plan::query()
+                ->where('status', 'active')
+                ->orderBy('price')
+                ->orderBy('id')
+                ->first();
+
+            if ($defaultPlan) {
+                Subscription::create([
+                    'user_id' => $user->id,
+                    'plan_id' => $defaultPlan->id,
+                    'starts_at' => now(),
+                    'ends_at' => now()->addDays($defaultPlan->duration_days),
+                    'status' => 'active',
+                ]);
+            }
+        }
 
         return $user;
     }

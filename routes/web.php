@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\SellerGigController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -14,6 +15,13 @@ Route::inertia('/', 'welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    Route::prefix('seller')->name('seller.')->group(function () {
+        Route::get('gigs', [SellerGigController::class, 'index'])->name('gigs.index');
+        Route::post('gigs', [SellerGigController::class, 'store'])->name('gigs.store');
+        Route::put('gigs/{gig}', [SellerGigController::class, 'update'])->name('gigs.update');
+        Route::delete('gigs/{gig}', [SellerGigController::class, 'destroy'])->name('gigs.destroy');
+    });
 });
 
 // Admin routes

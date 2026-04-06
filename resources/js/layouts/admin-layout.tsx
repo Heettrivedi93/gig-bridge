@@ -4,6 +4,7 @@ import { AppContent } from '@/components/app-content';
 import AppLogo from '@/components/app-logo';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import FlashToaster from '@/components/flash-toaster';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -54,12 +55,15 @@ function AdminSidebar() {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
-        <AppShell variant="sidebar">
-            <AdminSidebar />
-            <AppContent variant="sidebar" className="overflow-x-hidden">
-                <AppSidebarHeader />
-                {children}
-            </AppContent>
-        </AppShell>
+        <>
+            <FlashToaster />
+            <AppShell variant="sidebar">
+                <AdminSidebar />
+                <AppContent variant="sidebar" className="overflow-x-hidden">
+                    <AppSidebarHeader />
+                    {children}
+                </AppContent>
+            </AppShell>
+        </>
     );
 }

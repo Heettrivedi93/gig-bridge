@@ -53,6 +53,6 @@ class SecurityController extends Controller implements HasMiddleware
             'password' => $request->password,
         ]);
 
-        return back();
+        return back()->with('success', 'Password updated successfully.');
     }
 }

@@ -14,10 +14,24 @@ trait ProfileValidationRules
      */
     protected function profileRules(?int $userId = null): array
     {
-        return [
+        $rules = [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
         ];
+
+        if ($userId !== null && User::query()->whereKey($userId)->whereDoesntHave('roles', fn ($query) => $query->where('name', 'super_admin'))->exists()) {
+            $rules += [
+                'bio' => ['nullable', 'string', 'max:5000'],
+                'phone' => ['nullable', 'string', 'max:50'],
+                'profile_picture' => ['nullable', 'image', 'max:2048'],
+                'remove_profile_picture' => ['nullable', 'boolean'],
+                'skills' => ['nullable', 'string', 'max:2000'],
+                'location' => ['nullable', 'string', 'max:255'],
+                'website' => ['nullable', 'url', 'max:255'],
+            ];
+        }
+
+        return $rules;
     }
 
     /**

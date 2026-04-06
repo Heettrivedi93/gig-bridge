@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -38,11 +39,19 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+                'warning' => $request->session()->get('warning'),
+                'info' => $request->session()->get('info'),
+            ],
             'auth' => [
-                'user' => $request->user() ? array_merge(
-                    $request->user()->toArray(),
-                    ['roles' => $request->user()->getRoleNames()]
-                ) : null,
+                'user' => $request->user() ? array_merge($request->user()->toArray(), [
+                    'roles' => $request->user()->getRoleNames(),
+                    'avatar' => $request->user()->profile_picture
+                        ? Storage::disk('public')->url($request->user()->profile_picture)
+                        : null,
+                ]) : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
