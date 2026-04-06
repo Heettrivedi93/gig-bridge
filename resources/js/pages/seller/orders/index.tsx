@@ -72,6 +72,24 @@ function formatDate(value: string | null) {
     return new Date(value).toLocaleString();
 }
 
+function summarizeText(value: string, limit = 140) {
+    const trimmed = value.trim();
+
+    if (trimmed.length <= limit) {
+        return trimmed;
+    }
+
+    return `${trimmed.slice(0, limit).trimEnd()}...`;
+}
+
+function shortDate(value: string | null) {
+    if (!value) {
+        return 'Pending';
+    }
+
+    return new Date(value).toLocaleDateString();
+}
+
 export default function SellerOrdersIndex({ orders }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
     const [deliveryTarget, setDeliveryTarget] = useState<SellerOrder | null>(null);
@@ -140,41 +158,32 @@ export default function SellerOrdersIndex({ orders }: Props) {
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
                     title="Seller Orders"
-                    description="Manage paid work, review buyer briefs, deliver files, and keep a clear audit trail for cancellations and revision requests."
+                    description="A clean view of active work, delivery status, and buyer briefs."
                 />
 
-                <div className="grid gap-4 xl:grid-cols-3">
-                    <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <ShoppingBag className="size-4" />
                             Total orders
                         </div>
-                        <p className="mt-3 text-2xl font-semibold">{orders.length}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            All orders assigned to your seller account.
-                        </p>
+                        <p className="mt-2 text-2xl font-semibold">{orders.length}</p>
                     </div>
 
-                    <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <PackageCheck className="size-4" />
                             Active work
                         </div>
-                        <p className="mt-3 text-2xl font-semibold">{activeOrders.length}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Orders you can deliver right now.
-                        </p>
+                        <p className="mt-2 text-2xl font-semibold">{activeOrders.length}</p>
                     </div>
 
-                    <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock3 className="size-4" />
                             Awaiting buyer
                         </div>
-                        <p className="mt-3 text-2xl font-semibold">{deliveredOrders.length}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Delivered work waiting for buyer action.
-                        </p>
+                        <p className="mt-2 text-2xl font-semibold">{deliveredOrders.length}</p>
                     </div>
                 </div>
 
@@ -186,131 +195,98 @@ export default function SellerOrdersIndex({ orders }: Props) {
                         </p>
                     </section>
                 ) : (
-                    <div className="space-y-4">
-                        {orders.map((order) => (
-                            <section key={order.id} className="rounded-3xl border border-border/70 bg-card p-6">
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                    <div className="space-y-3">
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <h2 className="text-lg font-semibold">
-                                                {order.gig_title ?? 'Order'}
-                                            </h2>
-                                            <Badge variant="outline">
-                                                {order.package?.tier ?? 'package'}
-                                            </Badge>
-                                            <Badge variant={order.status === 'active' ? 'default' : 'secondary'}>
-                                                {order.status}
-                                            </Badge>
-                                            <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>
-                                                {order.payment_status}
-                                            </Badge>
+                    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+                        <div className="hidden overflow-x-auto lg:block">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/30 text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                                    <tr>
+                                        <th className="px-4 py-3 font-medium">Order</th>
+                                        <th className="px-4 py-3 font-medium">Buyer</th>
+                                        <th className="px-4 py-3 font-medium">Brief</th>
+                                        <th className="px-4 py-3 font-medium">Timeline</th>
+                                        <th className="px-4 py-3 font-medium">Status</th>
+                                        <th className="px-4 py-3 font-medium">Total</th>
+                                        <th className="px-4 py-3 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {orders.map((order) => (
+                                        <tr key={order.id} className="border-t border-border/70 align-top">
+                                            <td className="px-4 py-4">
+                                                <p className="font-medium">{order.gig_title ?? 'Order'}</p>
+                                                <p className="mt-1 text-muted-foreground">#{order.id} • {order.package?.title ?? 'Package'}</p>
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    <Badge variant="outline">{order.package?.tier ?? 'package'}</Badge>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <p className="font-medium">{order.buyer?.name ?? 'Buyer'}</p>
+                                                <p className="mt-1 text-muted-foreground">{order.buyer?.email ?? 'No email'}</p>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <p className="text-foreground">{summarizeText(order.requirements, 90)}</p>
+                                                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                    {order.reference_link && (
+                                                        <a href={order.reference_link} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">Reference</a>
+                                                    )}
+                                                    {order.brief_file_url && (
+                                                        <a href={order.brief_file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary underline underline-offset-4">
+                                                            <FileText className="size-3.5" />
+                                                            File
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <p>{order.package?.delivery_days ?? 0} days</p>
+                                                <p className="text-muted-foreground">{order.package?.revision_count ?? 0} revisions</p>
+                                                <p className="mt-1 text-muted-foreground">Delivered: {shortDate(order.delivered_at)}</p>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col gap-2">
+                                                    <Badge variant={order.status === 'active' ? 'default' : 'secondary'}>{order.status}</Badge>
+                                                    <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>{order.payment_status}</Badge>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 font-medium">USD {order.price}</td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col gap-2">
+                                                    <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>View</Button>
+                                                    <Button size="sm" onClick={() => setDeliveryTarget(order)} disabled={order.status !== 'active' || order.payment_status !== 'paid'}>Deliver</Button>
+                                                    <Button size="sm" variant="outline" onClick={() => setCancelTarget(order)} disabled={!['active', 'delivered'].includes(order.status)}>Cancel</Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="space-y-3 p-4 lg:hidden">
+                            {orders.map((order) => (
+                                <div key={order.id} className="rounded-xl border border-border/70 p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium">{order.gig_title ?? 'Order'}</p>
+                                            <p className="text-sm text-muted-foreground">#{order.id} • {order.buyer?.name ?? 'Buyer'}</p>
                                         </div>
-
-                                        <p className="text-sm text-muted-foreground">
-                                            Buyer: {order.buyer?.name ?? 'Buyer'} • Package: {order.package?.title ?? 'Package'}
-                                        </p>
+                                        <p className="font-semibold">USD {order.price}</p>
                                     </div>
-
-                                    <div className="text-right">
-                                        <p className="text-sm text-muted-foreground">Order total</p>
-                                        <p className="text-2xl font-semibold">USD {order.price}</p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <Badge variant="outline">{order.package?.tier ?? 'package'}</Badge>
+                                        <Badge variant={order.status === 'active' ? 'default' : 'secondary'}>{order.status}</Badge>
+                                        <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>{order.payment_status}</Badge>
                                     </div>
-                                </div>
-
-                                <div className="mt-5 grid gap-4 lg:grid-cols-4">
-                                    <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                            Buyer
-                                        </p>
-                                        <p className="mt-2 font-medium">{order.buyer?.name}</p>
-                                        <p className="text-sm text-muted-foreground">{order.buyer?.email}</p>
-                                    </div>
-
-                                    <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                            Delivery timeline
-                                        </p>
-                                        <p className="mt-2 font-medium">
-                                            {order.package?.delivery_days ?? 0} days
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {order.package?.revision_count ?? 0} revisions
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                            Delivered at
-                                        </p>
-                                        <p className="mt-2 font-medium">{formatDate(order.delivered_at)}</p>
-                                    </div>
-
-                                    <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                            Completed at
-                                        </p>
-                                        <p className="mt-2 font-medium">{formatDate(order.completed_at)}</p>
+                                    <p className="mt-3 text-sm text-muted-foreground">{summarizeText(order.requirements, 100)}</p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>View</Button>
+                                        <Button size="sm" onClick={() => setDeliveryTarget(order)} disabled={order.status !== 'active' || order.payment_status !== 'paid'}>Deliver</Button>
+                                        <Button size="sm" variant="outline" onClick={() => setCancelTarget(order)} disabled={!['active', 'delivered'].includes(order.status)}>Cancel</Button>
                                     </div>
                                 </div>
-
-                                <div className="mt-5 rounded-2xl border border-border/70 p-4">
-                                    <p className="text-sm font-medium">Buyer requirements</p>
-                                    <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
-                                        {order.requirements}
-                                    </p>
-
-                                    {(order.reference_link || order.style_notes || order.brief_file_url) && (
-                                        <div className="mt-4 space-y-2 border-t border-border/70 pt-4 text-sm text-muted-foreground">
-                                            {order.reference_link && (
-                                                <p>
-                                                    Reference:{' '}
-                                                    <a
-                                                        href={order.reference_link}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="text-primary underline underline-offset-4"
-                                                    >
-                                                        {order.reference_link}
-                                                    </a>
-                                                </p>
-                                            )}
-                                            {order.style_notes && <p>Style notes: {order.style_notes}</p>}
-                                            {order.brief_file_url && (
-                                                <a
-                                                    href={order.brief_file_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="inline-flex items-center gap-2 text-primary underline underline-offset-4"
-                                                >
-                                                    <FileText className="size-4" />
-                                                    Download brief file
-                                                </a>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-5 flex flex-wrap gap-3">
-                                    <Button variant="outline" onClick={() => setSelectedOrder(order)}>
-                                        View detail
-                                    </Button>
-                                    <Button
-                                        onClick={() => setDeliveryTarget(order)}
-                                        disabled={order.status !== 'active' || order.payment_status !== 'paid'}
-                                    >
-                                        Submit delivery
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setCancelTarget(order)}
-                                        disabled={!['active', 'delivered'].includes(order.status)}
-                                    >
-                                        Cancel order
-                                    </Button>
-                                </div>
-                            </section>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    </section>
                 )}
             </div>
 

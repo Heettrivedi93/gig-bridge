@@ -23,24 +23,38 @@ class Order extends Model
         'billing_email',
         'unit_price',
         'price',
+        'gross_amount',
+        'platform_fee_percentage',
+        'platform_fee_amount',
+        'seller_net_amount',
+        'refunded_amount',
         'status',
         'payment_status',
+        'fund_status',
         'escrow_held',
         'paypal_order_id',
         'paypal_payer_id',
         'delivered_at',
         'completed_at',
         'cancelled_at',
+        'funds_released_at',
+        'released_by',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'price' => 'decimal:2',
+        'gross_amount' => 'decimal:2',
+        'platform_fee_percentage' => 'decimal:2',
+        'platform_fee_amount' => 'decimal:2',
+        'seller_net_amount' => 'decimal:2',
+        'refunded_amount' => 'decimal:2',
         'escrow_held' => 'boolean',
         'delivered_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'funds_released_at' => 'datetime',
     ];
 
     public function buyer(): BelongsTo
@@ -63,6 +77,11 @@ class Order extends Model
         return $this->belongsTo(GigPackage::class, 'package_id');
     }
 
+    public function releasedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'released_by');
+    }
+
     public function deliveries(): HasMany
     {
         return $this->hasMany(OrderDelivery::class)->latest('delivered_at');
@@ -76,5 +95,10 @@ class Order extends Model
     public function cancellations(): HasMany
     {
         return $this->hasMany(OrderCancellation::class)->latest();
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class)->latest();
     }
 }

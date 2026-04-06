@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Wallet;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -27,6 +28,11 @@ class DatabaseSeeder extends Seeder
         );
 
         $admin->assignRole($superAdminRole);
+
+        Wallet::firstOrCreate(
+            ['user_id' => null, 'owner_type' => 'system'],
+            ['currency' => 'USD', 'status' => 'active']
+        );
 
         $this->call(CategorySeeder::class);
         $this->call(PlanSeeder::class);

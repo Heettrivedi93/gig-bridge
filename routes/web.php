@@ -2,14 +2,18 @@
 
 use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminWithdrawalController;
+use App\Http\Controllers\Admin\AdminWalletLedgerController;
 use App\Http\Controllers\BuyerCatalogController;
 use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\SellerGigController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerPlanController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -18,7 +22,7 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::prefix('seller')->name('seller.')->group(function () {
         Route::get('gigs', [SellerGigController::class, 'index'])->name('gigs.index');
@@ -30,7 +34,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('orders/{order}/cancel', [SellerOrderController::class, 'cancel'])->name('orders.cancel');
 
         Route::get('plans', [SellerPlanController::class, 'index'])->name('plans.index');
+        Route::get('wallet', [SellerPlanController::class, 'wallet'])->name('wallet.index');
         Route::get('payments', [SellerPlanController::class, 'history'])->name('payments.index');
+        Route::post('withdrawals', [SellerPlanController::class, 'requestWithdrawal'])->name('withdrawals.store');
         Route::post('plans/{plan}/activate-free', [SellerPlanController::class, 'activateFree'])->name('plans.activate-free');
         Route::post('plans/{plan}/paypal/order', [SellerPlanController::class, 'createPaypalOrder'])->name('plans.paypal.order');
         Route::post('plans/{plan}/paypal/capture', [SellerPlanController::class, 'capturePaypalOrder'])->name('plans.paypal.capture');
@@ -42,6 +48,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('orders', [BuyerOrderController::class, 'index'])->name('orders.index');
         Route::get('payments', [BuyerOrderController::class, 'payments'])->name('payments.index');
         Route::post('gigs/{gig}/orders', [BuyerOrderController::class, 'store'])->name('orders.store');
+        Route::post('orders/{order}/revision', [BuyerOrderController::class, 'requestRevision'])->name('orders.revision');
+        Route::post('orders/{order}/complete', [BuyerOrderController::class, 'complete'])->name('orders.complete');
+        Route::post('orders/{order}/cancel', [BuyerOrderController::class, 'cancel'])->name('orders.cancel');
         Route::post('orders/{order}/paypal/order', [BuyerOrderController::class, 'createPaypalOrder'])->name('orders.paypal.order');
         Route::post('orders/{order}/paypal/capture', [BuyerOrderController::class, 'capturePaypalOrder'])->name('orders.paypal.capture');
     });
@@ -60,6 +69,18 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Users
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::put('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+
+    // Orders
+    Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
+    Route::put('orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
+    Route::post('orders/{order}/release-funds', [AdminOrderController::class, 'releaseFunds'])->name('orders.release-funds');
+
+    // Withdrawals
+    Route::get('withdrawals', [AdminWithdrawalController::class, 'index'])->name('withdrawals.index');
+    Route::put('withdrawals/{withdrawal}', [AdminWithdrawalController::class, 'update'])->name('withdrawals.update');
+
+    // Ledger
+    Route::get('ledger', [AdminWalletLedgerController::class, 'index'])->name('ledger.index');
 
     // Subscription plans
     Route::get('plans', [AdminPlanController::class, 'index'])->name('plans.index');

@@ -1,4 +1,3 @@
-import FlashToaster from '@/components/flash-toaster';
 import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout';
 
 export default function AuthLayout({
@@ -11,11 +10,8 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     return (
-        <>
-            <FlashToaster />
-            <AuthLayoutTemplate title={title} description={description}>
-                {children}
-            </AuthLayoutTemplate>
-        </>
+        <AuthLayoutTemplate title={title} description={description}>
+            {children}
+        </AuthLayoutTemplate>
     );
 }

@@ -91,10 +91,7 @@ export default function FlashToaster() {
 
         const id = `${key}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
 
-        window.setTimeout(() => {
-            setToasts((current) => [...current, { id, level, message, leaving: false }]);
-        }, 0);
-
+        setToasts((current) => [...current, { id, level, message, leaving: false }]);
         registerToastTimers(id, key);
     });
 
@@ -112,8 +109,9 @@ export default function FlashToaster() {
         const messages = Array.from(
             new Set(
                 Object.values(errors ?? {})
-                    .filter((message): message is string => Boolean(message))
-                    .map((message) => message.trim())
+                    .flatMap((message) =>
+                        typeof message === 'string' ? [message.trim()] : [],
+                    )
                     .filter(Boolean),
             ),
         );
@@ -125,6 +123,7 @@ export default function FlashToaster() {
 
     useEffect(() => {
         const timers = timeoutIds.current;
+        const keys = activeKeys.current;
 
         return () => {
             for (const activeTimers of timers.values()) {
@@ -134,6 +133,7 @@ export default function FlashToaster() {
             }
 
             timers.clear();
+            keys.clear();
         };
     }, []);
 

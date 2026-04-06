@@ -6,6 +6,8 @@ use App\Models\Gig;
 use App\Models\GigPackage;
 use App\Models\Order;
 use App\Services\PaypalCheckoutService;
+use App\Services\OrderFundService;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +19,10 @@ use RuntimeException;
 
 class BuyerOrderController extends Controller
 {
-    public function __construct(private readonly PaypalCheckoutService $paypal)
+    public function __construct(
+        private readonly PaypalCheckoutService $paypal,
+        private readonly OrderFundService $funds,
+    )
     {
     }
 
@@ -27,16 +32,31 @@ class BuyerOrderController extends Controller
 
         return Inertia::render('buyer/orders/index', [
             'orders' => Order::query()
-                ->with(['gig:id,title', 'package:id,gig_id,tier,title,delivery_days', 'seller:id,name'])
+                ->with([
+                    'gig:id,title',
+                    'package:id,gig_id,tier,title,delivery_days,revision_count',
+                    'seller:id,name,email',
+                    'deliveries.user:id,name',
+                    'revisions.requester:id,name',
+                    'cancellations',
+                ])
                 ->where('buyer_id', $buyer->id)
+                ->latest('updated_at')
                 ->latest('id')
                 ->get()
                 ->map(fn (Order $order) => [
                     'id' => $order->id,
                     'gig_title' => $order->gig?->title,
-                    'package_title' => $order->package?->title,
-                    'package_tier' => $order->package?->tier,
-                    'seller_name' => $order->seller?->name,
+                    'package' => $order->package ? [
+                        'title' => $order->package->title,
+                        'tier' => $order->package->tier,
+                        'delivery_days' => $order->package->delivery_days,
+                        'revision_count' => $order->package->revision_count,
+                    ] : null,
+                    'seller' => $order->seller ? [
+                        'name' => $order->seller->name,
+                        'email' => $order->seller->email,
+                    ] : null,
                     'quantity' => $order->quantity,
                     'requirements' => $order->requirements,
                     'reference_link' => $order->reference_link,
@@ -49,6 +69,28 @@ class BuyerOrderController extends Controller
                     'payment_status' => $order->payment_status,
                     'paypal_order_id' => $order->paypal_order_id,
                     'created_at' => $order->created_at?->toIso8601String(),
+                    'delivered_at' => $order->delivered_at?->toIso8601String(),
+                    'completed_at' => $order->completed_at?->toIso8601String(),
+                    'cancelled_at' => $order->cancelled_at?->toIso8601String(),
+                    'deliveries' => $order->deliveries->map(fn ($delivery) => [
+                        'id' => $delivery->id,
+                        'file_url' => Storage::disk('public')->url($delivery->file_path),
+                        'note' => $delivery->note,
+                        'delivered_at' => $delivery->delivered_at?->toIso8601String(),
+                        'delivered_by' => $delivery->user?->name,
+                    ])->values(),
+                    'revisions' => $order->revisions->map(fn ($revision) => [
+                        'id' => $revision->id,
+                        'note' => $revision->note,
+                        'requested_by' => $revision->requester?->name,
+                        'created_at' => $revision->created_at?->toIso8601String(),
+                    ])->values(),
+                    'cancellations' => $order->cancellations->map(fn ($cancellation) => [
+                        'id' => $cancellation->id,
+                        'cancelled_by' => $cancellation->cancelled_by,
+                        'reason' => $cancellation->reason,
+                        'created_at' => $cancellation->created_at?->toIso8601String(),
+                    ])->values(),
                 ]),
             'paypal' => $this->paypal->publicConfig(),
         ]);
@@ -143,8 +185,10 @@ class BuyerOrderController extends Controller
             'billing_email' => $data['billing_email'],
             'unit_price' => $unitPrice,
             'price' => $unitPrice * $quantity,
+            'gross_amount' => $unitPrice * $quantity,
             'status' => 'pending',
             'payment_status' => 'pending',
+            'fund_status' => 'none',
             'escrow_held' => false,
         ]);
 
@@ -251,17 +295,132 @@ class BuyerOrderController extends Controller
             ]);
         }
 
+        $platformFeePercentage = (float) Setting::getValue('payment_platform_fee_percentage', 10);
+        $grossAmount = (float) $order->price;
+        $platformFeeAmount = round($grossAmount * ($platformFeePercentage / 100), 2);
+        $sellerNetAmount = round($grossAmount - $platformFeeAmount, 2);
+
         $order->update([
             'status' => 'active',
             'payment_status' => 'paid',
+            'fund_status' => 'escrow',
             'escrow_held' => true,
+            'gross_amount' => $grossAmount,
+            'platform_fee_percentage' => $platformFeePercentage,
+            'platform_fee_amount' => $platformFeeAmount,
+            'seller_net_amount' => $sellerNetAmount,
             'paypal_payer_id' => data_get($capture, 'payer.payer_id'),
         ]);
+
+        $this->funds->holdEscrow($order->fresh());
 
         return response()->json([
             'status' => 'COMPLETED',
             'order_id' => $order->id,
         ]);
+    }
+
+    public function requestRevision(Request $request, Order $order): RedirectResponse
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+
+        $order->loadMissing('package');
+
+        if ($order->status !== 'delivered' || $order->payment_status !== 'paid') {
+            throw ValidationException::withMessages([
+                'revision_note' => 'Only delivered paid orders can receive revision requests.',
+            ]);
+        }
+
+        $allowedRevisions = (int) ($order->package?->revision_count ?? 0);
+        $usedRevisions = $order->revisions()->count();
+
+        if ($usedRevisions >= $allowedRevisions) {
+            throw ValidationException::withMessages([
+                'revision_note' => 'This order has already used all included revisions.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'revision_note' => ['required', 'string', 'max:3000'],
+        ]);
+
+        $order->revisions()->create([
+            'requested_by' => $buyer->id,
+            'note' => $data['revision_note'],
+        ]);
+
+        $order->update([
+            'status' => 'active',
+        ]);
+
+        return back()->with('success', 'Revision request submitted successfully.');
+    }
+
+    public function complete(Request $request, Order $order): RedirectResponse
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+
+        if ($order->status !== 'delivered' || $order->payment_status !== 'paid') {
+            throw ValidationException::withMessages([
+                'order' => 'Only delivered paid orders can be completed.',
+            ]);
+        }
+
+        $order->update([
+            'status' => 'completed',
+            'escrow_held' => true,
+            'completed_at' => now(),
+        ]);
+        $freshOrder = $order->fresh();
+
+        if ($freshOrder->fund_status === 'escrow') {
+            $this->funds->markReleasable($freshOrder);
+        } else {
+            $freshOrder->update([
+                'fund_status' => 'releasable',
+            ]);
+        }
+
+        return back()->with('success', 'Order marked as completed.');
+    }
+
+    public function cancel(Request $request, Order $order): RedirectResponse
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+
+        if (! in_array($order->status, ['pending', 'active', 'delivered'], true)) {
+            throw ValidationException::withMessages([
+                'cancellation_reason' => 'Only pending, active, or delivered orders can be cancelled.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'cancellation_reason' => ['required', 'string', 'max:3000'],
+        ]);
+
+        $wasPaid = $order->payment_status === 'paid';
+
+        $order->cancellations()->create([
+            'cancelled_by' => 'buyer',
+            'reason' => $data['cancellation_reason'],
+        ]);
+
+        $order->update([
+            'status' => 'cancelled',
+            'payment_status' => $wasPaid ? 'refunded' : $order->payment_status,
+            'escrow_held' => false,
+            'cancelled_at' => now(),
+        ]);
+
+        if ($wasPaid) {
+            $this->funds->refundEscrow($order->fresh());
+        }
+
+        return back()->with('success', 'Order cancelled successfully.');
     }
 
     private function ensureBuyer(Request $request)

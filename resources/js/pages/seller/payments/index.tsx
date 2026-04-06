@@ -64,11 +64,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
         [payments],
     );
     const totalSpent = useMemo(
-        () =>
-            completedPayments.reduce(
-                (sum, payment) => sum + Number(payment.amount),
-                0,
-            ),
+        () => completedPayments.reduce((sum, payment) => sum + Number(payment.amount), 0),
         [completedPayments],
     );
 
@@ -81,12 +77,10 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
             <Head title="Payment History" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <Heading
-                        title="Payment History"
-                        description="Review your subscription payments and open invoice-style payment details any time."
-                    />
-                </div>
+                <Heading
+                    title="Payment History"
+                    description="Review your seller plan purchases and open invoice details any time."
+                />
 
                 <div className="grid gap-4 xl:grid-cols-3">
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
@@ -96,7 +90,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                         </div>
                         <p className="mt-3 text-2xl font-semibold">{payments.length}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Includes pending and completed subscription transactions.
+                            Includes pending and completed seller subscription transactions.
                         </p>
                     </div>
 
@@ -107,7 +101,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                         </div>
                         <p className="mt-3 text-2xl font-semibold">{completedPayments.length}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Successfully captured seller plan payments.
+                            Successfully captured plan purchases.
                         </p>
                     </div>
 
@@ -117,9 +111,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                             Total spent
                         </div>
                         <p className="mt-3 text-2xl font-semibold">
-                            {payments[0]
-                                ? formatMoney(payments[0].currency, totalSpent.toFixed(2))
-                                : 'USD 0.00'}
+                            {payments[0] ? formatMoney(payments[0].currency, totalSpent.toFixed(2)) : 'USD 0.00'}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Based on completed seller subscription purchases.
@@ -150,13 +142,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                                         <div className="flex items-center gap-3">
                                             <p className="font-medium">{payment.invoice_number}</p>
                                             <Badge variant="outline">{payment.provider}</Badge>
-                                            <Badge
-                                                variant={
-                                                    payment.status === 'completed'
-                                                        ? 'default'
-                                                        : 'secondary'
-                                                }
-                                            >
+                                            <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
                                                 {payment.status}
                                             </Badge>
                                         </div>
@@ -168,10 +154,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                                         </p>
                                     </div>
 
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setSelectedPayment(payment)}
-                                    >
+                                    <Button variant="outline" onClick={() => setSelectedPayment(payment)}>
                                         <FileText className="mr-2 size-4" />
                                         View invoice
                                     </Button>
@@ -216,13 +199,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
 
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline">{selectedPayment.provider}</Badge>
-                                        <Badge
-                                            variant={
-                                                selectedPayment.status === 'completed'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                        >
+                                        <Badge variant={selectedPayment.status === 'completed' ? 'default' : 'secondary'}>
                                             {selectedPayment.status}
                                         </Badge>
                                     </div>
@@ -231,12 +208,8 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                                 <div className="grid gap-6 py-5 lg:grid-cols-2">
                                     <div>
                                         <p className="text-sm font-medium">Billed to</p>
-                                        <p className="mt-2 text-sm text-muted-foreground">
-                                            {seller.name}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {seller.email}
-                                        </p>
+                                        <p className="mt-2 text-sm text-muted-foreground">{seller.name}</p>
+                                        <p className="text-sm text-muted-foreground">{seller.email}</p>
                                     </div>
 
                                     <div>
@@ -279,9 +252,7 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                                     </div>
                                     <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-4 text-base font-semibold">
                                         <span>Total</span>
-                                        <span>
-                                            {formatMoney(selectedPayment.currency, selectedPayment.amount)}
-                                        </span>
+                                        <span>{formatMoney(selectedPayment.currency, selectedPayment.amount)}</span>
                                     </div>
                                 </div>
                             </div>

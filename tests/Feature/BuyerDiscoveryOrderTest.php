@@ -3,9 +3,12 @@
 use App\Models\Category;
 use App\Models\Gig;
 use App\Models\GigPackage;
+use App\Models\OrderCancellation;
 use App\Models\Order;
+use App\Models\OrderRevision;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Wallet;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -219,8 +222,10 @@ test('buyer can create and capture paypal payment for a pending order', function
 
     expect($order->status)->toBe('active');
     expect($order->payment_status)->toBe('paid');
+    expect($order->fund_status)->toBe('escrow');
     expect($order->escrow_held)->toBeTrue();
     expect($order->paypal_payer_id)->toBe('PAYER-123');
+    expect(Wallet::query()->where('owner_type', 'system')->first()?->escrow_balance)->toEqual('25.00');
 });
 
 test('buyer can view payment history with invoice data', function () {
@@ -257,4 +262,113 @@ test('buyer can view payment history with invoice data', function () {
             ->where('payments.0.gig.title', $gig->title)
             ->where('payments.0.package.tier', 'premium')
             ->where('payments.0.seller.name', $seller->name));
+});
+
+test('buyer can request revision for delivered paid order', function () {
+    [$category, $subcategory] = activeCategoryWithChild();
+    $seller = sellerMarketUser();
+    $buyer = buyerUser();
+    $gig = publishedGig($seller, $category, $subcategory);
+    $package = $gig->packages()->where('tier', 'basic')->firstOrFail();
+
+    $order = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Need some revisions.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'delivered',
+        'payment_status' => 'paid',
+        'escrow_held' => true,
+        'delivered_at' => now(),
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.revision', $order), [
+            'revision_note' => 'Please adjust the spacing and icon alignment.',
+        ])
+        ->assertRedirect();
+
+    $order->refresh();
+
+    expect($order->status)->toBe('active');
+    expect(OrderRevision::query()->where('order_id', $order->id)->count())->toBe(1);
+});
+
+test('buyer can complete delivered paid order', function () {
+    [$category, $subcategory] = activeCategoryWithChild();
+    $seller = sellerMarketUser();
+    $buyer = buyerUser();
+    $gig = publishedGig($seller, $category, $subcategory);
+    $package = $gig->packages()->where('tier', 'basic')->firstOrFail();
+
+    $order = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Looks good.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'delivered',
+        'payment_status' => 'paid',
+        'escrow_held' => true,
+        'delivered_at' => now(),
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.complete', $order))
+        ->assertRedirect();
+
+    $order->refresh();
+
+    expect($order->status)->toBe('completed');
+    expect($order->fund_status)->toBe('releasable');
+    expect($order->completed_at)->not->toBeNull();
+    expect($order->escrow_held)->toBeTrue();
+});
+
+test('buyer can cancel order with audit trail', function () {
+    [$category, $subcategory] = activeCategoryWithChild();
+    $seller = sellerMarketUser();
+    $buyer = buyerUser();
+    $gig = publishedGig($seller, $category, $subcategory);
+    $package = $gig->packages()->where('tier', 'basic')->firstOrFail();
+
+    $order = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Need to cancel this.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'active',
+        'payment_status' => 'paid',
+        'escrow_held' => true,
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.cancel', $order), [
+            'cancellation_reason' => 'Project scope changed.',
+        ])
+        ->assertRedirect();
+
+    $order->refresh();
+
+    expect($order->status)->toBe('cancelled');
+    expect($order->payment_status)->toBe('refunded');
+    expect($order->cancelled_at)->not->toBeNull();
+    expect(OrderCancellation::query()->where('order_id', $order->id)->first()?->cancelled_by)->toBe('buyer');
 });

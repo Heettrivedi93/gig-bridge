@@ -1,4 +1,3 @@
-import FlashToaster from '@/components/flash-toaster';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -9,12 +8,5 @@ export default function AppLayout({
     breadcrumbs?: BreadcrumbItem[];
     children: React.ReactNode;
 }) {
-    return (
-        <>
-            <FlashToaster />
-            <AppLayoutTemplate breadcrumbs={breadcrumbs}>
-                {children}
-            </AppLayoutTemplate>
-        </>
-    );
+    return <AppLayoutTemplate breadcrumbs={breadcrumbs}>{children}</AppLayoutTemplate>;
 }

@@ -6,6 +6,8 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
+use App\Services\WalletService;
 use App\Services\PaypalCheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +20,10 @@ use RuntimeException;
 
 class SellerPlanController extends Controller
 {
-    public function __construct(private readonly PaypalCheckoutService $paypal)
+    public function __construct(
+        private readonly PaypalCheckoutService $paypal,
+        private readonly WalletService $wallets,
+    )
     {
     }
 
@@ -56,49 +61,85 @@ class SellerPlanController extends Controller
     public function history(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
-
-        $payments = SubscriptionPayment::query()
-            ->with(['plan:id,name,duration_days,gig_limit', 'subscription:id,starts_at,ends_at,status'])
-            ->where('user_id', $seller->id)
-            ->latest('captured_at')
-            ->latest('created_at')
-            ->get()
-            ->map(function (SubscriptionPayment $payment) {
-                $invoiceNumber = $payment->provider_capture_id
-                    ? 'INV-'.$payment->provider_capture_id
-                    : 'INV-'.$payment->provider_order_id;
-
-                return [
-                    'id' => $payment->id,
-                    'invoice_number' => $invoiceNumber,
-                    'provider' => strtoupper($payment->provider),
-                    'provider_order_id' => $payment->provider_order_id,
-                    'provider_capture_id' => $payment->provider_capture_id,
-                    'amount' => (string) $payment->amount,
-                    'currency' => $payment->currency,
-                    'status' => $payment->status,
-                    'created_at' => $payment->created_at?->toIso8601String(),
-                    'captured_at' => $payment->captured_at?->toIso8601String(),
-                    'plan' => $payment->plan ? [
-                        'name' => $payment->plan->name,
-                        'duration_days' => $payment->plan->duration_days,
-                        'gig_limit' => $payment->plan->gig_limit,
-                    ] : null,
-                    'subscription' => $payment->subscription ? [
-                        'starts_at' => $payment->subscription->starts_at?->toIso8601String(),
-                        'ends_at' => $payment->subscription->ends_at?->toIso8601String(),
-                        'status' => $payment->subscription->status,
-                    ] : null,
-                ];
-            });
-
         return Inertia::render('seller/payments/index', [
-            'payments' => $payments,
+            'payments' => $this->mapPayments($seller),
             'seller' => [
                 'name' => $seller->name,
                 'email' => $seller->email,
             ],
         ]);
+    }
+
+    public function wallet(Request $request): Response
+    {
+        $seller = $this->ensureSeller($request);
+        $wallet = $this->wallets->getOrCreateSellerWallet($seller);
+
+        return Inertia::render('seller/wallet/index', [
+            'seller' => [
+                'name' => $seller->name,
+                'email' => $seller->email,
+            ],
+            'wallet' => [
+                'available_balance' => (string) $wallet->available_balance,
+                'pending_balance' => (string) $wallet->pending_balance,
+                'escrow_balance' => (string) $wallet->escrow_balance,
+                'currency' => $wallet->currency,
+            ],
+            'withdrawals' => $this->mapWithdrawals($seller),
+        ]);
+    }
+
+    public function requestWithdrawal(Request $request): RedirectResponse
+    {
+        $seller = $this->ensureSeller($request);
+        $wallet = $this->wallets->getOrCreateSellerWallet($seller);
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:1'],
+            'method' => ['required', 'string', 'max:100'],
+            'details' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $amount = round((float) $data['amount'], 2);
+
+        if ($amount > (float) $wallet->available_balance) {
+            throw ValidationException::withMessages([
+                'amount' => 'Withdrawal amount exceeds your available balance.',
+            ]);
+        }
+
+        DB::transaction(function () use ($wallet, $seller, $amount, $data) {
+            $lockedWallet = $this->wallets->debitAvailable(
+                $wallet,
+                $amount,
+                'withdrawal_request',
+                null,
+                ['method' => $data['method']],
+                sprintf('Withdrawal request submitted by seller #%d', $seller->id),
+            );
+
+            $this->wallets->creditPending(
+                $lockedWallet,
+                $amount,
+                'withdrawal_request',
+                null,
+                ['method' => $data['method']],
+                sprintf('Withdrawal request reserved for seller #%d', $seller->id),
+            );
+
+            WithdrawalRequest::create([
+                'seller_id' => $seller->id,
+                'wallet_id' => $wallet->id,
+                'amount' => $amount,
+                'status' => 'pending',
+                'method' => $data['method'],
+                'details' => $data['details'] ? ['notes' => $data['details']] : null,
+                'note' => $data['details'] ?: null,
+            ]);
+        });
+
+        return back()->with('success', 'Withdrawal request submitted successfully.');
     }
 
     public function activateFree(Request $request, Plan $plan): RedirectResponse
@@ -271,5 +312,60 @@ class SellerPlanController extends Controller
         }
 
         return $subscription;
+    }
+
+    private function mapPayments(User $seller)
+    {
+        return SubscriptionPayment::query()
+            ->with(['plan:id,name,duration_days,gig_limit', 'subscription:id,starts_at,ends_at,status'])
+            ->where('user_id', $seller->id)
+            ->latest('captured_at')
+            ->latest('created_at')
+            ->get()
+            ->map(function (SubscriptionPayment $payment) {
+                $invoiceNumber = $payment->provider_capture_id
+                    ? 'INV-'.$payment->provider_capture_id
+                    : 'INV-'.$payment->provider_order_id;
+
+                return [
+                    'id' => $payment->id,
+                    'invoice_number' => $invoiceNumber,
+                    'provider' => strtoupper($payment->provider),
+                    'provider_order_id' => $payment->provider_order_id,
+                    'provider_capture_id' => $payment->provider_capture_id,
+                    'amount' => (string) $payment->amount,
+                    'currency' => $payment->currency,
+                    'status' => $payment->status,
+                    'created_at' => $payment->created_at?->toIso8601String(),
+                    'captured_at' => $payment->captured_at?->toIso8601String(),
+                    'plan' => $payment->plan ? [
+                        'name' => $payment->plan->name,
+                        'duration_days' => $payment->plan->duration_days,
+                        'gig_limit' => $payment->plan->gig_limit,
+                    ] : null,
+                    'subscription' => $payment->subscription ? [
+                        'starts_at' => $payment->subscription->starts_at?->toIso8601String(),
+                        'ends_at' => $payment->subscription->ends_at?->toIso8601String(),
+                        'status' => $payment->subscription->status,
+                    ] : null,
+                ];
+            });
+    }
+
+    private function mapWithdrawals(User $seller)
+    {
+        return WithdrawalRequest::query()
+            ->where('seller_id', $seller->id)
+            ->latest('created_at')
+            ->get()
+            ->map(fn (WithdrawalRequest $withdrawal) => [
+                'id' => $withdrawal->id,
+                'amount' => (string) $withdrawal->amount,
+                'status' => $withdrawal->status,
+                'method' => $withdrawal->method,
+                'note' => $withdrawal->note,
+                'created_at' => $withdrawal->created_at?->toIso8601String(),
+                'reviewed_at' => $withdrawal->reviewed_at?->toIso8601String(),
+            ]);
     }
 }

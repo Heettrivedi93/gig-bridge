@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\OrderFundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,10 @@ use Inertia\Response;
 
 class SellerOrderController extends Controller
 {
+    public function __construct(private readonly OrderFundService $funds)
+    {
+    }
+
     public function index(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
@@ -126,6 +131,8 @@ class SellerOrderController extends Controller
             'cancellation_reason' => ['required', 'string', 'max:3000'],
         ]);
 
+        $wasPaid = $order->payment_status === 'paid';
+
         $order->cancellations()->create([
             'cancelled_by' => 'seller',
             'reason' => $data['cancellation_reason'],
@@ -133,10 +140,14 @@ class SellerOrderController extends Controller
 
         $order->update([
             'status' => 'cancelled',
-            'payment_status' => $order->payment_status === 'paid' ? 'refunded' : $order->payment_status,
+            'payment_status' => $wasPaid ? 'refunded' : $order->payment_status,
             'escrow_held' => false,
             'cancelled_at' => now(),
         ]);
+
+        if ($wasPaid) {
+            $this->funds->refundEscrow($order->fresh());
+        }
 
         return back()->with('success', 'Order cancelled successfully.');
     }
