@@ -46,4 +46,9 @@ class Gig extends Model
     {
         return $this->hasMany(GigImage::class)->orderBy('sort_order');
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 }

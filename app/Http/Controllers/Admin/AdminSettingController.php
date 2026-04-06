@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use App\Services\PaypalCheckoutService;
 
 class AdminSettingController extends Controller
 {
@@ -80,7 +82,7 @@ class AdminSettingController extends Controller
             'payment_paypal_mode' => ['required', 'in:sandbox,live'],
             'payment_paypal_client_id' => ['nullable', 'string', 'max:2000'],
             'payment_paypal_client_secret' => ['nullable', 'string', 'max:2000'],
-            'payment_currency' => ['required', 'string', 'max:10'],
+            'payment_currency' => ['required', 'string', 'size:3', Rule::in(PaypalCheckoutService::supportedCurrencies())],
             'payment_platform_fee_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'payment_auto_release_days' => ['required', 'integer', 'min:1', 'max:365'],
             'payment_refund_policy_text' => ['nullable', 'string', 'max:5000'],

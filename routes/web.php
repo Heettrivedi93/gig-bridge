@@ -5,7 +5,11 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\BuyerCatalogController;
+use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\SellerGigController;
+use App\Http\Controllers\SellerOrderController;
+use App\Http\Controllers\SellerPlanController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -21,6 +25,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('gigs', [SellerGigController::class, 'store'])->name('gigs.store');
         Route::put('gigs/{gig}', [SellerGigController::class, 'update'])->name('gigs.update');
         Route::delete('gigs/{gig}', [SellerGigController::class, 'destroy'])->name('gigs.destroy');
+        Route::get('orders', [SellerOrderController::class, 'index'])->name('orders.index');
+        Route::post('orders/{order}/deliver', [SellerOrderController::class, 'deliver'])->name('orders.deliver');
+        Route::post('orders/{order}/cancel', [SellerOrderController::class, 'cancel'])->name('orders.cancel');
+
+        Route::get('plans', [SellerPlanController::class, 'index'])->name('plans.index');
+        Route::get('payments', [SellerPlanController::class, 'history'])->name('payments.index');
+        Route::post('plans/{plan}/activate-free', [SellerPlanController::class, 'activateFree'])->name('plans.activate-free');
+        Route::post('plans/{plan}/paypal/order', [SellerPlanController::class, 'createPaypalOrder'])->name('plans.paypal.order');
+        Route::post('plans/{plan}/paypal/capture', [SellerPlanController::class, 'capturePaypalOrder'])->name('plans.paypal.capture');
+    });
+
+    Route::prefix('buyer')->name('buyer.')->group(function () {
+        Route::get('gigs', [BuyerCatalogController::class, 'index'])->name('gigs.index');
+        Route::get('gigs/{gig}', [BuyerCatalogController::class, 'show'])->name('gigs.show');
+        Route::get('orders', [BuyerOrderController::class, 'index'])->name('orders.index');
+        Route::get('payments', [BuyerOrderController::class, 'payments'])->name('payments.index');
+        Route::post('gigs/{gig}/orders', [BuyerOrderController::class, 'store'])->name('orders.store');
+        Route::post('orders/{order}/paypal/order', [BuyerOrderController::class, 'createPaypalOrder'])->name('orders.paypal.order');
+        Route::post('orders/{order}/paypal/capture', [BuyerOrderController::class, 'capturePaypalOrder'])->name('orders.paypal.capture');
     });
 });
 

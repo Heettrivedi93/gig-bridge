@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GigPackage extends Model
 {
@@ -24,5 +25,10 @@ class GigPackage extends Model
     public function gig(): BelongsTo
     {
         return $this->belongsTo(Gig::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'package_id');
     }
 }

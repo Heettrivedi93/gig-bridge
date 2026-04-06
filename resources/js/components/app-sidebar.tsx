@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Store } from 'lucide-react';
+import { BookOpen, CreditCard, FolderGit2, LayoutGrid, ReceiptText, Search, ShoppingBag, Store } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -32,6 +32,7 @@ const footerNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<{ auth: { user: { roles?: string[] } | null } }>().props;
     const isSeller = auth.user?.roles?.includes('seller') ?? false;
+    const isBuyer = auth.user?.roles?.includes('buyer') ?? false;
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
@@ -44,6 +45,40 @@ export function AppSidebar() {
                       title: 'My Gigs',
                       href: '/seller/gigs',
                       icon: Store,
+                  } satisfies NavItem,
+                  {
+                      title: 'Plans',
+                      href: '/seller/plans',
+                      icon: ReceiptText,
+                  } satisfies NavItem,
+                  {
+                      title: 'Orders',
+                      href: '/seller/orders',
+                      icon: ShoppingBag,
+                  } satisfies NavItem,
+                  {
+                      title: 'Payment History',
+                      href: '/seller/payments',
+                      icon: CreditCard,
+                  } satisfies NavItem,
+              ]
+            : []),
+        ...(isBuyer
+            ? [
+                  {
+                      title: 'Explore Gigs',
+                      href: '/buyer/gigs',
+                      icon: Search,
+                  } satisfies NavItem,
+                  {
+                      title: 'My Orders',
+                      href: '/buyer/orders',
+                      icon: ShoppingBag,
+                  } satisfies NavItem,
+                  {
+                      title: 'Payment History',
+                      href: '/buyer/payments',
+                      icon: CreditCard,
                   } satisfies NavItem,
               ]
             : []),

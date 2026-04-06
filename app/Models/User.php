@@ -55,6 +55,16 @@ class User extends Authenticatable
         return $this->hasMany(Subscription::class);
     }
 
+    public function buyerOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
+
+    public function sellerOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'seller_id');
+    }
+
     public function activeSubscription(): ?Subscription
     {
         return $this->subscriptions()
