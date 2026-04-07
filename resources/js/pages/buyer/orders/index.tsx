@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { FileText } from 'lucide-react';
+import { FileText, Star } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -63,6 +63,12 @@ type OrderItem = {
         reason: string;
         created_at: string | null;
     }[];
+    review: {
+        id: number;
+        rating: number;
+        comment: string;
+        created_at: string | null;
+    } | null;
 };
 
 type PaypalConfig = {
@@ -157,6 +163,7 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
     const [revisionTarget, setRevisionTarget] = useState<OrderItem | null>(null);
     const [cancelTarget, setCancelTarget] = useState<OrderItem | null>(null);
+    const [reviewTarget, setReviewTarget] = useState<OrderItem | null>(null);
     const [checkoutOrder, setCheckoutOrder] = useState<OrderItem | null>(null);
     const [checkoutPaypalOrderId, setCheckoutPaypalOrderId] = useState<string | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -172,6 +179,13 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
         cancellation_reason: string;
     }>({
         cancellation_reason: '',
+    });
+    const reviewForm = useForm<{
+        rating: string;
+        comment: string;
+    }>({
+        rating: '5',
+        comment: '',
     });
 
     useEffect(() => {
@@ -339,6 +353,24 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
         });
     };
 
+    const submitReview = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        if (!reviewTarget) {
+            return;
+        }
+
+        reviewForm.post(`/buyer/orders/${reviewTarget.id}/review`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setReviewTarget(null);
+                setSelectedOrder(null);
+                reviewForm.reset('comment');
+                reviewForm.setData('rating', '5');
+            },
+        });
+    };
+
     return (
         <>
             <Head title="Orders" />
@@ -425,6 +457,9 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                     {order.status === 'delivered' && order.payment_status === 'paid' && order.remaining_revisions > 0 && (
                                                         <Button size="sm" variant="outline" onClick={() => setRevisionTarget(order)}>Revision</Button>
                                                     )}
+                                                    {order.status === 'completed' && !order.review && (
+                                                        <Button size="sm" variant="outline" onClick={() => setReviewTarget(order)}>Review</Button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -456,6 +491,9 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         )}
                                         {order.status === 'delivered' && order.payment_status === 'paid' && order.remaining_revisions > 0 && (
                                             <Button size="sm" variant="outline" onClick={() => setRevisionTarget(order)}>Revision</Button>
+                                        )}
+                                        {order.status === 'completed' && !order.review && (
+                                            <Button size="sm" variant="outline" onClick={() => setReviewTarget(order)}>Review</Button>
                                         )}
                                     </div>
                                 </div>
@@ -504,6 +542,11 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                     {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && (
                                         <Button onClick={() => completeOrder(selectedOrder)}>
                                             Mark complete
+                                        </Button>
+                                    )}
+                                    {selectedOrder.status === 'completed' && !selectedOrder.review && (
+                                        <Button variant="outline" onClick={() => setReviewTarget(selectedOrder)}>
+                                            Leave review
                                         </Button>
                                     )}
                                     {['pending', 'active', 'delivered'].includes(selectedOrder.status) && (
@@ -585,6 +628,30 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                             </div>
                                         )}
                                     </div>
+
+                                    <div className="rounded-3xl border border-border/70 bg-card p-6">
+                                        <h3 className="text-base font-semibold">Your review</h3>
+                                        {!selectedOrder.review ? (
+                                            <p className="mt-3 text-sm text-muted-foreground">
+                                                {selectedOrder.status === 'completed'
+                                                    ? 'This order is complete and ready for your review.'
+                                                    : 'You can leave a review after the order is completed.'}
+                                            </p>
+                                        ) : (
+                                            <div className="mt-4 rounded-2xl border border-border/70 p-4 text-sm">
+                                                <div className="flex items-center gap-2 font-medium text-amber-600">
+                                                    <Star className="size-4 fill-current" />
+                                                    {selectedOrder.review.rating.toFixed(1)} out of 5
+                                                </div>
+                                                <p className="mt-2 text-muted-foreground">
+                                                    {selectedOrder.review.comment}
+                                                </p>
+                                                <p className="mt-3 text-xs text-muted-foreground">
+                                                    Submitted {formatDate(selectedOrder.review.created_at)}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -649,6 +716,60 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
 
                         <Button type="submit" className="w-full" disabled={cancelForm.processing}>
                             {cancelForm.processing ? 'Cancelling...' : 'Confirm cancellation'}
+                        </Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={Boolean(reviewTarget)} onOpenChange={(open) => !open && setReviewTarget(null)}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Leave a review</DialogTitle>
+                        <DialogDescription>
+                            Rate the completed order and share a short comment for future buyers.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={submitReview} className="space-y-4">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Rating</label>
+                            <div className="grid grid-cols-5 gap-2">
+                                {[1, 2, 3, 4, 5].map((rating) => {
+                                    const active = reviewForm.data.rating === String(rating);
+
+                                    return (
+                                        <Button
+                                            key={rating}
+                                            type="button"
+                                            variant={active ? 'default' : 'outline'}
+                                            onClick={() => reviewForm.setData('rating', String(rating))}
+                                            className="justify-center"
+                                        >
+                                            <Star className={`mr-1 size-4 ${active ? 'fill-current' : ''}`} />
+                                            {rating}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                            <InputError message={reviewForm.errors.rating} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label htmlFor="comment" className="text-sm font-medium">Comment</label>
+                            <textarea
+                                id="comment"
+                                rows={5}
+                                value={reviewForm.data.comment}
+                                onChange={(event) => reviewForm.setData('comment', event.target.value)}
+                                className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
+                                placeholder="Share what went well and what future buyers should know."
+                                required
+                            />
+                            <InputError message={reviewForm.errors.comment} />
+                        </div>
+
+                        <Button type="submit" className="w-full" disabled={reviewForm.processing}>
+                            {reviewForm.processing ? 'Submitting...' : 'Submit review'}
                         </Button>
                     </form>
                 </DialogContent>

@@ -36,6 +36,7 @@ type GigCard = {
     starting_price: string;
     delivery_days: number;
     rating: number;
+    review_count: number;
     package_count: number;
 };
 
@@ -229,7 +230,7 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
                     Use broad search first, then tighten delivery and budget filters. Rating will
-                    become more valuable once buyer reviews are live.
+                    help more once completed orders start collecting buyer reviews.
                 </p>
             </div>
         </div>
@@ -441,7 +442,10 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                                     </p>
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
                                                         <Star className="size-4 text-amber-500" />
-                                                        {gig.rating.toFixed(1)}
+                                                        {gig.review_count > 0 ? gig.rating.toFixed(1) : 'New'}
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {gig.review_count > 0 ? `(${gig.review_count})` : '(0 reviews)'}
+                                                        </span>
                                                     </p>
                                                 </div>
                                             </div>

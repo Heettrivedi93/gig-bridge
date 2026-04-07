@@ -12,6 +12,7 @@ import { useInitials } from '@/hooks/use-initials';
 import SettingsLayout from '@/layouts/settings/layout';
 import { update } from '@/routes/profile';
 import { send } from '@/routes/verification';
+import type { BreadcrumbItem } from '@/types';
 
 export default function Profile({
     mustVerifyEmail,
@@ -305,4 +306,14 @@ export default function Profile({
     );
 }
 
-Profile.layout = (page: React.ReactNode) => <SettingsLayout>{page}</SettingsLayout>;
+Profile.layout = (page: React.ReactNode) => (
+    <SettingsLayout
+        breadcrumbs={[
+            { title: 'Dashboard', href: '/dashboard' },
+            { title: 'Settings', href: '/settings/profile' },
+            { title: 'Profile', href: '/settings/profile' },
+        ] satisfies BreadcrumbItem[]}
+    >
+        {page}
+    </SettingsLayout>
+);

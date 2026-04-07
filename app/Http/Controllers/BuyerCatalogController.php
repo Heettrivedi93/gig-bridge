@@ -33,6 +33,8 @@ class BuyerCatalogController extends Controller
             ->with(['seller:id,name', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
             ->withMin('packages', 'price')
             ->withMin('packages', 'delivery_days')
+            ->withAvg('reviews as reviews_avg_rating', 'rating')
+            ->withCount('reviews')
             ->when($filters['keyword'] !== '', function (Builder $query) use ($filters) {
                 $keyword = $filters['keyword'];
 
@@ -52,8 +54,13 @@ class BuyerCatalogController extends Controller
             ->when($filters['delivery_days'] !== '', function (Builder $query) use ($filters) {
                 $query->whereHas('packages', fn (Builder $packageQuery) => $packageQuery->where('delivery_days', '<=', (int) $filters['delivery_days']));
             })
-            ->when($filters['rating'] !== '' && (int) $filters['rating'] > 0, function (Builder $query) {
-                $query->whereRaw('1 = 0');
+            ->when($filters['rating'] !== '' && (int) $filters['rating'] > 0, function (Builder $query) use ($filters) {
+                $query
+                    ->has('reviews')
+                    ->whereRaw(
+                        '(select coalesce(avg(reviews.rating), 0) from reviews where reviews.gig_id = gigs.id) >= ?',
+                        [(int) $filters['rating']],
+                    );
             })
             ->when($filters['sort'] === 'price_asc', fn (Builder $query) => $query->orderBy('packages_min_price'))
             ->when($filters['sort'] === 'price_desc', fn (Builder $query) => $query->orderByDesc('packages_min_price'))
@@ -89,7 +96,10 @@ class BuyerCatalogController extends Controller
             'subcategory:id,name,status',
             'images',
             'packages',
+            'reviews.buyer:id,name',
         ]);
+        $gig->loadAvg('reviews as reviews_avg_rating', 'rating');
+        $gig->loadCount('reviews');
 
         abort_if($gig->category?->status !== 'active' || $gig->subcategory?->status !== 'active', 404);
 
@@ -114,6 +124,17 @@ class BuyerCatalogController extends Controller
                         'price' => (string) $package->price,
                         'delivery_days' => $package->delivery_days,
                         'revision_count' => $package->revision_count,
+                    ]),
+                'review_count' => (int) ($gig->reviews_count ?? 0),
+                'reviews' => $gig->reviews
+                    ->sortByDesc('created_at')
+                    ->values()
+                    ->map(fn ($review) => [
+                        'id' => $review->id,
+                        'rating' => $review->rating,
+                        'comment' => $review->comment,
+                        'buyer_name' => $review->buyer?->name,
+                        'created_at' => $review->created_at?->toIso8601String(),
                     ]),
             ],
         ]);
@@ -140,7 +161,8 @@ class BuyerCatalogController extends Controller
             'gallery' => $gig->images->map(fn ($image) => Storage::disk('public')->url($image->path))->values(),
             'starting_price' => number_format((float) ($gig->packages_min_price ?? 0), 2, '.', ''),
             'delivery_days' => (int) ($gig->packages_min_delivery_days ?? 0),
-            'rating' => 0,
+            'rating' => round((float) ($gig->reviews_avg_rating ?? 0), 1),
+            'review_count' => (int) ($gig->reviews_count ?? 0),
             'package_count' => $gig->packages->count(),
         ];
     }

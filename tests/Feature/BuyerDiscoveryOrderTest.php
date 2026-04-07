@@ -6,6 +6,7 @@ use App\Models\GigPackage;
 use App\Models\Order;
 use App\Models\OrderCancellation;
 use App\Models\OrderRevision;
+use App\Models\Review;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Wallet;
@@ -92,10 +93,56 @@ test('buyer can browse published gigs with filters', function () {
     $buyer = buyerUser();
 
     $matchingGig = publishedGig($seller, $category, $subcategory);
-    publishedGig($seller, $category, $subcategory, [
+    $otherGig = publishedGig($seller, $category, $subcategory, [
         'title' => 'Enterprise Brand Strategy',
         'description' => 'Positioning workshop and messaging framework for growing teams.',
         'tags' => ['brand', 'strategy'],
+    ]);
+
+    Review::create([
+        'order_id' => Order::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'gig_id' => $matchingGig->id,
+            'package_id' => $matchingGig->packages()->firstOrFail()->id,
+            'quantity' => 1,
+            'requirements' => 'Reviewed order.',
+            'billing_name' => 'Buyer One',
+            'billing_email' => 'buyer@example.com',
+            'unit_price' => 25,
+            'price' => 25,
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'completed_at' => now(),
+        ])->id,
+        'gig_id' => $matchingGig->id,
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'rating' => 5,
+        'comment' => 'Excellent work.',
+    ]);
+
+    Review::create([
+        'order_id' => Order::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'gig_id' => $otherGig->id,
+            'package_id' => $otherGig->packages()->firstOrFail()->id,
+            'quantity' => 1,
+            'requirements' => 'Reviewed order.',
+            'billing_name' => 'Buyer One',
+            'billing_email' => 'buyer@example.com',
+            'unit_price' => 25,
+            'price' => 25,
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'completed_at' => now(),
+        ])->id,
+        'gig_id' => $otherGig->id,
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'rating' => 3,
+        'comment' => 'Average work.',
     ]);
 
     $this->actingAs($buyer)
@@ -105,6 +152,16 @@ test('buyer can browse published gigs with filters', function () {
             ->component('buyer/gigs/index')
             ->where('gigs.0.id', $matchingGig->id)
             ->where('filters.keyword', 'logo'));
+
+    $this->actingAs($buyer)
+        ->get(route('buyer.gigs.index', ['rating' => 4]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('buyer/gigs/index')
+            ->has('gigs', 1)
+            ->where('gigs.0.id', $matchingGig->id)
+            ->where('gigs.0.rating', 5)
+            ->where('gigs.0.review_count', 1));
 });
 
 test('buyer can open a gig and create a pending order', function () {
@@ -352,6 +409,124 @@ test('buyer can complete delivered paid order', function () {
     expect($order->fund_status)->toBe('releasable');
     expect($order->completed_at)->not->toBeNull();
     expect($order->escrow_held)->toBeTrue();
+});
+
+test('buyer can review a completed order and see the rating on gigs', function () {
+    [$category, $subcategory] = activeCategoryWithChild();
+    $seller = sellerMarketUser();
+    $buyer = buyerUser();
+    $gig = publishedGig($seller, $category, $subcategory);
+    $package = $gig->packages()->where('tier', 'basic')->firstOrFail();
+
+    $order = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Delivered and ready to review.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'completed',
+        'payment_status' => 'paid',
+        'completed_at' => now(),
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.review', $order), [
+            'rating' => 5,
+            'comment' => 'Fast communication and a polished delivery.',
+        ])
+        ->assertRedirect();
+
+    $review = Review::query()->where('order_id', $order->id)->first();
+
+    expect($review)->not->toBeNull();
+    expect($review?->rating)->toBe(5);
+
+    $this->actingAs($buyer)
+        ->get(route('buyer.orders.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('buyer/orders/index')
+            ->where('orders.0.review.rating', 5)
+            ->where('orders.0.review.comment', 'Fast communication and a polished delivery.'));
+
+    $this->actingAs($buyer)
+        ->get(route('buyer.gigs.show', $gig))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('buyer/gigs/show')
+            ->where('gig.rating', 5)
+            ->where('gig.review_count', 1)
+            ->where('gig.reviews.0.comment', 'Fast communication and a polished delivery.'));
+});
+
+test('buyer cannot review an order twice or before completion', function () {
+    [$category, $subcategory] = activeCategoryWithChild();
+    $seller = sellerMarketUser();
+    $buyer = buyerUser();
+    $gig = publishedGig($seller, $category, $subcategory);
+    $package = $gig->packages()->where('tier', 'basic')->firstOrFail();
+
+    $incompleteOrder = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Not completed yet.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'delivered',
+        'payment_status' => 'paid',
+        'delivered_at' => now(),
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.review', $incompleteOrder), [
+            'rating' => 4,
+            'comment' => 'Should fail.',
+        ])
+        ->assertSessionHasErrors('rating');
+
+    $completedOrder = Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Completed order.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 25,
+        'price' => 25,
+        'status' => 'completed',
+        'payment_status' => 'paid',
+        'completed_at' => now(),
+    ]);
+
+    Review::create([
+        'order_id' => $completedOrder->id,
+        'gig_id' => $gig->id,
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'rating' => 5,
+        'comment' => 'Already reviewed.',
+    ]);
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.review', $completedOrder), [
+            'rating' => 4,
+            'comment' => 'Duplicate review should fail.',
+        ])
+        ->assertSessionHasErrors('rating');
+
+    expect(Review::query()->where('order_id', $completedOrder->id)->count())->toBe(1);
 });
 
 test('buyer can cancel order with audit trail', function () {

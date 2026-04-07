@@ -72,6 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('gigs/{gig}/orders', [BuyerOrderController::class, 'store'])->name('orders.store');
             Route::post('orders/{order}/revision', [BuyerOrderController::class, 'requestRevision'])->name('orders.revision');
             Route::post('orders/{order}/complete', [BuyerOrderController::class, 'complete'])->name('orders.complete');
+            Route::post('orders/{order}/review', [BuyerOrderController::class, 'review'])->name('orders.review');
             Route::post('orders/{order}/cancel', [BuyerOrderController::class, 'cancel'])->name('orders.cancel');
             Route::post('orders/{order}/paypal/order', [BuyerOrderController::class, 'createPaypalOrder'])->name('orders.paypal.order');
             Route::post('orders/{order}/paypal/capture', [BuyerOrderController::class, 'capturePaypalOrder'])->name('orders.paypal.capture');

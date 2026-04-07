@@ -95,6 +95,16 @@ class User extends Authenticatable
         return $this->hasOne(Wallet::class);
     }
 
+    public function reviewsWritten(): HasMany
+    {
+        return $this->hasMany(Review::class, 'buyer_id');
+    }
+
+    public function reviewsReceived(): HasMany
+    {
+        return $this->hasMany(Review::class, 'seller_id');
+    }
+
     public function activeSubscription(): ?Subscription
     {
         return $this->subscriptions()

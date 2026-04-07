@@ -9,11 +9,23 @@ import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
-import type { NavItem } from '@/types';
+import type { BreadcrumbItem, NavItem } from '@/types';
 
-export default function SettingsLayout({ children }: PropsWithChildren) {
+type SettingsLayoutProps = PropsWithChildren<{
+    breadcrumbs?: BreadcrumbItem[];
+}>;
+
+export default function SettingsLayout({
+    children,
+    breadcrumbs = [],
+}: SettingsLayoutProps) {
     const { isCurrentOrParentUrl } = useCurrentUrl();
-    const { Layout } = useRoleLayout();
+    const { Layout, isSuperAdmin } = useRoleLayout();
+    const resolvedBreadcrumbs = breadcrumbs.map((item) =>
+        isSuperAdmin && item.href === '/dashboard'
+            ? { ...item, href: '/admin/dashboard' }
+            : item,
+    );
     const sidebarNavItems: NavItem[] = [
         { title: 'Profile', href: edit(), icon: null },
         { title: 'Security', href: editSecurity(), icon: null },
@@ -21,7 +33,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     ];
 
     return (
-        <Layout>
+        <Layout breadcrumbs={resolvedBreadcrumbs}>
             <div className="px-4 py-6">
                 <Heading title="Settings" description="Manage your profile and account settings" />
 

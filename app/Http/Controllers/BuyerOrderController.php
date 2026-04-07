@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Gig;
 use App\Models\GigPackage;
 use App\Models\Order;
+use App\Models\Review;
 use App\Models\Setting;
 use App\Services\OrderFundService;
 use App\Services\PaypalCheckoutService;
@@ -39,6 +40,7 @@ class BuyerOrderController extends Controller
                     'deliveries.user:id,name',
                     'revisions.requester:id,name',
                     'cancellations',
+                    'review',
                 ])
                 ->where('buyer_id', $buyer->id)
                 ->latest('updated_at')
@@ -97,6 +99,12 @@ class BuyerOrderController extends Controller
                             'reason' => $cancellation->reason,
                             'created_at' => $cancellation->created_at?->toIso8601String(),
                         ])->values(),
+                        'review' => $order->review ? [
+                            'id' => $order->review->id,
+                            'rating' => $order->review->rating,
+                            'comment' => $order->review->comment,
+                            'created_at' => $order->review->created_at?->toIso8601String(),
+                        ] : null,
                     ];
                 }),
             'paypal' => $this->paypal->publicConfig(),
@@ -398,6 +406,40 @@ class BuyerOrderController extends Controller
         $this->notifications->orderCompleted($freshOrder->fresh());
 
         return back()->with('success', 'Order marked as completed.');
+    }
+
+    public function review(Request $request, Order $order): RedirectResponse
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+
+        if ($order->status !== 'completed' || $order->payment_status !== 'paid') {
+            throw ValidationException::withMessages([
+                'rating' => 'Only completed paid orders can be reviewed.',
+            ]);
+        }
+
+        if ($order->review()->exists()) {
+            throw ValidationException::withMessages([
+                'rating' => 'A review has already been submitted for this order.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['required', 'string', 'max:3000'],
+        ]);
+
+        Review::create([
+            'order_id' => $order->id,
+            'gig_id' => $order->gig_id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $order->seller_id,
+            'rating' => $data['rating'],
+            'comment' => $data['comment'],
+        ]);
+
+        return back()->with('success', 'Review submitted successfully.');
     }
 
     public function cancel(Request $request, Order $order): RedirectResponse

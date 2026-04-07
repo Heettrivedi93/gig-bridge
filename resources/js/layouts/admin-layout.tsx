@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Bell, BookText, LayoutGrid, Package, Settings, ShoppingBag, Tag, Users, Wallet2 } from 'lucide-react';
+import { isValidElement } from 'react';
 import { AppContent } from '@/components/app-content';
 import AppLogo from '@/components/app-logo';
 import { AppShell } from '@/components/app-shell';
@@ -16,7 +17,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import admin from '@/routes/admin';
-import type { NavItem } from '@/types';
+import type { BreadcrumbItem, NavItem } from '@/types';
 
 const adminNavItems: NavItem[] = [
     { title: 'Dashboard',  href: admin.dashboard.url(),           icon: LayoutGrid },
@@ -68,12 +69,23 @@ function AdminSidebar() {
     );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+    children,
+    breadcrumbs = [],
+}: {
+    children: React.ReactNode;
+    breadcrumbs?: BreadcrumbItem[];
+}) {
+    const inferredBreadcrumbs =
+        breadcrumbs.length > 0 || !isValidElement(children)
+            ? breadcrumbs
+            : (((children.type as { layout?: { breadcrumbs?: BreadcrumbItem[] } }).layout?.breadcrumbs ?? []) as BreadcrumbItem[]);
+
     return (
         <AppShell variant="sidebar">
             <AdminSidebar />
             <AppContent variant="sidebar" className="overflow-x-hidden">
-                <AppSidebarHeader />
+                <AppSidebarHeader breadcrumbs={inferredBreadcrumbs} />
                 {children}
             </AppContent>
         </AppShell>

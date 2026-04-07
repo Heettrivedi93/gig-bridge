@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import SettingsLayout from '@/layouts/settings/layout';
 import { disable, enable } from '@/routes/two-factor';
+import type { BreadcrumbItem } from '@/types';
 
 type Props = {
     canManageTwoFactor?: boolean;
@@ -239,4 +240,14 @@ export default function Security({
     );
 }
 
-Security.layout = (page: React.ReactNode) => <SettingsLayout>{page}</SettingsLayout>;
+Security.layout = (page: React.ReactNode) => (
+    <SettingsLayout
+        breadcrumbs={[
+            { title: 'Dashboard', href: '/dashboard' },
+            { title: 'Settings', href: '/settings/profile' },
+            { title: 'Security', href: '/settings/security' },
+        ] satisfies BreadcrumbItem[]}
+    >
+        {page}
+    </SettingsLayout>
+);

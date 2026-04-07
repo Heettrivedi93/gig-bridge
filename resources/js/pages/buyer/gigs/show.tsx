@@ -5,8 +5,10 @@ import {
     FileText,
     Layers3,
     Link2,
+    MessageSquareQuote,
     Palette,
     ShoppingCart,
+    Star,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
@@ -40,7 +42,15 @@ type GigDetail = {
     starting_price: string;
     delivery_days: number;
     rating: number;
+    review_count: number;
     packages: GigPackage[];
+    reviews: {
+        id: number;
+        rating: number;
+        comment: string;
+        buyer_name: string | null;
+        created_at: string | null;
+    }[];
 };
 
 type Props = {
@@ -130,6 +140,19 @@ export default function BuyerGigShow({ gig }: Props) {
                                 <FileText className="size-4 text-muted-foreground" />
                                 <h2 className="text-lg font-semibold">Service overview</h2>
                             </div>
+                            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+                                    <Star className="size-4 fill-current" />
+                                    <span className="font-medium">
+                                        {gig.review_count > 0 ? gig.rating.toFixed(1) : 'New service'}
+                                    </span>
+                                </div>
+                                <span className="text-muted-foreground">
+                                    {gig.review_count > 0
+                                        ? `${gig.review_count} buyer review${gig.review_count === 1 ? '' : 's'}`
+                                        : 'No buyer reviews yet'}
+                                </span>
+                            </div>
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {gig.tags.map((tag) => (
                                     <Badge key={tag} variant="secondary">
@@ -188,6 +211,43 @@ export default function BuyerGigShow({ gig }: Props) {
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-border/70 bg-card p-6">
+                            <div className="flex items-center gap-2">
+                                <MessageSquareQuote className="size-4 text-muted-foreground" />
+                                <h2 className="text-lg font-semibold">Buyer reviews</h2>
+                            </div>
+
+                            {gig.reviews.length === 0 ? (
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    This service has not received a buyer review yet.
+                                </p>
+                            ) : (
+                                <div className="mt-5 space-y-4">
+                                    {gig.reviews.map((review) => (
+                                        <div key={review.id} className="rounded-2xl border border-border/70 p-4">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="font-medium">{review.buyer_name ?? 'Buyer'}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {review.created_at
+                                                            ? new Date(review.created_at).toLocaleDateString()
+                                                            : 'Recently'}
+                                                    </p>
+                                                </div>
+                                                <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">
+                                                    <Star className="size-4 fill-current" />
+                                                    {review.rating.toFixed(1)}
+                                                </div>
+                                            </div>
+                                            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                                                {review.comment}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                     </section>

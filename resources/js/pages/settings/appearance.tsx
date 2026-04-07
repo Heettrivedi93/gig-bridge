@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import AppearanceTabs from '@/components/appearance-tabs';
 import Heading from '@/components/heading';
 import SettingsLayout from '@/layouts/settings/layout';
+import type { BreadcrumbItem } from '@/types';
 
 export default function Appearance() {
     return (
@@ -22,4 +23,14 @@ export default function Appearance() {
     );
 }
 
-Appearance.layout = (page: React.ReactNode) => <SettingsLayout>{page}</SettingsLayout>;
+Appearance.layout = (page: React.ReactNode) => (
+    <SettingsLayout
+        breadcrumbs={[
+            { title: 'Dashboard', href: '/dashboard' },
+            { title: 'Settings', href: '/settings/profile' },
+            { title: 'Appearance', href: '/settings/appearance' },
+        ] satisfies BreadcrumbItem[]}
+    >
+        {page}
+    </SettingsLayout>
+);
