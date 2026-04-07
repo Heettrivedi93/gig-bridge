@@ -22,3 +22,23 @@ export function settingsLayout(breadcrumbs: BreadcrumbItem[] = []) {
         return <Layout breadcrumbs={breadcrumbs}>{children}</Layout>;
     };
 }
+
+export function roleLayout(
+    resolveBreadcrumbs:
+        | BreadcrumbItem[]
+        | ((isSuperAdmin: boolean) => BreadcrumbItem[]) = [],
+) {
+    return function RolePageLayout({
+        children,
+    }: {
+        children: React.ReactNode;
+    }) {
+        const { Layout, isSuperAdmin } = useRoleLayout();
+        const breadcrumbs =
+            typeof resolveBreadcrumbs === 'function'
+                ? resolveBreadcrumbs(isSuperAdmin)
+                : resolveBreadcrumbs;
+
+        return <Layout breadcrumbs={breadcrumbs}>{children}</Layout>;
+    };
+}

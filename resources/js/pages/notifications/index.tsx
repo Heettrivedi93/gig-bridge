@@ -3,7 +3,7 @@ import { BellRing } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useRoleLayout } from '@/hooks/use-role-layout';
+import { roleLayout } from '@/hooks/use-role-layout';
 
 type NotificationItem = {
     id: string;
@@ -106,28 +106,10 @@ export default function NotificationsIndex({ notifications }: Props) {
     );
 }
 
-NotificationsIndex.layout = (page: React.ReactNode) => {
-    function NotificationsPageLayout({
-        children,
-    }: {
-        children: React.ReactNode;
-    }) {
-        const { Layout, isSuperAdmin } = useRoleLayout();
-
-        return (
-            <Layout
-                breadcrumbs={[
-                    {
-                        title: 'Dashboard',
-                        href: isSuperAdmin ? '/admin/dashboard' : '/dashboard',
-                    },
-                    { title: 'Notifications', href: '/notifications' },
-                ]}
-            >
-                {children}
-            </Layout>
-        );
-    }
-
-    return <NotificationsPageLayout>{page}</NotificationsPageLayout>;
-};
+NotificationsIndex.layout = roleLayout((isSuperAdmin) => [
+    {
+        title: 'Dashboard',
+        href: isSuperAdmin ? '/admin/dashboard' : '/dashboard',
+    },
+    { title: 'Notifications', href: '/notifications' },
+]);
