@@ -1,5 +1,14 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bell, CreditCard, LayoutGrid, ReceiptText, Search, ShoppingBag, Store, Wallet2 } from 'lucide-react';
+import {
+    Bell,
+    CreditCard,
+    LayoutGrid,
+    ReceiptText,
+    Search,
+    ShoppingBag,
+    Store,
+    Wallet2,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -24,9 +33,10 @@ export function AppSidebar() {
     const isBuyer = auth.user?.roles?.includes('buyer') ?? false;
     const permissions = auth.user?.permissions ?? [];
     const canAccess = (permission: string) => permissions.includes(permission);
-    const notificationBadge = notifications?.enabled && (notifications.unread_count ?? 0) > 0
-        ? String(notifications.unread_count)
-        : null;
+    const notificationBadge =
+        notifications?.enabled && (notifications.unread_count ?? 0) > 0
+            ? String(notifications.unread_count)
+            : null;
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',

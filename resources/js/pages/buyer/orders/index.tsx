@@ -129,12 +129,14 @@ function shortDate(value: string | null) {
 }
 
 function getCsrfToken() {
-    return document
-        .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content;
 }
 
-async function requestJson<T>(url: string, body?: Record<string, unknown>): Promise<T> {
+async function requestJson<T>(
+    url: string,
+    body?: Record<string, unknown>,
+): Promise<T> {
     const response = await fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
@@ -161,15 +163,20 @@ async function requestJson<T>(url: string, body?: Record<string, unknown>): Prom
 
 export default function BuyerOrdersIndex({ orders, paypal }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
-    const [revisionTarget, setRevisionTarget] = useState<OrderItem | null>(null);
+    const [revisionTarget, setRevisionTarget] = useState<OrderItem | null>(
+        null,
+    );
     const [cancelTarget, setCancelTarget] = useState<OrderItem | null>(null);
     const [reviewTarget, setReviewTarget] = useState<OrderItem | null>(null);
     const [checkoutOrder, setCheckoutOrder] = useState<OrderItem | null>(null);
-    const [checkoutPaypalOrderId, setCheckoutPaypalOrderId] = useState<string | null>(null);
+    const [checkoutPaypalOrderId, setCheckoutPaypalOrderId] = useState<
+        string | null
+    >(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [isLoadingButtons, setIsLoadingButtons] = useState(false);
     const paypalContainerRef = useRef<HTMLDivElement | null>(null);
-    const [paypalContainerElement, setPaypalContainerElement] = useState<HTMLDivElement | null>(null);
+    const [paypalContainerElement, setPaypalContainerElement] =
+        useState<HTMLDivElement | null>(null);
     const revisionForm = useForm<{
         revision_note: string;
     }>({
@@ -189,7 +196,11 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
     });
 
     useEffect(() => {
-        if (!checkoutOrder || checkoutOrder.payment_status === 'paid' || !paypal.enabled) {
+        if (
+            !checkoutOrder ||
+            checkoutOrder.payment_status === 'paid' ||
+            !paypal.enabled
+        ) {
             return;
         }
 
@@ -207,7 +218,9 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 return;
             }
 
-            const existingScript = document.getElementById(PAYPAL_SCRIPT_ID) as HTMLScriptElement | null;
+            const existingScript = document.getElementById(
+                PAYPAL_SCRIPT_ID,
+            ) as HTMLScriptElement | null;
 
             if (existingScript) {
                 await new Promise<void>((resolve, reject) => {
@@ -217,8 +230,14 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                         return;
                     }
 
-                    existingScript.addEventListener('load', () => resolve(), { once: true });
-                    existingScript.addEventListener('error', () => reject(new Error('Unable to load PayPal SDK.')), { once: true });
+                    existingScript.addEventListener('load', () => resolve(), {
+                        once: true,
+                    });
+                    existingScript.addEventListener(
+                        'error',
+                        () => reject(new Error('Unable to load PayPal SDK.')),
+                        { once: true },
+                    );
                 });
 
                 return;
@@ -232,12 +251,15 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 )}&currency=${encodeURIComponent(paypal.currency)}&intent=capture`;
                 script.async = true;
                 script.onload = () => resolve();
-                script.onerror = () => reject(new Error('Unable to load PayPal SDK.'));
+                script.onerror = () =>
+                    reject(new Error('Unable to load PayPal SDK.'));
                 document.head.appendChild(script);
             });
         };
 
-        requestJson<{ id: string }>(`/buyer/orders/${checkoutOrder.id}/paypal/order`)
+        requestJson<{ id: string }>(
+            `/buyer/orders/${checkoutOrder.id}/paypal/order`,
+        )
             .then(async (order) => {
                 if (cancelled) {
                     return;
@@ -255,15 +277,23 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                     createOrder: async () => order.id,
                     onApprove: async (data) => {
                         if (!data.orderID) {
-                            throw new Error('PayPal did not return an order ID.');
+                            throw new Error(
+                                'PayPal did not return an order ID.',
+                            );
                         }
 
                         try {
-                            await requestJson(`/buyer/orders/${checkoutOrder.id}/paypal/capture`, {
-                                order_id: data.orderID,
-                            });
+                            await requestJson(
+                                `/buyer/orders/${checkoutOrder.id}/paypal/capture`,
+                                {
+                                    order_id: data.orderID,
+                                },
+                            );
                         } catch (error) {
-                            const message = error instanceof Error ? error.message : 'PayPal capture failed.';
+                            const message =
+                                error instanceof Error
+                                    ? error.message
+                                    : 'PayPal capture failed.';
 
                             setCheckoutError(message);
 
@@ -275,7 +305,10 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                         router.reload({ only: ['orders'] });
                     },
                     onError: (error) => {
-                        setCheckoutError(error.message || 'PayPal checkout failed unexpectedly.');
+                        setCheckoutError(
+                            error.message ||
+                                'PayPal checkout failed unexpectedly.',
+                        );
                     },
                 });
 
@@ -296,12 +329,21 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
         return () => {
             cancelled = true;
         };
-    }, [checkoutOrder, paypal.client_id, paypal.currency, paypal.enabled, paypalContainerElement]);
+    }, [
+        checkoutOrder,
+        paypal.client_id,
+        paypal.currency,
+        paypal.enabled,
+        paypalContainerElement,
+    ]);
 
-    const handlePaypalContainerRef = useCallback((node: HTMLDivElement | null) => {
-        paypalContainerRef.current = node;
-        setPaypalContainerElement(node);
-    }, []);
+    const handlePaypalContainerRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            paypalContainerRef.current = node;
+            setPaypalContainerElement(node);
+        },
+        [],
+    );
 
     const openCheckout = (order: OrderItem) => {
         setCheckoutError(null);
@@ -345,12 +387,16 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
     };
 
     const completeOrder = (order: OrderItem) => {
-        router.post(`/buyer/orders/${order.id}/complete`, {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelectedOrder(null);
+        router.post(
+            `/buyer/orders/${order.id}/complete`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedOrder(null);
+                },
             },
-        });
+        );
     };
 
     const submitReview = (event: React.FormEvent) => {
@@ -385,7 +431,8 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                     <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
                         <h2 className="text-lg font-semibold">No orders yet</h2>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Browse the catalog, pick a package, and your first buyer order will show up here.
+                            Browse the catalog, pick a package, and your first
+                            buyer order will show up here.
                         </p>
                         <div className="mt-5">
                             <Button asChild>
@@ -397,39 +444,97 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
                         <div className="hidden overflow-x-auto lg:block">
                             <table className="w-full text-sm">
-                                <thead className="bg-muted/30 text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                                <thead className="bg-muted/30 text-left text-xs tracking-[0.16em] text-muted-foreground uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 font-medium">Order</th>
-                                        <th className="px-4 py-3 font-medium">Seller</th>
-                                        <th className="px-4 py-3 font-medium">Requirements</th>
-                                        <th className="px-4 py-3 font-medium">Delivery</th>
-                                        <th className="px-4 py-3 font-medium">Payment</th>
-                                        <th className="px-4 py-3 font-medium">Total</th>
-                                        <th className="px-4 py-3 font-medium">Actions</th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Order
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Seller
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Requirements
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Delivery
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Payment
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Total
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {orders.map((order) => (
-                                        <tr key={order.id} className="border-t border-border/70 align-top">
+                                        <tr
+                                            key={order.id}
+                                            className="border-t border-border/70 align-top"
+                                        >
                                             <td className="px-4 py-4">
-                                                <p className="font-medium">{order.gig_title ?? 'Order'}</p>
-                                                <p className="mt-1 text-muted-foreground">#{order.id} • {order.package?.title ?? 'Custom'}</p>
+                                                <p className="font-medium">
+                                                    {order.gig_title ?? 'Order'}
+                                                </p>
+                                                <p className="mt-1 text-muted-foreground">
+                                                    #{order.id} •{' '}
+                                                    {order.package?.title ??
+                                                        'Custom'}
+                                                </p>
                                                 <div className="mt-2 flex flex-wrap gap-2">
-                                                    <Badge variant="outline">{order.package?.tier ?? 'package'}</Badge>
-                                                    <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>{order.status}</Badge>
+                                                    <Badge variant="outline">
+                                                        {order.package?.tier ??
+                                                            'package'}
+                                                    </Badge>
+                                                    <Badge
+                                                        variant={
+                                                            order.status ===
+                                                            'delivered'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                    >
+                                                        {order.status}
+                                                    </Badge>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="font-medium">{order.seller?.name ?? 'Seller'}</p>
-                                                <p className="mt-1 text-muted-foreground">{order.seller?.email ?? 'No email'}</p>
+                                                <p className="font-medium">
+                                                    {order.seller?.name ??
+                                                        'Seller'}
+                                                </p>
+                                                <p className="mt-1 text-muted-foreground">
+                                                    {order.seller?.email ??
+                                                        'No email'}
+                                                </p>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="text-foreground">{summarizeText(order.requirements, 90)}</p>
+                                                <p className="text-foreground">
+                                                    {summarizeText(
+                                                        order.requirements,
+                                                        90,
+                                                    )}
+                                                </p>
                                                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                                    <span>Qty {order.quantity}</span>
-                                                    <span>Unit USD {order.unit_price}</span>
+                                                    <span>
+                                                        Qty {order.quantity}
+                                                    </span>
+                                                    <span>
+                                                        Unit USD{' '}
+                                                        {order.unit_price}
+                                                    </span>
                                                     {order.brief_file_url && (
-                                                        <a href={order.brief_file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary underline underline-offset-4">
+                                                        <a
+                                                            href={
+                                                                order.brief_file_url
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                        >
                                                             <FileText className="size-3.5" />
                                                             File
                                                         </a>
@@ -437,29 +542,110 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p>{order.deliveries.length} file(s)</p>
-                                                <p className="text-muted-foreground">{shortDate(order.delivered_at)}</p>
-                                                <p className="mt-1 text-muted-foreground">{order.package?.delivery_days ?? 0} days • {order.package?.revision_count ?? 0} revisions</p>
+                                                <p>
+                                                    {order.deliveries.length}{' '}
+                                                    file(s)
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {shortDate(
+                                                        order.delivered_at,
+                                                    )}
+                                                </p>
+                                                <p className="mt-1 text-muted-foreground">
+                                                    {order.package
+                                                        ?.delivery_days ??
+                                                        0}{' '}
+                                                    days •{' '}
+                                                    {order.package
+                                                        ?.revision_count ??
+                                                        0}{' '}
+                                                    revisions
+                                                </p>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex flex-col gap-2">
-                                                    <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>{order.payment_status}</Badge>
-                                                    <span className="text-muted-foreground">{shortDate(order.created_at)}</span>
+                                                    <Badge
+                                                        variant={
+                                                            order.payment_status ===
+                                                            'paid'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                    >
+                                                        {order.payment_status}
+                                                    </Badge>
+                                                    <span className="text-muted-foreground">
+                                                        {shortDate(
+                                                            order.created_at,
+                                                        )}
+                                                    </span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 font-medium">USD {order.price}</td>
+                                            <td className="px-4 py-4 font-medium">
+                                                USD {order.price}
+                                            </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex flex-col gap-2">
-                                                    <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>View</Button>
-                                                    {order.payment_status === 'pending' && (
-                                                        <Button size="sm" onClick={() => openCheckout(order)} disabled={!paypal.enabled}>Pay</Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setSelectedOrder(
+                                                                order,
+                                                            )
+                                                        }
+                                                    >
+                                                        View
+                                                    </Button>
+                                                    {order.payment_status ===
+                                                        'pending' && (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                openCheckout(
+                                                                    order,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                !paypal.enabled
+                                                            }
+                                                        >
+                                                            Pay
+                                                        </Button>
                                                     )}
-                                                    {order.status === 'delivered' && order.payment_status === 'paid' && order.remaining_revisions > 0 && (
-                                                        <Button size="sm" variant="outline" onClick={() => setRevisionTarget(order)}>Revision</Button>
-                                                    )}
-                                                    {order.status === 'completed' && !order.review && (
-                                                        <Button size="sm" variant="outline" onClick={() => setReviewTarget(order)}>Review</Button>
-                                                    )}
+                                                    {order.status ===
+                                                        'delivered' &&
+                                                        order.payment_status ===
+                                                            'paid' &&
+                                                        order.remaining_revisions >
+                                                            0 && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    setRevisionTarget(
+                                                                        order,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Revision
+                                                            </Button>
+                                                        )}
+                                                    {order.status ===
+                                                        'completed' &&
+                                                        !order.review && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    setReviewTarget(
+                                                                        order,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Review
+                                                            </Button>
+                                                        )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -470,31 +656,96 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
 
                         <div className="space-y-3 p-4 lg:hidden">
                             {orders.map((order) => (
-                                <div key={order.id} className="rounded-xl border border-border/70 p-4">
+                                <div
+                                    key={order.id}
+                                    className="rounded-xl border border-border/70 p-4"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium">{order.gig_title ?? 'Order'}</p>
-                                            <p className="text-sm text-muted-foreground">#{order.id} • {order.seller?.name ?? 'Seller'}</p>
+                                            <p className="font-medium">
+                                                {order.gig_title ?? 'Order'}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                #{order.id} •{' '}
+                                                {order.seller?.name ?? 'Seller'}
+                                            </p>
                                         </div>
-                                        <p className="font-semibold">USD {order.price}</p>
+                                        <p className="font-semibold">
+                                            USD {order.price}
+                                        </p>
                                     </div>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Badge variant="outline">{order.package?.tier ?? 'package'}</Badge>
-                                        <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>{order.status}</Badge>
-                                        <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>{order.payment_status}</Badge>
+                                        <Badge variant="outline">
+                                            {order.package?.tier ?? 'package'}
+                                        </Badge>
+                                        <Badge
+                                            variant={
+                                                order.status === 'delivered'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {order.status}
+                                        </Badge>
+                                        <Badge
+                                            variant={
+                                                order.payment_status === 'paid'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {order.payment_status}
+                                        </Badge>
                                     </div>
-                                    <p className="mt-3 text-sm text-muted-foreground">{summarizeText(order.requirements, 100)}</p>
+                                    <p className="mt-3 text-sm text-muted-foreground">
+                                        {summarizeText(order.requirements, 100)}
+                                    </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>View</Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setSelectedOrder(order)
+                                            }
+                                        >
+                                            View
+                                        </Button>
                                         {order.payment_status === 'pending' && (
-                                            <Button size="sm" onClick={() => openCheckout(order)} disabled={!paypal.enabled}>Pay</Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={() =>
+                                                    openCheckout(order)
+                                                }
+                                                disabled={!paypal.enabled}
+                                            >
+                                                Pay
+                                            </Button>
                                         )}
-                                        {order.status === 'delivered' && order.payment_status === 'paid' && order.remaining_revisions > 0 && (
-                                            <Button size="sm" variant="outline" onClick={() => setRevisionTarget(order)}>Revision</Button>
-                                        )}
-                                        {order.status === 'completed' && !order.review && (
-                                            <Button size="sm" variant="outline" onClick={() => setReviewTarget(order)}>Review</Button>
-                                        )}
+                                        {order.status === 'delivered' &&
+                                            order.payment_status === 'paid' &&
+                                            order.remaining_revisions > 0 && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setRevisionTarget(order)
+                                                    }
+                                                >
+                                                    Revision
+                                                </Button>
+                                            )}
+                                        {order.status === 'completed' &&
+                                            !order.review && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setReviewTarget(order)
+                                                    }
+                                                >
+                                                    Review
+                                                </Button>
+                                            )}
                                     </div>
                                 </div>
                             ))}
@@ -503,12 +754,17 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 )}
             </div>
 
-            <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+            <Dialog
+                open={Boolean(selectedOrder)}
+                onOpenChange={(open) => !open && setSelectedOrder(null)}
+            >
                 <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Buyer order detail</DialogTitle>
                         <DialogDescription>
-                            Review delivery files, seller notes, revision history, and any cancellation updates for this order.
+                            Review delivery files, seller notes, revision
+                            history, and any cancellation updates for this
+                            order.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -517,40 +773,91 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                             <div className="rounded-3xl border border-border/70 bg-card p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Order #{selectedOrder.id}</p>
-                                        <p className="mt-1 text-xl font-semibold">{selectedOrder.gig_title}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Order #{selectedOrder.id}
+                                        </p>
+                                        <p className="mt-1 text-xl font-semibold">
+                                            {selectedOrder.gig_title}
+                                        </p>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Badge variant="outline">{selectedOrder.package?.tier}</Badge>
+                                        <Badge variant="outline">
+                                            {selectedOrder.package?.tier}
+                                        </Badge>
                                         <Badge>{selectedOrder.status}</Badge>
                                     </div>
                                 </div>
                                 <div className="mt-4 flex flex-wrap gap-3">
                                     <Badge variant="outline">
-                                        {selectedOrder.remaining_revisions} revision{selectedOrder.remaining_revisions === 1 ? '' : 's'} left
+                                        {selectedOrder.remaining_revisions}{' '}
+                                        revision
+                                        {selectedOrder.remaining_revisions === 1
+                                            ? ''
+                                            : 's'}{' '}
+                                        left
                                     </Badge>
-                                    {selectedOrder.payment_status === 'pending' && (
-                                        <Button onClick={() => openCheckout(selectedOrder)} disabled={!paypal.enabled}>
+                                    {selectedOrder.payment_status ===
+                                        'pending' && (
+                                        <Button
+                                            onClick={() =>
+                                                openCheckout(selectedOrder)
+                                            }
+                                            disabled={!paypal.enabled}
+                                        >
                                             Pay with PayPal
                                         </Button>
                                     )}
-                                    {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && selectedOrder.remaining_revisions > 0 && (
-                                        <Button variant="outline" onClick={() => setRevisionTarget(selectedOrder)}>
-                                            Request revision
-                                        </Button>
-                                    )}
-                                    {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && (
-                                        <Button onClick={() => completeOrder(selectedOrder)}>
-                                            Mark complete
-                                        </Button>
-                                    )}
-                                    {selectedOrder.status === 'completed' && !selectedOrder.review && (
-                                        <Button variant="outline" onClick={() => setReviewTarget(selectedOrder)}>
-                                            Leave review
-                                        </Button>
-                                    )}
-                                    {['pending', 'active', 'delivered'].includes(selectedOrder.status) && (
-                                        <Button variant="outline" onClick={() => setCancelTarget(selectedOrder)}>
+                                    {selectedOrder.status === 'delivered' &&
+                                        selectedOrder.payment_status ===
+                                            'paid' &&
+                                        selectedOrder.remaining_revisions >
+                                            0 && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setRevisionTarget(
+                                                        selectedOrder,
+                                                    )
+                                                }
+                                            >
+                                                Request revision
+                                            </Button>
+                                        )}
+                                    {selectedOrder.status === 'delivered' &&
+                                        selectedOrder.payment_status ===
+                                            'paid' && (
+                                            <Button
+                                                onClick={() =>
+                                                    completeOrder(selectedOrder)
+                                                }
+                                            >
+                                                Mark complete
+                                            </Button>
+                                        )}
+                                    {selectedOrder.status === 'completed' &&
+                                        !selectedOrder.review && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setReviewTarget(
+                                                        selectedOrder,
+                                                    )
+                                                }
+                                            >
+                                                Leave review
+                                            </Button>
+                                        )}
+                                    {[
+                                        'pending',
+                                        'active',
+                                        'delivered',
+                                    ].includes(selectedOrder.status) && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                setCancelTarget(selectedOrder)
+                                            }
+                                        >
                                             Cancel order
                                         </Button>
                                     )}
@@ -559,81 +866,140 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
 
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                    <h3 className="text-base font-semibold">Delivered files</h3>
+                                    <h3 className="text-base font-semibold">
+                                        Delivered files
+                                    </h3>
                                     {selectedOrder.deliveries.length === 0 ? (
                                         <p className="mt-3 text-sm text-muted-foreground">
                                             No delivery submitted yet.
                                         </p>
                                     ) : (
                                         <div className="mt-4 space-y-4">
-                                            {selectedOrder.deliveries.map((delivery) => (
-                                                <div key={delivery.id} className="rounded-2xl border border-border/70 p-4 text-sm">
-                                                    <p className="font-medium">{formatDate(delivery.delivered_at)}</p>
-                                                    <p className="mt-1 text-muted-foreground">
-                                                        By {delivery.delivered_by ?? 'Seller'}
-                                                    </p>
-                                                    {delivery.note && (
-                                                        <p className="mt-2 text-muted-foreground">{delivery.note}</p>
-                                                    )}
-                                                    <a
-                                                        href={delivery.file_url}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="mt-3 inline-flex items-center gap-2 text-primary underline underline-offset-4"
+                                            {selectedOrder.deliveries.map(
+                                                (delivery) => (
+                                                    <div
+                                                        key={delivery.id}
+                                                        className="rounded-2xl border border-border/70 p-4 text-sm"
                                                     >
-                                                        <FileText className="size-4" />
-                                                        Download delivery
-                                                    </a>
-                                                </div>
-                                            ))}
+                                                        <p className="font-medium">
+                                                            {formatDate(
+                                                                delivery.delivered_at,
+                                                            )}
+                                                        </p>
+                                                        <p className="mt-1 text-muted-foreground">
+                                                            By{' '}
+                                                            {delivery.delivered_by ??
+                                                                'Seller'}
+                                                        </p>
+                                                        {delivery.note && (
+                                                            <p className="mt-2 text-muted-foreground">
+                                                                {delivery.note}
+                                                            </p>
+                                                        )}
+                                                        <a
+                                                            href={
+                                                                delivery.file_url
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="mt-3 inline-flex items-center gap-2 text-primary underline underline-offset-4"
+                                                        >
+                                                            <FileText className="size-4" />
+                                                            Download delivery
+                                                        </a>
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="space-y-6">
                                     <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">Revision history</h3>
-                                        {selectedOrder.revisions.length === 0 ? (
+                                        <h3 className="text-base font-semibold">
+                                            Revision history
+                                        </h3>
+                                        {selectedOrder.revisions.length ===
+                                        0 ? (
                                             <p className="mt-3 text-sm text-muted-foreground">
                                                 No revision requests yet.
                                             </p>
                                         ) : (
                                             <div className="mt-4 space-y-4">
-                                                {selectedOrder.revisions.map((revision) => (
-                                                    <div key={revision.id} className="rounded-2xl border border-border/70 p-4 text-sm">
-                                                        <p className="font-medium">{revision.requested_by ?? 'Buyer'}</p>
-                                                        <p className="mt-1 text-muted-foreground">{formatDate(revision.created_at)}</p>
-                                                        <p className="mt-2 text-muted-foreground">{revision.note}</p>
-                                                    </div>
-                                                ))}
+                                                {selectedOrder.revisions.map(
+                                                    (revision) => (
+                                                        <div
+                                                            key={revision.id}
+                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
+                                                        >
+                                                            <p className="font-medium">
+                                                                {revision.requested_by ??
+                                                                    'Buyer'}
+                                                            </p>
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {formatDate(
+                                                                    revision.created_at,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-2 text-muted-foreground">
+                                                                {revision.note}
+                                                            </p>
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">Cancellation trail</h3>
-                                        {selectedOrder.cancellations.length === 0 ? (
+                                        <h3 className="text-base font-semibold">
+                                            Cancellation trail
+                                        </h3>
+                                        {selectedOrder.cancellations.length ===
+                                        0 ? (
                                             <p className="mt-3 text-sm text-muted-foreground">
                                                 No cancellation recorded.
                                             </p>
                                         ) : (
                                             <div className="mt-4 space-y-4">
-                                                {selectedOrder.cancellations.map((cancellation) => (
-                                                    <div key={cancellation.id} className="rounded-2xl border border-border/70 p-4 text-sm">
-                                                        <p className="font-medium capitalize">{cancellation.cancelled_by}</p>
-                                                        <p className="mt-1 text-muted-foreground">{formatDate(cancellation.created_at)}</p>
-                                                        <p className="mt-2 text-muted-foreground">{cancellation.reason}</p>
-                                                    </div>
-                                                ))}
+                                                {selectedOrder.cancellations.map(
+                                                    (cancellation) => (
+                                                        <div
+                                                            key={
+                                                                cancellation.id
+                                                            }
+                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
+                                                        >
+                                                            <p className="font-medium capitalize">
+                                                                {
+                                                                    cancellation.cancelled_by
+                                                                }
+                                                            </p>
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {formatDate(
+                                                                    cancellation.created_at,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-2 text-muted-foreground">
+                                                                {
+                                                                    cancellation.reason
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">Your review</h3>
+                                        <h3 className="text-base font-semibold">
+                                            Your review
+                                        </h3>
                                         {!selectedOrder.review ? (
                                             <p className="mt-3 text-sm text-muted-foreground">
-                                                {selectedOrder.status === 'completed'
+                                                {selectedOrder.status ===
+                                                'completed'
                                                     ? 'This order is complete and ready for your review.'
                                                     : 'You can leave a review after the order is completed.'}
                                             </p>
@@ -641,13 +1007,23 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                             <div className="mt-4 rounded-2xl border border-border/70 p-4 text-sm">
                                                 <div className="flex items-center gap-2 font-medium text-amber-600">
                                                     <Star className="size-4 fill-current" />
-                                                    {selectedOrder.review.rating.toFixed(1)} out of 5
+                                                    {selectedOrder.review.rating.toFixed(
+                                                        1,
+                                                    )}{' '}
+                                                    out of 5
                                                 </div>
                                                 <p className="mt-2 text-muted-foreground">
-                                                    {selectedOrder.review.comment}
+                                                    {
+                                                        selectedOrder.review
+                                                            .comment
+                                                    }
                                                 </p>
                                                 <p className="mt-3 text-xs text-muted-foreground">
-                                                    Submitted {formatDate(selectedOrder.review.created_at)}
+                                                    Submitted{' '}
+                                                    {formatDate(
+                                                        selectedOrder.review
+                                                            .created_at,
+                                                    )}
                                                 </p>
                                             </div>
                                         )}
@@ -659,93 +1035,154 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(revisionTarget)} onOpenChange={(open) => !open && setRevisionTarget(null)}>
+            <Dialog
+                open={Boolean(revisionTarget)}
+                onOpenChange={(open) => !open && setRevisionTarget(null)}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Request revision</DialogTitle>
                         <DialogDescription>
-                            Tell the seller exactly what needs to be updated in the delivered work.
+                            Tell the seller exactly what needs to be updated in
+                            the delivered work.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitRevision} className="space-y-4">
                         <div className="grid gap-2">
-                            <label htmlFor="revision_note" className="text-sm font-medium">Revision note</label>
+                            <label
+                                htmlFor="revision_note"
+                                className="text-sm font-medium"
+                            >
+                                Revision note
+                            </label>
                             <textarea
                                 id="revision_note"
                                 rows={5}
                                 value={revisionForm.data.revision_note}
-                                onChange={(event) => revisionForm.setData('revision_note', event.target.value)}
+                                onChange={(event) =>
+                                    revisionForm.setData(
+                                        'revision_note',
+                                        event.target.value,
+                                    )
+                                }
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 placeholder="Describe what should change in the delivery."
                                 required
                             />
-                            <InputError message={revisionForm.errors.revision_note} />
+                            <InputError
+                                message={revisionForm.errors.revision_note}
+                            />
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={revisionForm.processing}>
-                            {revisionForm.processing ? 'Submitting...' : 'Submit revision request'}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={revisionForm.processing}
+                        >
+                            {revisionForm.processing
+                                ? 'Submitting...'
+                                : 'Submit revision request'}
                         </Button>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(cancelTarget)} onOpenChange={(open) => !open && setCancelTarget(null)}>
+            <Dialog
+                open={Boolean(cancelTarget)}
+                onOpenChange={(open) => !open && setCancelTarget(null)}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Cancel order</DialogTitle>
                         <DialogDescription>
-                            Add a reason so the cancellation is recorded in the order history.
+                            Add a reason so the cancellation is recorded in the
+                            order history.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitCancellation} className="space-y-4">
                         <div className="grid gap-2">
-                            <label htmlFor="cancellation_reason" className="text-sm font-medium">Reason</label>
+                            <label
+                                htmlFor="cancellation_reason"
+                                className="text-sm font-medium"
+                            >
+                                Reason
+                            </label>
                             <textarea
                                 id="cancellation_reason"
                                 rows={5}
                                 value={cancelForm.data.cancellation_reason}
-                                onChange={(event) => cancelForm.setData('cancellation_reason', event.target.value)}
+                                onChange={(event) =>
+                                    cancelForm.setData(
+                                        'cancellation_reason',
+                                        event.target.value,
+                                    )
+                                }
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 placeholder="Explain why you want to cancel this order."
                                 required
                             />
-                            <InputError message={cancelForm.errors.cancellation_reason} />
+                            <InputError
+                                message={cancelForm.errors.cancellation_reason}
+                            />
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={cancelForm.processing}>
-                            {cancelForm.processing ? 'Cancelling...' : 'Confirm cancellation'}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={cancelForm.processing}
+                        >
+                            {cancelForm.processing
+                                ? 'Cancelling...'
+                                : 'Confirm cancellation'}
                         </Button>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(reviewTarget)} onOpenChange={(open) => !open && setReviewTarget(null)}>
+            <Dialog
+                open={Boolean(reviewTarget)}
+                onOpenChange={(open) => !open && setReviewTarget(null)}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Leave a review</DialogTitle>
                         <DialogDescription>
-                            Rate the completed order and share a short comment for future buyers.
+                            Rate the completed order and share a short comment
+                            for future buyers.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitReview} className="space-y-4">
                         <div className="grid gap-2">
-                            <label className="text-sm font-medium">Rating</label>
+                            <label className="text-sm font-medium">
+                                Rating
+                            </label>
                             <div className="grid grid-cols-5 gap-2">
                                 {[1, 2, 3, 4, 5].map((rating) => {
-                                    const active = reviewForm.data.rating === String(rating);
+                                    const active =
+                                        reviewForm.data.rating ===
+                                        String(rating);
 
                                     return (
                                         <Button
                                             key={rating}
                                             type="button"
-                                            variant={active ? 'default' : 'outline'}
-                                            onClick={() => reviewForm.setData('rating', String(rating))}
+                                            variant={
+                                                active ? 'default' : 'outline'
+                                            }
+                                            onClick={() =>
+                                                reviewForm.setData(
+                                                    'rating',
+                                                    String(rating),
+                                                )
+                                            }
                                             className="justify-center"
                                         >
-                                            <Star className={`mr-1 size-4 ${active ? 'fill-current' : ''}`} />
+                                            <Star
+                                                className={`mr-1 size-4 ${active ? 'fill-current' : ''}`}
+                                            />
                                             {rating}
                                         </Button>
                                     );
@@ -755,12 +1192,22 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                         </div>
 
                         <div className="grid gap-2">
-                            <label htmlFor="comment" className="text-sm font-medium">Comment</label>
+                            <label
+                                htmlFor="comment"
+                                className="text-sm font-medium"
+                            >
+                                Comment
+                            </label>
                             <textarea
                                 id="comment"
                                 rows={5}
                                 value={reviewForm.data.comment}
-                                onChange={(event) => reviewForm.setData('comment', event.target.value)}
+                                onChange={(event) =>
+                                    reviewForm.setData(
+                                        'comment',
+                                        event.target.value,
+                                    )
+                                }
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 placeholder="Share what went well and what future buyers should know."
                                 required
@@ -768,8 +1215,14 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                             <InputError message={reviewForm.errors.comment} />
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={reviewForm.processing}>
-                            {reviewForm.processing ? 'Submitting...' : 'Submit review'}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={reviewForm.processing}
+                        >
+                            {reviewForm.processing
+                                ? 'Submitting...'
+                                : 'Submit review'}
                         </Button>
                     </form>
                 </DialogContent>
@@ -789,10 +1242,13 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>
-                            {checkoutOrder ? `Pay for order #${checkoutOrder.id}` : 'Pay for order'}
+                            {checkoutOrder
+                                ? `Pay for order #${checkoutOrder.id}`
+                                : 'Pay for order'}
                         </DialogTitle>
                         <DialogDescription>
-                            Complete PayPal checkout to activate this buyer order.
+                            Complete PayPal checkout to activate this buyer
+                            order.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -801,11 +1257,15 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                             <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
                                 <div className="flex items-center justify-between text-sm">
                                     <span>Gig</span>
-                                    <span className="font-medium">{checkoutOrder.gig_title}</span>
+                                    <span className="font-medium">
+                                        {checkoutOrder.gig_title}
+                                    </span>
                                 </div>
                                 <div className="mt-2 flex items-center justify-between text-sm">
                                     <span>Package</span>
-                                    <span className="font-medium">{checkoutOrder.package?.title}</span>
+                                    <span className="font-medium">
+                                        {checkoutOrder.package?.title}
+                                    </span>
                                 </div>
                                 <div className="mt-2 flex items-center justify-between text-sm">
                                     <span>Total</span>
@@ -821,14 +1281,18 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                 </div>
                             )}
 
-                            {!paypal.enabled && paypal.message && !checkoutError && (
-                                <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                                    {paypal.message}
-                                </div>
-                            )}
+                            {!paypal.enabled &&
+                                paypal.message &&
+                                !checkoutError && (
+                                    <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                                        {paypal.message}
+                                    </div>
+                                )}
 
                             {isLoadingButtons && (
-                                <p className="text-sm text-muted-foreground">Loading PayPal checkout…</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Loading PayPal checkout…
+                                </p>
                             )}
 
                             {!isLoadingButtons && checkoutPaypalOrderId && (

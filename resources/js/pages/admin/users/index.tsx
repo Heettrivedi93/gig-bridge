@@ -59,11 +59,21 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
     });
 
     const usersWithPrimaryRole = useMemo(
-        () => users.map((user) => ({ ...user, primaryRole: user.roles[0] ?? '—' })),
+        () =>
+            users.map((user) => ({
+                ...user,
+                primaryRole: user.roles[0] ?? '—',
+            })),
         [users],
     );
-    const assignablePermissions = permissionsByRole[editTarget?.roles?.[0] ?? ''] ?? [];
-    const formatPermission = (permission: string) => permission.split('.').slice(1, -1).join(' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    const assignablePermissions =
+        permissionsByRole[editTarget?.roles?.[0] ?? ''] ?? [];
+    const formatPermission = (permission: string) =>
+        permission
+            .split('.')
+            .slice(1, -1)
+            .join(' ')
+            .replace(/\b\w/g, (char) => char.toUpperCase());
 
     const openEdit = (user: UserRow) => {
         setEditTarget(user);
@@ -121,26 +131,46 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                     description="Manage user name, email, role, permissions, and account status."
                 />
 
-                <div className="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
+                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-4 py-3 text-left font-medium">User</th>
-                                <th className="px-4 py-3 text-left font-medium">Role</th>
-                                <th className="px-4 py-3 text-left font-medium">Permissions</th>
-                                <th className="px-4 py-3 text-left font-medium">Status</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                <th className="px-4 py-3 text-left font-medium">
+                                    User
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Role
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Permissions
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Status
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {usersWithPrimaryRole.map((user) => (
-                                <tr key={user.id} className="bg-background transition-colors hover:bg-muted/30">
+                                <tr
+                                    key={user.id}
+                                    className="bg-background transition-colors hover:bg-muted/30"
+                                >
                                     <td className="px-4 py-3">
-                                        <div className="font-medium text-foreground">{user.name}</div>
-                                        <div className="text-xs text-muted-foreground">{user.email}</div>
+                                        <div className="font-medium text-foreground">
+                                            {user.name}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {user.email}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Badge variant="outline" className="capitalize">
+                                        <Badge
+                                            variant="outline"
+                                            className="capitalize"
+                                        >
                                             {user.primaryRole.replace('_', ' ')}
                                         </Badge>
                                     </td>
@@ -148,13 +178,23 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                         {user.permissions.length}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={
+                                                user.status === 'active'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
                                             {user.status}
                                         </Badge>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="icon" onClick={() => openEdit(user)}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => openEdit(user)}
+                                            >
                                                 <Pencil className="size-3.5" />
                                             </Button>
                                         </div>
@@ -166,7 +206,10 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                 </div>
             </div>
 
-            <Dialog open={!!editTarget} onOpenChange={(open) => !open && closeEdit()}>
+            <Dialog
+                open={!!editTarget}
+                onOpenChange={(open) => !open && closeEdit()}
+            >
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader className="space-y-1 border-b border-border pb-4">
                         <DialogTitle className="flex items-center gap-2">
@@ -174,7 +217,8 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                             Edit User
                         </DialogTitle>
                         <p className="text-sm text-muted-foreground">
-                            Update account details, status, and feature permissions.
+                            Update account details, status, and feature
+                            permissions.
                         </p>
                     </DialogHeader>
 
@@ -185,7 +229,9 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                 <Input
                                     id="user-name"
                                     value={form.data.name}
-                                    onChange={(e) => form.setData('name', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData('name', e.target.value)
+                                    }
                                     required
                                 />
                                 <InputError message={form.errors.name} />
@@ -197,7 +243,9 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                     id="user-email"
                                     type="email"
                                     value={form.data.email}
-                                    onChange={(e) => form.setData('email', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData('email', e.target.value)
+                                    }
                                     required
                                 />
                                 <InputError message={form.errors.email} />
@@ -208,14 +256,25 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                             <div className="grid gap-2">
                                 <Label>Role</Label>
                                 <Input
-                                    value={editTarget?.roles?.[0]?.replace('_', ' ') ?? '—'}
+                                    value={
+                                        editTarget?.roles?.[0]?.replace(
+                                            '_',
+                                            ' ',
+                                        ) ?? '—'
+                                    }
                                     disabled
                                     className="capitalize"
                                 />
                                 {editTarget?.permissions_managed_at ? (
-                                    <p className="text-xs text-muted-foreground">Custom permissions are active for this user.</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Custom permissions are active for this
+                                        user.
+                                    </p>
                                 ) : (
-                                    <p className="text-xs text-muted-foreground">This user is still using the default full access for their role.</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        This user is still using the default
+                                        full access for their role.
+                                    </p>
                                 )}
                             </div>
 
@@ -223,14 +282,20 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                 <Label>Status</Label>
                                 <Select
                                     value={form.data.status}
-                                    onValueChange={(v) => form.setData('status', v as Status)}
+                                    onValueChange={(v) =>
+                                        form.setData('status', v as Status)
+                                    }
                                 >
                                     <SelectTrigger className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="active">Active</SelectItem>
-                                        <SelectItem value="banned">Banned</SelectItem>
+                                        <SelectItem value="active">
+                                            Active
+                                        </SelectItem>
+                                        <SelectItem value="banned">
+                                            Banned
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.status} />
@@ -246,13 +311,17 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                             {assignablePermissions.length === 0 ? (
                                 <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-3">
                                     <p className="text-xs text-muted-foreground">
-                                        No permissions are configured for this role yet.
+                                        No permissions are configured for this
+                                        role yet.
                                     </p>
                                 </div>
                             ) : (
                                 <div className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-2">
                                     {assignablePermissions.map((permission) => {
-                                        const checked = form.data.permissions.includes(permission);
+                                        const checked =
+                                            form.data.permissions.includes(
+                                                permission,
+                                            );
 
                                         return (
                                             <label
@@ -264,10 +333,18 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                                     id={`permission-${permission}`}
                                                     type="checkbox"
                                                     checked={checked}
-                                                    onChange={() => togglePermission(permission)}
+                                                    onChange={() =>
+                                                        togglePermission(
+                                                            permission,
+                                                        )
+                                                    }
                                                     className="size-4 accent-primary"
                                                 />
-                                                <span className="break-all">{formatPermission(permission)}</span>
+                                                <span className="break-all">
+                                                    {formatPermission(
+                                                        permission,
+                                                    )}
+                                                </span>
                                             </label>
                                         );
                                     })}
@@ -277,7 +354,11 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                         </div>
 
                         <DialogFooter className="border-t border-border pt-4">
-                            <Button type="button" variant="outline" onClick={closeEdit}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={closeEdit}
+                            >
                                 Cancel
                             </Button>
                             <Button type="submit" disabled={form.processing}>

@@ -59,7 +59,12 @@ function formatDate(value: string | null) {
     return new Date(value).toLocaleString();
 }
 
-export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals }: Props) {
+export default function SellerWalletIndex({
+    seller,
+    wallet,
+    revenue,
+    withdrawals,
+}: Props) {
     const [showWithdrawal, setShowWithdrawal] = useState(false);
     const withdrawalForm = useForm<WithdrawalForm>({
         amount: '',
@@ -93,12 +98,18 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                 <section className="rounded-3xl border border-border/70 bg-card">
                     <div className="flex flex-col gap-4 border-b border-border/70 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h2 className="text-lg font-semibold">Seller Wallet</h2>
+                            <h2 className="text-lg font-semibold">
+                                Seller Wallet
+                            </h2>
                             <p className="text-sm text-muted-foreground">
-                                Funds released from completed orders appear here and can be moved into withdrawal requests.
+                                Funds released from completed orders appear here
+                                and can be moved into withdrawal requests.
                             </p>
                         </div>
-                        <Button onClick={() => setShowWithdrawal(true)} disabled={Number(wallet.available_balance) <= 0}>
+                        <Button
+                            onClick={() => setShowWithdrawal(true)}
+                            disabled={Number(wallet.available_balance) <= 0}
+                        >
                             <Wallet2 className="mr-2 size-4" />
                             Request Withdrawal
                         </Button>
@@ -106,19 +117,37 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
 
                     <div className="grid gap-4 px-6 py-5 md:grid-cols-3">
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Available balance</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {wallet.available_balance}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Ready to request for payout.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Available balance
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {wallet.available_balance}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Ready to request for payout.
+                            </p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Pending withdrawals</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {wallet.pending_balance}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Held while the admin reviews or transfers funds.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Pending withdrawals
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {wallet.pending_balance}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Held while the admin reviews or transfers funds.
+                            </p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Escrow bucket</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {wallet.escrow_balance}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Reserved for future seller-side fund states.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Escrow bucket
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {wallet.escrow_balance}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Reserved for future seller-side fund states.
+                            </p>
                         </div>
                     </div>
                 </section>
@@ -127,39 +156,69 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                     <div className="border-b border-border/70 px-6 py-4">
                         <h2 className="text-lg font-semibold">Revenue</h2>
                         <p className="text-sm text-muted-foreground">
-                            Revenue generated from your own sold services after platform commission.
+                            Revenue generated from your own sold services after
+                            platform commission.
                         </p>
                     </div>
 
                     <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Gross sales</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.gross_sales}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Total paid order value before commission.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Gross sales
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {revenue.gross_sales}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Total paid order value before commission.
+                            </p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Platform fees</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.platform_fees}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Marketplace commission deducted from paid sales.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Platform fees
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {revenue.platform_fees}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Marketplace commission deducted from paid sales.
+                            </p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Net revenue</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.net_revenue}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Your earnings from completed and paid service orders.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Net revenue
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {revenue.net_revenue}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Your earnings from completed and paid service
+                                orders.
+                            </p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">Pending release</p>
-                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.pending_release}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">Paid orders still waiting to move into your wallet.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Pending release
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {wallet.currency} {revenue.pending_release}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Paid orders still waiting to move into your
+                                wallet.
+                            </p>
                         </div>
                     </div>
                 </section>
 
                 <section className="rounded-3xl border border-border/70 bg-card">
                     <div className="border-b border-border/70 px-6 py-4">
-                        <h2 className="text-lg font-semibold">Withdrawal Requests</h2>
+                        <h2 className="text-lg font-semibold">
+                            Withdrawal Requests
+                        </h2>
                         <p className="text-sm text-muted-foreground">
-                            Review every payout request and its admin status in one place.
+                            Review every payout request and its admin status in
+                            one place.
                         </p>
                     </div>
 
@@ -170,23 +229,45 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                     ) : (
                         <div className="divide-y divide-border/70">
                             {withdrawals.map((withdrawal) => (
-                                <div key={withdrawal.id} className="flex flex-col gap-2 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div
+                                    key={withdrawal.id}
+                                    className="flex flex-col gap-2 px-6 py-4 lg:flex-row lg:items-center lg:justify-between"
+                                >
                                     <div>
-                                        <p className="font-medium">{wallet.currency} {withdrawal.amount}</p>
+                                        <p className="font-medium">
+                                            {wallet.currency}{' '}
+                                            {withdrawal.amount}
+                                        </p>
                                         <p className="text-sm text-muted-foreground">
-                                            {withdrawal.method ?? 'Method pending'} • Requested {formatDate(withdrawal.created_at)}
+                                            {withdrawal.method ??
+                                                'Method pending'}{' '}
+                                            • Requested{' '}
+                                            {formatDate(withdrawal.created_at)}
                                         </p>
                                         {withdrawal.note && (
-                                            <p className="mt-1 text-sm text-muted-foreground">{withdrawal.note}</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {withdrawal.note}
+                                            </p>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <Badge variant={withdrawal.status === 'approved' || withdrawal.status === 'paid' ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={
+                                                withdrawal.status ===
+                                                    'approved' ||
+                                                withdrawal.status === 'paid'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
                                             {withdrawal.status}
                                         </Badge>
                                         {withdrawal.reviewed_at && (
                                             <span className="text-xs text-muted-foreground">
-                                                Reviewed {formatDate(withdrawal.reviewed_at)}
+                                                Reviewed{' '}
+                                                {formatDate(
+                                                    withdrawal.reviewed_at,
+                                                )}
                                             </span>
                                         )}
                                     </div>
@@ -202,14 +283,19 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                     <DialogHeader>
                         <DialogTitle>Request Withdrawal</DialogTitle>
                         <DialogDescription>
-                            Move available wallet balance into a pending payout request for admin review.
+                            Move available wallet balance into a pending payout
+                            request for admin review.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitWithdrawal} className="space-y-4">
                         <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm">
-                            <p className="text-muted-foreground">Available balance</p>
-                            <p className="mt-2 text-lg font-semibold">{wallet.currency} {wallet.available_balance}</p>
+                            <p className="text-muted-foreground">
+                                Available balance
+                            </p>
+                            <p className="mt-2 text-lg font-semibold">
+                                {wallet.currency} {wallet.available_balance}
+                            </p>
                         </div>
 
                         <div className="grid gap-2">
@@ -220,11 +306,18 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                                 min="1"
                                 step="0.01"
                                 value={withdrawalForm.data.amount}
-                                onChange={(e) => withdrawalForm.setData('amount', e.target.value)}
+                                onChange={(e) =>
+                                    withdrawalForm.setData(
+                                        'amount',
+                                        e.target.value,
+                                    )
+                                }
                                 placeholder="100.00"
                                 required
                             />
-                            <InputError message={withdrawalForm.errors.amount} />
+                            <InputError
+                                message={withdrawalForm.errors.amount}
+                            />
                         </div>
 
                         <div className="grid gap-2">
@@ -232,11 +325,18 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                             <Input
                                 id="withdrawal-method"
                                 value={withdrawalForm.data.method}
-                                onChange={(e) => withdrawalForm.setData('method', e.target.value)}
+                                onChange={(e) =>
+                                    withdrawalForm.setData(
+                                        'method',
+                                        e.target.value,
+                                    )
+                                }
                                 placeholder="PayPal, Bank Transfer, etc."
                                 required
                             />
-                            <InputError message={withdrawalForm.errors.method} />
+                            <InputError
+                                message={withdrawalForm.errors.method}
+                            />
                         </div>
 
                         <div className="grid gap-2">
@@ -245,19 +345,35 @@ export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals
                                 id="withdrawal-details"
                                 rows={4}
                                 value={withdrawalForm.data.details}
-                                onChange={(e) => withdrawalForm.setData('details', e.target.value)}
+                                onChange={(e) =>
+                                    withdrawalForm.setData(
+                                        'details',
+                                        e.target.value,
+                                    )
+                                }
                                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                                 placeholder="Add payout email, bank reference, or any note for the admin."
                             />
-                            <InputError message={withdrawalForm.errors.details} />
+                            <InputError
+                                message={withdrawalForm.errors.details}
+                            />
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setShowWithdrawal(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowWithdrawal(false)}
+                            >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={withdrawalForm.processing}>
-                                {withdrawalForm.processing ? 'Submitting…' : 'Submit request'}
+                            <Button
+                                type="submit"
+                                disabled={withdrawalForm.processing}
+                            >
+                                {withdrawalForm.processing
+                                    ? 'Submitting…'
+                                    : 'Submit request'}
                             </Button>
                         </DialogFooter>
                     </form>

@@ -53,7 +53,11 @@ export function NotificationCenter() {
     };
 
     const markAsRead = (notificationId: string) => {
-        router.post(`/notifications/${notificationId}/read`, {}, { preserveScroll: true });
+        router.post(
+            `/notifications/${notificationId}/read`,
+            {},
+            { preserveScroll: true },
+        );
     };
 
     return (
@@ -62,15 +66,19 @@ export function NotificationCenter() {
                 <Button variant="ghost" size="icon" className="relative size-9">
                     <Bell className="size-4" />
                     {notifications.unread_count > 0 ? (
-                        <span className="absolute top-1.5 right-1.5 min-w-4 rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground">
-                            {notifications.unread_count > 99 ? '99+' : notifications.unread_count}
+                        <span className="absolute top-1.5 right-1.5 min-w-4 rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">
+                            {notifications.unread_count > 99
+                                ? '99+'
+                                : notifications.unread_count}
                         </span>
                     ) : null}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-96 p-0">
                 <div className="flex items-center justify-between px-3 py-2">
-                    <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
+                    <DropdownMenuLabel className="p-0">
+                        Notifications
+                    </DropdownMenuLabel>
                     <Button
                         type="button"
                         variant="ghost"
@@ -99,12 +107,18 @@ export function NotificationCenter() {
                                     }
                                 }}
                             >
-                                <div className={`mt-1 size-2 rounded-full ${notification.read_at ? 'bg-muted' : 'bg-primary'}`} />
+                                <div
+                                    className={`mt-1 size-2 rounded-full ${notification.read_at ? 'bg-muted' : 'bg-primary'}`}
+                                />
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-start justify-between gap-3">
-                                        <p className="text-sm font-medium">{notification.title}</p>
+                                        <p className="text-sm font-medium">
+                                            {notification.title}
+                                        </p>
                                         <span className="shrink-0 text-xs text-muted-foreground">
-                                            {formatDate(notification.created_at)}
+                                            {formatDate(
+                                                notification.created_at,
+                                            )}
                                         </span>
                                     </div>
                                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -126,7 +140,9 @@ export function NotificationCenter() {
                 <DropdownMenuSeparator />
                 <div className="p-2">
                     <Button asChild variant="outline" className="w-full">
-                        <Link href="/notifications">View all notifications</Link>
+                        <Link href="/notifications">
+                            View all notifications
+                        </Link>
                     </Button>
                 </div>
             </DropdownMenuContent>

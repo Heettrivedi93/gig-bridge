@@ -25,11 +25,13 @@ export default function Appearance() {
 
 Appearance.layout = (page: React.ReactNode) => (
     <SettingsLayout
-        breadcrumbs={[
-            { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Settings', href: '/settings/profile' },
-            { title: 'Appearance', href: '/settings/appearance' },
-        ] satisfies BreadcrumbItem[]}
+        breadcrumbs={
+            [
+                { title: 'Dashboard', href: '/dashboard' },
+                { title: 'Settings', href: '/settings/profile' },
+                { title: 'Appearance', href: '/settings/appearance' },
+            ] satisfies BreadcrumbItem[]
+        }
     >
         {page}
     </SettingsLayout>

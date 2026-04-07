@@ -70,10 +70,17 @@ type OrderFormData = {
 };
 
 export default function BuyerGigShow({ gig }: Props) {
-    const { auth } = usePage<{ auth: { user: { name: string; email: string } | null } }>().props;
-    const [selectedPackageId, setSelectedPackageId] = useState<string>(String(gig.packages[0]?.id ?? ''));
+    const { auth } = usePage<{
+        auth: { user: { name: string; email: string } | null };
+    }>().props;
+    const [selectedPackageId, setSelectedPackageId] = useState<string>(
+        String(gig.packages[0]?.id ?? ''),
+    );
     const selectedPackage = useMemo(
-        () => gig.packages.find((item) => String(item.id) === selectedPackageId) ?? gig.packages[0],
+        () =>
+            gig.packages.find(
+                (item) => String(item.id) === selectedPackageId,
+            ) ?? gig.packages[0],
         [gig.packages, selectedPackageId],
     );
 
@@ -109,7 +116,10 @@ export default function BuyerGigShow({ gig }: Props) {
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <div className="flex flex-col gap-4">
-                    <Link href="/buyer/gigs" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                        href="/buyer/gigs"
+                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                    >
                         <ArrowLeft className="size-4" />
                         Back to gigs
                     </Link>
@@ -124,8 +134,15 @@ export default function BuyerGigShow({ gig }: Props) {
                         <div className="grid gap-4 md:grid-cols-2">
                             {gig.gallery.length > 0 ? (
                                 gig.gallery.map((image) => (
-                                    <div key={image} className="overflow-hidden rounded-3xl border border-border/70 bg-card">
-                                        <img src={image} alt={gig.title} className="h-72 w-full object-cover" />
+                                    <div
+                                        key={image}
+                                        className="overflow-hidden rounded-3xl border border-border/70 bg-card"
+                                    >
+                                        <img
+                                            src={image}
+                                            alt={gig.title}
+                                            className="h-72 w-full object-cover"
+                                        />
                                     </div>
                                 ))
                             ) : (
@@ -138,13 +155,17 @@ export default function BuyerGigShow({ gig }: Props) {
                         <div className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex items-center gap-2">
                                 <FileText className="size-4 text-muted-foreground" />
-                                <h2 className="text-lg font-semibold">Service overview</h2>
+                                <h2 className="text-lg font-semibold">
+                                    Service overview
+                                </h2>
                             </div>
                             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
                                 <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
                                     <Star className="size-4 fill-current" />
                                     <span className="font-medium">
-                                        {gig.review_count > 0 ? gig.rating.toFixed(1) : 'New service'}
+                                        {gig.review_count > 0
+                                            ? gig.rating.toFixed(1)
+                                            : 'New service'}
                                     </span>
                                 </div>
                                 <span className="text-muted-foreground">
@@ -160,7 +181,7 @@ export default function BuyerGigShow({ gig }: Props) {
                                     </Badge>
                                 ))}
                             </div>
-                            <p className="mt-5 whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                            <p className="mt-5 text-sm leading-7 whitespace-pre-line text-muted-foreground">
                                 {gig.description}
                             </p>
                         </div>
@@ -168,20 +189,28 @@ export default function BuyerGigShow({ gig }: Props) {
                         <div className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex items-center gap-2">
                                 <Layers3 className="size-4 text-muted-foreground" />
-                                <h2 className="text-lg font-semibold">Compare packages</h2>
+                                <h2 className="text-lg font-semibold">
+                                    Compare packages
+                                </h2>
                             </div>
 
                             <div className="mt-5 grid gap-4 lg:grid-cols-3">
                                 {gig.packages.map((item) => {
-                                    const active = item.id === selectedPackage?.id;
+                                    const active =
+                                        item.id === selectedPackage?.id;
 
                                     return (
                                         <button
                                             key={item.id}
                                             type="button"
                                             onClick={() => {
-                                                setSelectedPackageId(String(item.id));
-                                                form.setData('package_id', String(item.id));
+                                                setSelectedPackageId(
+                                                    String(item.id),
+                                                );
+                                                form.setData(
+                                                    'package_id',
+                                                    String(item.id),
+                                                );
                                             }}
                                             className={`rounded-3xl border p-5 text-left transition ${
                                                 active
@@ -190,22 +219,34 @@ export default function BuyerGigShow({ gig }: Props) {
                                             }`}
                                         >
                                             <div className="flex items-center justify-between gap-3">
-                                                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                                                <p className="text-xs tracking-[0.22em] text-muted-foreground uppercase">
                                                     {item.tier}
                                                 </p>
-                                                {active && <Badge>Selected</Badge>}
+                                                {active && (
+                                                    <Badge>Selected</Badge>
+                                                )}
                                             </div>
-                                            <p className="mt-3 text-lg font-semibold">{item.title}</p>
+                                            <p className="mt-3 text-lg font-semibold">
+                                                {item.title}
+                                            </p>
                                             <p className="mt-2 text-sm text-muted-foreground">
                                                 {item.description}
                                             </p>
                                             <p className="mt-5 text-3xl font-semibold">
-                                                <span className="text-sm text-muted-foreground">USD</span>{' '}
+                                                <span className="text-sm text-muted-foreground">
+                                                    USD
+                                                </span>{' '}
                                                 {item.price}
                                             </p>
                                             <div className="mt-5 space-y-2 text-sm text-muted-foreground">
-                                                <p>{item.delivery_days} day delivery</p>
-                                                <p>{item.revision_count} revisions</p>
+                                                <p>
+                                                    {item.delivery_days} day
+                                                    delivery
+                                                </p>
+                                                <p>
+                                                    {item.revision_count}{' '}
+                                                    revisions
+                                                </p>
                                             </div>
                                         </button>
                                     );
@@ -216,23 +257,34 @@ export default function BuyerGigShow({ gig }: Props) {
                         <div className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex items-center gap-2">
                                 <MessageSquareQuote className="size-4 text-muted-foreground" />
-                                <h2 className="text-lg font-semibold">Buyer reviews</h2>
+                                <h2 className="text-lg font-semibold">
+                                    Buyer reviews
+                                </h2>
                             </div>
 
                             {gig.reviews.length === 0 ? (
                                 <p className="mt-4 text-sm text-muted-foreground">
-                                    This service has not received a buyer review yet.
+                                    This service has not received a buyer review
+                                    yet.
                                 </p>
                             ) : (
                                 <div className="mt-5 space-y-4">
                                     {gig.reviews.map((review) => (
-                                        <div key={review.id} className="rounded-2xl border border-border/70 p-4">
+                                        <div
+                                            key={review.id}
+                                            className="rounded-2xl border border-border/70 p-4"
+                                        >
                                             <div className="flex flex-wrap items-center justify-between gap-3">
                                                 <div>
-                                                    <p className="font-medium">{review.buyer_name ?? 'Buyer'}</p>
+                                                    <p className="font-medium">
+                                                        {review.buyer_name ??
+                                                            'Buyer'}
+                                                    </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {review.created_at
-                                                            ? new Date(review.created_at).toLocaleDateString()
+                                                            ? new Date(
+                                                                  review.created_at,
+                                                              ).toLocaleDateString()
                                                             : 'Recently'}
                                                     </p>
                                                 </div>
@@ -249,17 +301,21 @@ export default function BuyerGigShow({ gig }: Props) {
                                 </div>
                             )}
                         </div>
-
                     </section>
 
                     <aside className="space-y-6">
                         <section className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex items-center gap-2">
                                 <ShoppingCart className="size-4" />
-                                <h2 className="text-lg font-semibold">Place order</h2>
+                                <h2 className="text-lg font-semibold">
+                                    Place order
+                                </h2>
                             </div>
 
-                            <form onSubmit={submitOrder} className="mt-5 space-y-4">
+                            <form
+                                onSubmit={submitOrder}
+                                className="mt-5 space-y-4"
+                            >
                                 <div className="grid gap-2">
                                     <Label htmlFor="quantity">Quantity</Label>
                                     <Input
@@ -269,136 +325,231 @@ export default function BuyerGigShow({ gig }: Props) {
                                         max="20"
                                         required
                                         value={form.data.quantity}
-                                        onChange={(event) => form.setData('quantity', event.target.value)}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'quantity',
+                                                event.target.value,
+                                            )
+                                        }
                                     />
-                                    <InputError message={form.errors.quantity} />
+                                    <InputError
+                                        message={form.errors.quantity}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="requirements">Requirements</Label>
+                                    <Label htmlFor="requirements">
+                                        Requirements
+                                    </Label>
                                     <textarea
                                         id="requirements"
                                         rows={5}
                                         required
                                         value={form.data.requirements}
-                                        onChange={(event) => form.setData('requirements', event.target.value)}
-                                        className="min-h-32 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'requirements',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="min-h-32 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                         placeholder="Share your brief, goals, dimensions, references, and anything the seller should know."
                                     />
-                                    <InputError message={form.errors.requirements} />
+                                    <InputError
+                                        message={form.errors.requirements}
+                                    />
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="reference_link">Reference link</Label>
+                                        <Label htmlFor="reference_link">
+                                            Reference link
+                                        </Label>
                                         <div className="relative">
-                                            <Link2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                            <Link2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                             <Input
                                                 id="reference_link"
                                                 value={form.data.reference_link}
-                                                onChange={(event) => form.setData('reference_link', event.target.value)}
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        'reference_link',
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 className="pl-9"
                                                 placeholder="https://example.com/reference"
                                             />
                                         </div>
-                                        <InputError message={form.errors.reference_link} />
+                                        <InputError
+                                            message={form.errors.reference_link}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="coupon_code">Coupon</Label>
+                                        <Label htmlFor="coupon_code">
+                                            Coupon
+                                        </Label>
                                         <Input
                                             id="coupon_code"
                                             value={form.data.coupon_code}
-                                            onChange={(event) => form.setData('coupon_code', event.target.value)}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'coupon_code',
+                                                    event.target.value,
+                                                )
+                                            }
                                             placeholder="Optional coupon code"
                                         />
-                                        <InputError message={form.errors.coupon_code} />
+                                        <InputError
+                                            message={form.errors.coupon_code}
+                                        />
                                     </div>
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="style_notes">Style notes</Label>
+                                    <Label htmlFor="style_notes">
+                                        Style notes
+                                    </Label>
                                     <div className="relative">
-                                        <Palette className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
+                                        <Palette className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
                                         <textarea
                                             id="style_notes"
                                             rows={4}
                                             value={form.data.style_notes}
-                                            onChange={(event) => form.setData('style_notes', event.target.value)}
-                                            className="min-h-24 rounded-md border border-input bg-transparent pl-9 pr-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'style_notes',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="min-h-24 rounded-md border border-input bg-transparent py-2 pr-3 pl-9 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                             placeholder="Preferred tone, color direction, examples to avoid, or anything style-specific."
                                         />
                                     </div>
-                                    <InputError message={form.errors.style_notes} />
+                                    <InputError
+                                        message={form.errors.style_notes}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="brief_file">Brief file</Label>
+                                    <Label htmlFor="brief_file">
+                                        Brief file
+                                    </Label>
                                     <div className="relative">
-                                        <FileText className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <FileText className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input
                                             id="brief_file"
                                             type="file"
                                             className="pl-9"
-                                            onChange={(event) => form.setData('brief_file', event.target.files?.[0] ?? null)}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'brief_file',
+                                                    event.target.files?.[0] ??
+                                                        null,
+                                                )
+                                            }
                                         />
                                     </div>
-                                    <InputError message={form.errors.brief_file} />
+                                    <InputError
+                                        message={form.errors.brief_file}
+                                    />
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="billing_name">Billing name</Label>
+                                        <Label htmlFor="billing_name">
+                                            Billing name
+                                        </Label>
                                         <Input
                                             id="billing_name"
                                             required
                                             value={form.data.billing_name}
-                                            onChange={(event) => form.setData('billing_name', event.target.value)}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'billing_name',
+                                                    event.target.value,
+                                                )
+                                            }
                                             placeholder="Your full name"
                                         />
-                                        <InputError message={form.errors.billing_name} />
+                                        <InputError
+                                            message={form.errors.billing_name}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="billing_email">Billing email</Label>
+                                        <Label htmlFor="billing_email">
+                                            Billing email
+                                        </Label>
                                         <Input
                                             id="billing_email"
                                             type="email"
                                             required
                                             value={form.data.billing_email}
-                                            onChange={(event) => form.setData('billing_email', event.target.value)}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'billing_email',
+                                                    event.target.value,
+                                                )
+                                            }
                                             placeholder="you@example.com"
                                         />
-                                        <InputError message={form.errors.billing_email} />
+                                        <InputError
+                                            message={form.errors.billing_email}
+                                        />
                                     </div>
                                 </div>
 
                                 <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">Selected package</span>
-                                        <span className="font-medium">{selectedPackage?.title ?? 'Not selected'}</span>
+                                        <span className="text-muted-foreground">
+                                            Selected package
+                                        </span>
+                                        <span className="font-medium">
+                                            {selectedPackage?.title ??
+                                                'Not selected'}
+                                        </span>
                                     </div>
                                     <div className="mt-2 flex items-center justify-between">
-                                        <span className="text-muted-foreground">Delivery</span>
+                                        <span className="text-muted-foreground">
+                                            Delivery
+                                        </span>
                                         <span className="flex items-center gap-1 font-medium">
                                             <Clock3 className="size-4" />
-                                            {selectedPackage?.delivery_days ?? 0} days
+                                            {selectedPackage?.delivery_days ??
+                                                0}{' '}
+                                            days
                                         </span>
                                     </div>
                                     <div className="mt-3 flex items-center justify-between border-t border-border/70 pt-3 text-base font-semibold">
                                         <span>Total</span>
                                         <span>
-                                            USD {((Number(selectedPackage?.price ?? 0) || 0) * Number(form.data.quantity || '1')).toFixed(2)}
+                                            USD{' '}
+                                            {(
+                                                (Number(
+                                                    selectedPackage?.price ?? 0,
+                                                ) || 0) *
+                                                Number(
+                                                    form.data.quantity || '1',
+                                                )
+                                            ).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
 
-                                <Button type="submit" className="w-full" disabled={form.processing}>
-                                    {form.processing ? 'Creating order...' : 'Create order & continue'}
+                                <Button
+                                    type="submit"
+                                    className="w-full"
+                                    disabled={form.processing}
+                                >
+                                    {form.processing
+                                        ? 'Creating order...'
+                                        : 'Create order & continue'}
                                 </Button>
 
                                 <p className="text-xs text-muted-foreground">
-                                    This creates your order and sends you to the buyer orders list for PayPal checkout.
+                                    This creates your order and sends you to the
+                                    buyer orders list for PayPal checkout.
                                 </p>
                             </form>
                         </section>

@@ -19,8 +19,7 @@ type ToastItem = {
 const toastStyles: Record<FlashLevel, string> = {
     success:
         'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/80 dark:bg-emerald-950/60 dark:text-emerald-100',
-    error:
-        'border-red-200 bg-red-50 text-red-950 dark:border-red-900/80 dark:bg-red-950/60 dark:text-red-100',
+    error: 'border-red-200 bg-red-50 text-red-950 dark:border-red-900/80 dark:bg-red-950/60 dark:text-red-100',
     warning:
         'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/80 dark:bg-amber-950/60 dark:text-amber-100',
     info: 'border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/80 dark:bg-sky-950/60 dark:text-sky-100',
@@ -76,33 +75,44 @@ export default function FlashToaster() {
         timeoutIds.current.set(id, [leaveTimer, removeTimer]);
     });
 
-    const enqueueToast = useEffectEvent((level: FlashLevel, rawMessage: string) => {
-        const message = rawMessage.trim();
+    const enqueueToast = useEffectEvent(
+        (level: FlashLevel, rawMessage: string) => {
+            const message = rawMessage.trim();
 
-        if (!message) {
-            return;
-        }
-
-        const key = `${level}:${message}`;
-
-        if (activeKeys.current.has(key)) {
-            const existingToast = toasts.find((toast) => `${toast.level}:${toast.message}` === key);
-
-            if (existingToast) {
-                clearToastTimers(existingToast.id);
-                setToasts((current) => current.filter((toast) => toast.id !== existingToast.id));
+            if (!message) {
+                return;
             }
 
-            activeKeys.current.delete(key);
-        }
+            const key = `${level}:${message}`;
 
-        activeKeys.current.add(key);
+            if (activeKeys.current.has(key)) {
+                const existingToast = toasts.find(
+                    (toast) => `${toast.level}:${toast.message}` === key,
+                );
 
-        const id = `${key}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+                if (existingToast) {
+                    clearToastTimers(existingToast.id);
+                    setToasts((current) =>
+                        current.filter(
+                            (toast) => toast.id !== existingToast.id,
+                        ),
+                    );
+                }
 
-        setToasts((current) => [...current, { id, level, message, leaving: false }]);
-        registerToastTimers(id, key);
-    });
+                activeKeys.current.delete(key);
+            }
+
+            activeKeys.current.add(key);
+
+            const id = `${key}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+
+            setToasts((current) => [
+                ...current,
+                { id, level, message, leaving: false },
+            ]);
+            registerToastTimers(id, key);
+        },
+    );
 
     useEffect(() => {
         for (const level of FLASH_LEVELS) {
@@ -112,7 +122,14 @@ export default function FlashToaster() {
                 enqueueToast(level, message);
             }
         }
-    }, [flash?.nonce, flash?.success, flash?.error, flash?.warning, flash?.info]);
+    }, [
+        enqueueToast,
+        flash?.nonce,
+        flash?.success,
+        flash?.error,
+        flash?.warning,
+        flash?.info,
+    ]);
 
     useEffect(() => {
         const messages = Array.from(
@@ -128,7 +145,7 @@ export default function FlashToaster() {
         for (const message of messages) {
             enqueueToast('error', message);
         }
-    }, [errors]);
+    }, [enqueueToast, errors]);
 
     useEffect(() => {
         const timers = timeoutIds.current;
@@ -177,7 +194,7 @@ export default function FlashToaster() {
                     <div
                         key={toast.id}
                         className={cn(
-                            'pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur toast-surface',
+                            'toast-surface pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur',
                             toast.leaving ? 'toast-leave' : 'toast-enter',
                             toastStyles[toast.level],
                         )}
@@ -186,7 +203,7 @@ export default function FlashToaster() {
                     >
                         <Icon className="mt-0.5 size-5 shrink-0" />
 
-                        <p className="min-w-0 flex-1 text-sm font-medium leading-5">
+                        <p className="min-w-0 flex-1 text-sm leading-5 font-medium">
                             {toast.message}
                         </p>
 

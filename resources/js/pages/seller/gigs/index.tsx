@@ -191,7 +191,9 @@ function GigForm({
                     <Input
                         id="gig-title"
                         value={form.data.title}
-                        onChange={(event) => form.setData('title', event.target.value)}
+                        onChange={(event) =>
+                            form.setData('title', event.target.value)
+                        }
                         placeholder="I will design a modern landing page"
                         required
                         autoFocus
@@ -204,7 +206,9 @@ function GigForm({
                     <Input
                         id="gig-tags"
                         value={form.data.tags}
-                        onChange={(event) => form.setData('tags', event.target.value)}
+                        onChange={(event) =>
+                            form.setData('tags', event.target.value)
+                        }
                         placeholder="Laravel, React, UI Design"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -220,8 +224,10 @@ function GigForm({
                     id="gig-description"
                     rows={5}
                     value={form.data.description}
-                    onChange={(event) => form.setData('description', event.target.value)}
-                    className="min-h-32 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    onChange={(event) =>
+                        form.setData('description', event.target.value)
+                    }
+                    className="min-h-32 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     placeholder="Describe what you will deliver, what is included, and who this service is for."
                 />
                 <InputError message={form.errors.description} />
@@ -242,7 +248,10 @@ function GigForm({
                         </SelectTrigger>
                         <SelectContent>
                             {categories.map((category) => (
-                                <SelectItem key={category.id} value={String(category.id)}>
+                                <SelectItem
+                                    key={category.id}
+                                    value={String(category.id)}
+                                >
                                     {category.name}
                                 </SelectItem>
                             ))}
@@ -255,21 +264,25 @@ function GigForm({
                     <Label>Subcategory</Label>
                     <Select
                         value={form.data.subcategory_id}
-                        onValueChange={(value) => form.setData('subcategory_id', value)}
+                        onValueChange={(value) =>
+                            form.setData('subcategory_id', value)
+                        }
                         disabled={!selectedCategory}
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select subcategory" />
                         </SelectTrigger>
                         <SelectContent>
-                            {(selectedCategory?.subcategories ?? []).map((subcategory) => (
-                                <SelectItem
-                                    key={subcategory.id}
-                                    value={String(subcategory.id)}
-                                >
-                                    {subcategory.name}
-                                </SelectItem>
-                            ))}
+                            {(selectedCategory?.subcategories ?? []).map(
+                                (subcategory) => (
+                                    <SelectItem
+                                        key={subcategory.id}
+                                        value={String(subcategory.id)}
+                                    >
+                                        {subcategory.name}
+                                    </SelectItem>
+                                ),
+                            )}
                         </SelectContent>
                     </Select>
                     <InputError message={form.errors.subcategory_id} />
@@ -279,7 +292,9 @@ function GigForm({
                     <Label>Status</Label>
                     <Select
                         value={form.data.status}
-                        onValueChange={(value) => form.setData('status', value as GigStatus)}
+                        onValueChange={(value) =>
+                            form.setData('status', value as GigStatus)
+                        }
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue />
@@ -304,7 +319,8 @@ function GigForm({
                 {existingImages.length > 0 && (
                     <div className="grid gap-3 sm:grid-cols-2">
                         {existingImages.map((image) => {
-                            const markedForRemoval = form.data.remove_image_ids.includes(image.id);
+                            const markedForRemoval =
+                                form.data.remove_image_ids.includes(image.id);
 
                             return (
                                 <label
@@ -324,7 +340,9 @@ function GigForm({
                                         <input
                                             type="checkbox"
                                             checked={markedForRemoval}
-                                            onChange={() => toggleImageRemoval(image.id)}
+                                            onChange={() =>
+                                                toggleImageRemoval(image.id)
+                                            }
                                         />
                                         Remove this image
                                     </div>
@@ -342,7 +360,10 @@ function GigForm({
                         multiple
                         accept="image/*"
                         onChange={(event) =>
-                            form.setData('images', Array.from(event.target.files ?? []))
+                            form.setData(
+                                'images',
+                                Array.from(event.target.files ?? []),
+                            )
                         }
                     />
                     <p className="text-xs text-muted-foreground">
@@ -358,7 +379,8 @@ function GigForm({
                 <div>
                     <h3 className="font-semibold">Packages</h3>
                     <p className="text-sm text-muted-foreground">
-                        Every gig must include Basic, Standard, and Premium packages.
+                        Every gig must include Basic, Standard, and Premium
+                        packages.
                     </p>
                 </div>
 
@@ -377,26 +399,43 @@ function GigForm({
 
                             <div className="space-y-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`${tier.key}-title`}>Title</Label>
+                                    <Label htmlFor={`${tier.key}-title`}>
+                                        Title
+                                    </Label>
                                     <Input
                                         id={`${tier.key}-title`}
-                                        value={form.data.packages[tier.key].title}
+                                        value={
+                                            form.data.packages[tier.key].title
+                                        }
                                         onChange={(event) =>
-                                            updatePackage(tier.key, 'title', event.target.value)
+                                            updatePackage(
+                                                tier.key,
+                                                'title',
+                                                event.target.value,
+                                            )
                                         }
                                         placeholder={`${tier.label} package title`}
                                     />
                                     <InputError
-                                        message={form.errors[`packages.${tier.key}.title`]}
+                                        message={
+                                            form.errors[
+                                                `packages.${tier.key}.title`
+                                            ]
+                                        }
                                     />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`${tier.key}-description`}>Description</Label>
+                                    <Label htmlFor={`${tier.key}-description`}>
+                                        Description
+                                    </Label>
                                     <textarea
                                         id={`${tier.key}-description`}
                                         rows={4}
-                                        value={form.data.packages[tier.key].description}
+                                        value={
+                                            form.data.packages[tier.key]
+                                                .description
+                                        }
                                         onChange={(event) =>
                                             updatePackage(
                                                 tier.key,
@@ -404,29 +443,46 @@ function GigForm({
                                                 event.target.value,
                                             )
                                         }
-                                        className="min-h-28 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                        className="min-h-28 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                         placeholder="What is included in this package?"
                                     />
                                     <InputError
-                                        message={form.errors[`packages.${tier.key}.description`]}
+                                        message={
+                                            form.errors[
+                                                `packages.${tier.key}.description`
+                                            ]
+                                        }
                                     />
                                 </div>
 
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <div className="grid gap-2">
-                                        <Label htmlFor={`${tier.key}-price`}>Price</Label>
+                                        <Label htmlFor={`${tier.key}-price`}>
+                                            Price
+                                        </Label>
                                         <Input
                                             id={`${tier.key}-price`}
                                             type="number"
                                             min="1"
                                             step="0.01"
-                                            value={form.data.packages[tier.key].price}
+                                            value={
+                                                form.data.packages[tier.key]
+                                                    .price
+                                            }
                                             onChange={(event) =>
-                                                updatePackage(tier.key, 'price', event.target.value)
+                                                updatePackage(
+                                                    tier.key,
+                                                    'price',
+                                                    event.target.value,
+                                                )
                                             }
                                         />
                                         <InputError
-                                            message={form.errors[`packages.${tier.key}.price`]}
+                                            message={
+                                                form.errors[
+                                                    `packages.${tier.key}.price`
+                                                ]
+                                            }
                                         />
                                     </div>
 
@@ -438,7 +494,10 @@ function GigForm({
                                             id={`${tier.key}-delivery`}
                                             type="number"
                                             min="1"
-                                            value={form.data.packages[tier.key].delivery_days}
+                                            value={
+                                                form.data.packages[tier.key]
+                                                    .delivery_days
+                                            }
                                             onChange={(event) =>
                                                 updatePackage(
                                                     tier.key,
@@ -457,14 +516,19 @@ function GigForm({
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor={`${tier.key}-revisions`}>
+                                        <Label
+                                            htmlFor={`${tier.key}-revisions`}
+                                        >
                                             Revisions
                                         </Label>
                                         <Input
                                             id={`${tier.key}-revisions`}
                                             type="number"
                                             min="0"
-                                            value={form.data.packages[tier.key].revision_count}
+                                            value={
+                                                form.data.packages[tier.key]
+                                                    .revision_count
+                                            }
                                             onChange={(event) =>
                                                 updatePackage(
                                                     tier.key,
@@ -561,7 +625,8 @@ export default function SellerGigsIndex({
     const handleDelete = async (gig: GigItem) => {
         const ok = await confirm({
             title: `Delete "${gig.title}"?`,
-            description: 'This will permanently remove the gig, packages, and images.',
+            description:
+                'This will permanently remove the gig, packages, and images.',
         });
 
         if (ok) {
@@ -602,28 +667,41 @@ export default function SellerGigsIndex({
 
                 <div className="grid gap-4 xl:grid-cols-3">
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <p className="text-sm text-muted-foreground">Active plan</p>
-                        <p className="mt-2 text-2xl font-semibold">{subscription.plan_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                            Active plan
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold">
+                            {subscription.plan_name}
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Renews or expires on {subscriptionEndsText}
                         </p>
                     </div>
 
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <p className="text-sm text-muted-foreground">Active gigs</p>
+                        <p className="text-sm text-muted-foreground">
+                            Active gigs
+                        </p>
                         <p className="mt-2 text-2xl font-semibold">
-                            {subscription.active_gig_count} / {subscription.gig_limit}
+                            {subscription.active_gig_count} /{' '}
+                            {subscription.gig_limit}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Your current plan controls how many gigs can stay live.
+                            Your current plan controls how many gigs can stay
+                            live.
                         </p>
                     </div>
 
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <p className="text-sm text-muted-foreground">Remaining slots</p>
-                        <p className="mt-2 text-2xl font-semibold">{remainingSlots}</p>
+                        <p className="text-sm text-muted-foreground">
+                            Remaining slots
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold">
+                            {remainingSlots}
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Activate more gigs after freeing slots or upgrading plans.
+                            Activate more gigs after freeing slots or upgrading
+                            plans.
                         </p>
                     </div>
                 </div>
@@ -632,7 +710,8 @@ export default function SellerGigsIndex({
                     <div className="border-b border-border/70 px-5 py-4">
                         <h2 className="font-semibold">Gig library</h2>
                         <p className="text-sm text-muted-foreground">
-                            All of your gigs, including draft or inactive listings.
+                            All of your gigs, including draft or inactive
+                            listings.
                         </p>
                     </div>
 
@@ -644,7 +723,8 @@ export default function SellerGigsIndex({
                             <div>
                                 <p className="font-medium">No gigs yet</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Create your first gig with three packages and gallery images.
+                                    Create your first gig with three packages
+                                    and gallery images.
                                 </p>
                             </div>
                             <Button onClick={() => setShowCreate(true)}>
@@ -676,9 +756,12 @@ export default function SellerGigsIndex({
                                     <div className="space-y-4 p-4">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <h3 className="font-semibold">{gig.title}</h3>
+                                                <h3 className="font-semibold">
+                                                    {gig.title}
+                                                </h3>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {gig.category_name} / {gig.subcategory_name}
+                                                    {gig.category_name} /{' '}
+                                                    {gig.subcategory_name}
                                                 </p>
                                             </div>
                                             <Badge
@@ -704,7 +787,9 @@ export default function SellerGigsIndex({
                                                 >
                                                     <span>{tier.label}</span>
                                                     <span className="font-medium">
-                                                        ${gig.packages[tier.key].price || '0.00'}
+                                                        $
+                                                        {gig.packages[tier.key]
+                                                            .price || '0.00'}
                                                     </span>
                                                 </div>
                                             ))}
@@ -722,7 +807,9 @@ export default function SellerGigsIndex({
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => handleStatusToggle(gig)}
+                                                onClick={() =>
+                                                    handleStatusToggle(gig)
+                                                }
                                             >
                                                 <Power className="size-4" />
                                                 {gig.status === 'active'
@@ -732,7 +819,9 @@ export default function SellerGigsIndex({
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => handleDelete(gig)}
+                                                onClick={() =>
+                                                    handleDelete(gig)
+                                                }
                                             >
                                                 <Trash2 className="size-4" />
                                                 Delete
@@ -762,7 +851,10 @@ export default function SellerGigsIndex({
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
+            <Dialog
+                open={Boolean(editTarget)}
+                onOpenChange={(open) => !open && setEditTarget(null)}
+            >
                 <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
                     <DialogHeader>
                         <DialogTitle>Edit gig</DialogTitle>

@@ -23,8 +23,9 @@ export default function Profile({
 }) {
     const { auth } = usePage().props;
     const getInitials = useInitials();
-    const canManageExtendedProfile =
-        !(auth.user.roles as string[] | undefined)?.includes('super_admin');
+    const canManageExtendedProfile = !(
+        auth.user.roles as string[] | undefined
+    )?.includes('super_admin');
     const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
     const form = useForm<{
         name: string;
@@ -51,7 +52,7 @@ export default function Profile({
         typeof auth.user.avatar === 'string' ? auth.user.avatar : null;
     const previewUrl = form.data.remove_profile_picture
         ? null
-        : localPreviewUrl ?? currentAvatar;
+        : (localPreviewUrl ?? currentAvatar);
 
     useEffect(() => {
         return () => {
@@ -119,17 +120,25 @@ export default function Profile({
                         <div className="rounded-2xl border border-border/70 bg-card/70 p-5">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                                 <Avatar className="h-20 w-20 rounded-2xl border border-border/70">
-                                    <AvatarImage src={previewUrl ?? undefined} alt={auth.user.name} />
+                                    <AvatarImage
+                                        src={previewUrl ?? undefined}
+                                        alt={auth.user.name}
+                                    />
                                     <AvatarFallback className="rounded-2xl bg-muted text-lg">
-                                        {getInitials(form.data.name || auth.user.name)}
+                                        {getInitials(
+                                            form.data.name || auth.user.name,
+                                        )}
                                     </AvatarFallback>
                                 </Avatar>
 
                                 <div className="space-y-3">
                                     <div>
-                                        <p className="font-medium">Profile picture</p>
+                                        <p className="font-medium">
+                                            Profile picture
+                                        </p>
                                         <p className="text-sm text-muted-foreground">
-                                            Upload a square image for your buyer or seller profile.
+                                            Upload a square image for your buyer
+                                            or seller profile.
                                         </p>
                                     </div>
 
@@ -162,7 +171,9 @@ export default function Profile({
                                         onChange={handleProfilePictureChange}
                                     />
 
-                                    <InputError message={form.errors.profile_picture} />
+                                    <InputError
+                                        message={form.errors.profile_picture}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -174,12 +185,17 @@ export default function Profile({
                             <Input
                                 id="name"
                                 value={form.data.name}
-                                onChange={(event) => form.setData('name', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('name', event.target.value)
+                                }
                                 required
                                 autoComplete="name"
                                 placeholder="Full name"
                             />
-                            <InputError className="mt-2" message={form.errors.name} />
+                            <InputError
+                                className="mt-2"
+                                message={form.errors.name}
+                            />
                         </div>
 
                         <div className="grid gap-2">
@@ -188,35 +204,43 @@ export default function Profile({
                                 id="email"
                                 type="email"
                                 value={form.data.email}
-                                onChange={(event) => form.setData('email', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('email', event.target.value)
+                                }
                                 required
                                 autoComplete="username"
                                 placeholder="Email address"
                             />
-                            <InputError className="mt-2" message={form.errors.email} />
+                            <InputError
+                                className="mt-2"
+                                message={form.errors.email}
+                            />
                         </div>
                     </div>
 
-                    {mustVerifyEmail && auth.user.email_verified_at === null && (
-                        <div>
-                            <p className="text-sm text-muted-foreground">
-                                Your email address is unverified.{' '}
-                                <Link
-                                    href={send()}
-                                    as="button"
-                                    className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                >
-                                    Click here to resend the verification email.
-                                </Link>
-                            </p>
+                    {mustVerifyEmail &&
+                        auth.user.email_verified_at === null && (
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Your email address is unverified.{' '}
+                                    <Link
+                                        href={send()}
+                                        as="button"
+                                        className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                    >
+                                        Click here to resend the verification
+                                        email.
+                                    </Link>
+                                </p>
 
-                            {status === 'verification-link-sent' && (
-                                <div className="mt-2 text-sm font-medium text-green-600">
-                                    A new verification link has been sent to your email address.
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                {status === 'verification-link-sent' && (
+                                    <div className="mt-2 text-sm font-medium text-green-600">
+                                        A new verification link has been sent to
+                                        your email address.
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                     {canManageExtendedProfile && (
                         <>
@@ -225,12 +249,17 @@ export default function Profile({
                                 <textarea
                                     id="bio"
                                     value={form.data.bio}
-                                    onChange={(event) => form.setData('bio', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData('bio', event.target.value)
+                                    }
                                     rows={4}
-                                    className="min-h-28 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                    className="min-h-28 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     placeholder="Introduce yourself, your services, and the kind of work you do."
                                 />
-                                <InputError className="mt-2" message={form.errors.bio} />
+                                <InputError
+                                    className="mt-2"
+                                    message={form.errors.bio}
+                                />
                             </div>
 
                             <div className="grid gap-6 md:grid-cols-2">
@@ -239,11 +268,19 @@ export default function Profile({
                                     <Input
                                         id="phone"
                                         value={form.data.phone}
-                                        onChange={(event) => form.setData('phone', event.target.value)}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'phone',
+                                                event.target.value,
+                                            )
+                                        }
                                         autoComplete="tel"
                                         placeholder="+1 555 123 4567"
                                     />
-                                    <InputError className="mt-2" message={form.errors.phone} />
+                                    <InputError
+                                        className="mt-2"
+                                        message={form.errors.phone}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
@@ -251,11 +288,19 @@ export default function Profile({
                                     <Input
                                         id="location"
                                         value={form.data.location}
-                                        onChange={(event) => form.setData('location', event.target.value)}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'location',
+                                                event.target.value,
+                                            )
+                                        }
                                         autoComplete="address-level2"
                                         placeholder="City, Country"
                                     />
-                                    <InputError className="mt-2" message={form.errors.location} />
+                                    <InputError
+                                        className="mt-2"
+                                        message={form.errors.location}
+                                    />
                                 </div>
                             </div>
 
@@ -266,10 +311,18 @@ export default function Profile({
                                         id="website"
                                         type="url"
                                         value={form.data.website}
-                                        onChange={(event) => form.setData('website', event.target.value)}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'website',
+                                                event.target.value,
+                                            )
+                                        }
                                         placeholder="https://yourwebsite.com"
                                     />
-                                    <InputError className="mt-2" message={form.errors.website} />
+                                    <InputError
+                                        className="mt-2"
+                                        message={form.errors.website}
+                                    />
                                 </div>
 
                                 <div className="grid gap-2">
@@ -277,13 +330,21 @@ export default function Profile({
                                     <Input
                                         id="skills"
                                         value={form.data.skills}
-                                        onChange={(event) => form.setData('skills', event.target.value)}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'skills',
+                                                event.target.value,
+                                            )
+                                        }
                                         placeholder="Laravel, React, UI Design, Copywriting"
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         Separate your main skills with commas.
                                     </p>
-                                    <InputError className="mt-2" message={form.errors.skills} />
+                                    <InputError
+                                        className="mt-2"
+                                        message={form.errors.skills}
+                                    />
                                 </div>
                             </div>
                         </>
@@ -308,11 +369,13 @@ export default function Profile({
 
 Profile.layout = (page: React.ReactNode) => (
     <SettingsLayout
-        breadcrumbs={[
-            { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Settings', href: '/settings/profile' },
-            { title: 'Profile', href: '/settings/profile' },
-        ] satisfies BreadcrumbItem[]}
+        breadcrumbs={
+            [
+                { title: 'Dashboard', href: '/dashboard' },
+                { title: 'Settings', href: '/settings/profile' },
+                { title: 'Profile', href: '/settings/profile' },
+            ] satisfies BreadcrumbItem[]
+        }
     >
         {page}
     </SettingsLayout>

@@ -12,7 +12,15 @@ export default function AppLayout({
     const inferredBreadcrumbs =
         breadcrumbs.length > 0 || !isValidElement(children)
             ? breadcrumbs
-            : (((children.type as { layout?: { breadcrumbs?: BreadcrumbItem[] } }).layout?.breadcrumbs ?? []) as BreadcrumbItem[]);
+            : (((
+                  children.type as {
+                      layout?: { breadcrumbs?: BreadcrumbItem[] };
+                  }
+              ).layout?.breadcrumbs ?? []) as BreadcrumbItem[]);
 
-    return <AppLayoutTemplate breadcrumbs={inferredBreadcrumbs}>{children}</AppLayoutTemplate>;
+    return (
+        <AppLayoutTemplate breadcrumbs={inferredBreadcrumbs}>
+            {children}
+        </AppLayoutTemplate>
+    );
 }

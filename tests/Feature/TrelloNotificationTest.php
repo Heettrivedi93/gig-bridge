@@ -4,6 +4,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Models\Category;
 use App\Models\Gig;
 use App\Models\GigPackage;
+use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
@@ -86,9 +87,28 @@ function configureTrelloNotifications(array $events): void
 test('order placed sends trello card when enabled', function () {
     Http::fake([
         'https://api.trello.com/1/cards' => Http::response(['id' => 'card-1'], 200),
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+            'id' => 'ORDER-TRELLO-1',
+            'status' => 'CREATED',
+        ], 201),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TRELLO-1/capture' => Http::response([
+            'status' => 'COMPLETED',
+            'payer' => [
+                'payer_id' => 'PAYER-TRELLO-1',
+            ],
+        ]),
     ]);
 
     configureTrelloNotifications(['order_placed']);
+    Setting::setMany([
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
+    ]);
 
     [$category, $subcategory] = trelloNotificationCategory();
     $seller = trelloNotificationUser('seller');
@@ -105,6 +125,18 @@ test('order placed sends trello card when enabled', function () {
             'billing_email' => 'buyer@example.com',
         ])
         ->assertRedirect(route('buyer.orders.index'));
+
+    $order = Order::query()->latest('id')->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.order', $order))
+        ->assertOk();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.capture', $order), [
+            'order_id' => 'ORDER-TRELLO-1',
+        ])
+        ->assertOk();
 
     Http::assertSent(fn ($request) => $request->url() === 'https://api.trello.com/1/cards'
         && $request['key'] === 'trello-key'
@@ -170,9 +202,28 @@ test('trello request failure does not break business action', function () {
 
     Http::fake([
         'https://api.trello.com/1/cards' => Http::response(['message' => 'bad request'], 400),
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+            'id' => 'ORDER-TRELLO-2',
+            'status' => 'CREATED',
+        ], 201),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TRELLO-2/capture' => Http::response([
+            'status' => 'COMPLETED',
+            'payer' => [
+                'payer_id' => 'PAYER-TRELLO-2',
+            ],
+        ]),
     ]);
 
     configureTrelloNotifications(['order_placed']);
+    Setting::setMany([
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
+    ]);
 
     [$category, $subcategory] = trelloNotificationCategory();
     $seller = trelloNotificationUser('seller');
@@ -189,6 +240,18 @@ test('trello request failure does not break business action', function () {
             'billing_email' => 'buyer@example.com',
         ])
         ->assertRedirect(route('buyer.orders.index'));
+
+    $order = Order::query()->latest('id')->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.order', $order))
+        ->assertOk();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.capture', $order), [
+            'order_id' => 'ORDER-TRELLO-2',
+        ])
+        ->assertOk();
 
     Log::shouldHaveReceived('warning')->once();
 });

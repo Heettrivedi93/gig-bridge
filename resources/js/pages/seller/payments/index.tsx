@@ -1,5 +1,11 @@
 import { Head } from '@inertiajs/react';
-import { CreditCard, Download, FileText, ReceiptText, ShieldCheck } from 'lucide-react';
+import {
+    CreditCard,
+    Download,
+    FileText,
+    ReceiptText,
+    ShieldCheck,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -57,14 +63,20 @@ function formatMoney(currency: string, amount: string) {
 }
 
 export default function SellerPaymentsIndex({ payments, seller }: Props) {
-    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(
+        null,
+    );
 
     const completedPayments = useMemo(
         () => payments.filter((payment) => payment.status === 'completed'),
         [payments],
     );
     const totalSpent = useMemo(
-        () => completedPayments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+        () =>
+            completedPayments.reduce(
+                (sum, payment) => sum + Number(payment.amount),
+                0,
+            ),
         [completedPayments],
     );
 
@@ -88,9 +100,12 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                             <ReceiptText className="size-4" />
                             Total payments
                         </div>
-                        <p className="mt-3 text-2xl font-semibold">{payments.length}</p>
+                        <p className="mt-3 text-2xl font-semibold">
+                            {payments.length}
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Includes pending and completed seller subscription transactions.
+                            Includes pending and completed seller subscription
+                            transactions.
                         </p>
                     </div>
 
@@ -99,7 +114,9 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                             <ShieldCheck className="size-4" />
                             Completed
                         </div>
-                        <p className="mt-3 text-2xl font-semibold">{completedPayments.length}</p>
+                        <p className="mt-3 text-2xl font-semibold">
+                            {completedPayments.length}
+                        </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Successfully captured plan purchases.
                         </p>
@@ -111,7 +128,12 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                             Total spent
                         </div>
                         <p className="mt-3 text-2xl font-semibold">
-                            {payments[0] ? formatMoney(payments[0].currency, totalSpent.toFixed(2)) : 'USD 0.00'}
+                            {payments[0]
+                                ? formatMoney(
+                                      payments[0].currency,
+                                      totalSpent.toFixed(2),
+                                  )
+                                : 'USD 0.00'}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Based on completed seller subscription purchases.
@@ -123,13 +145,15 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                     <div className="border-b border-border/70 px-6 py-4">
                         <h2 className="text-lg font-semibold">Invoices</h2>
                         <p className="text-sm text-muted-foreground">
-                            Open any record to see the invoice details for that payment.
+                            Open any record to see the invoice details for that
+                            payment.
                         </p>
                     </div>
 
                     {payments.length === 0 ? (
                         <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                            No payment history yet. Once you buy a plan, the invoice will appear here.
+                            No payment history yet. Once you buy a plan, the
+                            invoice will appear here.
                         </div>
                     ) : (
                         <div className="divide-y divide-border/70">
@@ -140,21 +164,45 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                                 >
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-3">
-                                            <p className="font-medium">{payment.invoice_number}</p>
-                                            <Badge variant="outline">{payment.provider}</Badge>
-                                            <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
+                                            <p className="font-medium">
+                                                {payment.invoice_number}
+                                            </p>
+                                            <Badge variant="outline">
+                                                {payment.provider}
+                                            </Badge>
+                                            <Badge
+                                                variant={
+                                                    payment.status ===
+                                                    'completed'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
                                                 {payment.status}
                                             </Badge>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
-                                            {payment.plan?.name ?? 'Plan'} • {formatMoney(payment.currency, payment.amount)}
+                                            {payment.plan?.name ?? 'Plan'} •{' '}
+                                            {formatMoney(
+                                                payment.currency,
+                                                payment.amount,
+                                            )}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                            Paid at {formatDate(payment.captured_at ?? payment.created_at)}
+                                            Paid at{' '}
+                                            {formatDate(
+                                                payment.captured_at ??
+                                                    payment.created_at,
+                                            )}
                                         </p>
                                     </div>
 
-                                    <Button variant="outline" onClick={() => setSelectedPayment(payment)}>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            setSelectedPayment(payment)
+                                        }
+                                    >
                                         <FileText className="mr-2 size-4" />
                                         View invoice
                                     </Button>
@@ -177,7 +225,8 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                     <DialogHeader>
                         <DialogTitle>Invoice</DialogTitle>
                         <DialogDescription>
-                            Subscription payment details for your seller plan purchase.
+                            Subscription payment details for your seller plan
+                            purchase.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -186,20 +235,33 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                             <div className="rounded-3xl border border-border/70 bg-card p-6">
                                 <div className="flex flex-col gap-4 border-b border-border/70 pb-5 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
-                                        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                                        <p className="text-xs tracking-[0.24em] text-muted-foreground uppercase">
                                             Invoice
                                         </p>
                                         <p className="mt-2 text-2xl font-semibold">
                                             {selectedPayment.invoice_number}
                                         </p>
                                         <p className="mt-1 text-sm text-muted-foreground">
-                                            Issued on {formatDate(selectedPayment.captured_at ?? selectedPayment.created_at)}
+                                            Issued on{' '}
+                                            {formatDate(
+                                                selectedPayment.captured_at ??
+                                                    selectedPayment.created_at,
+                                            )}
                                         </p>
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="outline">{selectedPayment.provider}</Badge>
-                                        <Badge variant={selectedPayment.status === 'completed' ? 'default' : 'secondary'}>
+                                        <Badge variant="outline">
+                                            {selectedPayment.provider}
+                                        </Badge>
+                                        <Badge
+                                            variant={
+                                                selectedPayment.status ===
+                                                'completed'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
                                             {selectedPayment.status}
                                         </Badge>
                                     </div>
@@ -207,18 +269,29 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
 
                                 <div className="grid gap-6 py-5 lg:grid-cols-2">
                                     <div>
-                                        <p className="text-sm font-medium">Billed to</p>
-                                        <p className="mt-2 text-sm text-muted-foreground">{seller.name}</p>
-                                        <p className="text-sm text-muted-foreground">{seller.email}</p>
+                                        <p className="text-sm font-medium">
+                                            Billed to
+                                        </p>
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            {seller.name}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {seller.email}
+                                        </p>
                                     </div>
 
                                     <div>
-                                        <p className="text-sm font-medium">Payment reference</p>
+                                        <p className="text-sm font-medium">
+                                            Payment reference
+                                        </p>
                                         <p className="mt-2 text-sm text-muted-foreground">
-                                            Order ID: {selectedPayment.provider_order_id}
+                                            Order ID:{' '}
+                                            {selectedPayment.provider_order_id}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                            Capture ID: {selectedPayment.provider_capture_id ?? 'Pending'}
+                                            Capture ID:{' '}
+                                            {selectedPayment.provider_capture_id ??
+                                                'Pending'}
                                         </p>
                                     </div>
                                 </div>
@@ -227,38 +300,57 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                                     <div className="flex items-center justify-between text-sm">
                                         <span>Plan</span>
                                         <span className="font-medium">
-                                            {selectedPayment.plan?.name ?? 'Seller plan'}
+                                            {selectedPayment.plan?.name ??
+                                                'Seller plan'}
                                         </span>
                                     </div>
                                     <div className="mt-2 flex items-center justify-between text-sm">
                                         <span>Duration</span>
                                         <span className="font-medium">
-                                            {selectedPayment.plan?.duration_days ?? 0} days
+                                            {selectedPayment.plan
+                                                ?.duration_days ?? 0}{' '}
+                                            days
                                         </span>
                                     </div>
                                     <div className="mt-2 flex items-center justify-between text-sm">
                                         <span>Gig limit</span>
                                         <span className="font-medium">
-                                            {selectedPayment.plan?.gig_limit ?? 0} active gigs
+                                            {selectedPayment.plan?.gig_limit ??
+                                                0}{' '}
+                                            active gigs
                                         </span>
                                     </div>
                                     <div className="mt-2 flex items-center justify-between text-sm">
                                         <span>Subscription period</span>
-                                        <span className="font-medium text-right">
-                                            {formatDate(selectedPayment.subscription?.starts_at ?? null)}
+                                        <span className="text-right font-medium">
+                                            {formatDate(
+                                                selectedPayment.subscription
+                                                    ?.starts_at ?? null,
+                                            )}
                                             {' - '}
-                                            {formatDate(selectedPayment.subscription?.ends_at ?? null)}
+                                            {formatDate(
+                                                selectedPayment.subscription
+                                                    ?.ends_at ?? null,
+                                            )}
                                         </span>
                                     </div>
                                     <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-4 text-base font-semibold">
                                         <span>Total</span>
-                                        <span>{formatMoney(selectedPayment.currency, selectedPayment.amount)}</span>
+                                        <span>
+                                            {formatMoney(
+                                                selectedPayment.currency,
+                                                selectedPayment.amount,
+                                            )}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex justify-end">
-                                <Button variant="outline" onClick={printInvoice}>
+                                <Button
+                                    variant="outline"
+                                    onClick={printInvoice}
+                                >
                                     <Download className="mr-2 size-4" />
                                     Print invoice
                                 </Button>

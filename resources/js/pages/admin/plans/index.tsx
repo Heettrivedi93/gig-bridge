@@ -104,7 +104,9 @@ function PlanForm({
                         type="number"
                         min="1"
                         value={data.duration_days}
-                        onChange={(e) => setData('duration_days', e.target.value)}
+                        onChange={(e) =>
+                            setData('duration_days', e.target.value)
+                        }
                         placeholder="30"
                         required
                     />
@@ -133,7 +135,9 @@ function PlanForm({
                     rows={4}
                     value={data.features_text}
                     onChange={(e) => setData('features_text', e.target.value)}
-                    placeholder={'Priority listing\nCustom support\nMore revisions'}
+                    placeholder={
+                        'Priority listing\nCustom support\nMore revisions'
+                    }
                     className="min-h-[112px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
                 <InputError message={errors.features_text} />
@@ -141,7 +145,10 @@ function PlanForm({
 
             <div className="grid gap-2">
                 <Label>Status</Label>
-                <Select value={data.status} onValueChange={(v) => setData('status', v as PlanStatus)}>
+                <Select
+                    value={data.status}
+                    onValueChange={(v) => setData('status', v as PlanStatus)}
+                >
                     <SelectTrigger className="w-full">
                         <SelectValue />
                     </SelectTrigger>
@@ -261,38 +268,77 @@ export default function AdminPlansIndex({ plans }: Props) {
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-4 py-3 text-left font-medium">Name</th>
-                                <th className="px-4 py-3 text-left font-medium">Price</th>
-                                <th className="px-4 py-3 text-left font-medium">Duration</th>
-                                <th className="px-4 py-3 text-left font-medium">Gig Limit</th>
-                                <th className="px-4 py-3 text-left font-medium">Features</th>
-                                <th className="px-4 py-3 text-left font-medium">Status</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Name
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Price
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Duration
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Gig Limit
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Features
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Status
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {plans.map((plan) => (
-                                <tr key={plan.id} className="bg-background transition-colors hover:bg-muted/30">
-                                    <td className="px-4 py-3 font-medium text-foreground">{plan.name}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">${plan.price}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{plan.duration_days} days</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{plan.gig_limit}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{plan.features.length}</td>
+                                <tr
+                                    key={plan.id}
+                                    className="bg-background transition-colors hover:bg-muted/30"
+                                >
+                                    <td className="px-4 py-3 font-medium text-foreground">
+                                        {plan.name}
+                                    </td>
+                                    <td className="px-4 py-3 text-muted-foreground">
+                                        ${plan.price}
+                                    </td>
+                                    <td className="px-4 py-3 text-muted-foreground">
+                                        {plan.duration_days} days
+                                    </td>
+                                    <td className="px-4 py-3 text-muted-foreground">
+                                        {plan.gig_limit}
+                                    </td>
+                                    <td className="px-4 py-3 text-muted-foreground">
+                                        {plan.features.length}
+                                    </td>
                                     <td className="px-4 py-3">
-                                        <Badge variant={plan.status === 'active' ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={
+                                                plan.status === 'active'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
                                             {plan.status}
                                         </Badge>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="icon" onClick={() => openEdit(plan)}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => openEdit(plan)}
+                                            >
                                                 <Pencil className="size-3.5" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleDelete(plan)}
+                                                onClick={() =>
+                                                    handleDelete(plan)
+                                                }
                                                 className="text-destructive hover:text-destructive"
                                             >
                                                 <Trash2 className="size-3.5" />
@@ -322,7 +368,10 @@ export default function AdminPlansIndex({ plans }: Props) {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+            <Dialog
+                open={!!editTarget}
+                onOpenChange={(open) => !open && setEditTarget(null)}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit Subscription Plan</DialogTitle>
@@ -347,4 +396,3 @@ AdminPlansIndex.layout = {
         { title: 'Plans', href: '/admin/plans' },
     ],
 };
-

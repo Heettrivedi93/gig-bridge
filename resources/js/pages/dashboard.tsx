@@ -76,22 +76,27 @@ function badgeVariant(value: string) {
 }
 
 export default function Dashboard() {
-    const { role, stats, walletSummary, revenueSummary, recentOrders, recentTransactions } = usePage<PageProps>().props;
+    const {
+        role,
+        stats,
+        walletSummary,
+        revenueSummary,
+        recentOrders,
+        recentTransactions,
+    } = usePage<PageProps>().props;
     const ordersHref = role === 'buyer' ? '/buyer/orders' : '/seller/orders';
-    const headingDescription = role === 'seller'
-        ? 'Track released funds, orders waiting on buyers, and recent wallet movement from one place.'
-        : role === 'buyer'
-            ? 'Review your active purchases, pending payments, and deliveries that still need your response.'
-            : 'Welcome back. Here is your current account overview.';
+    const headingDescription =
+        role === 'seller'
+            ? 'Track released funds, orders waiting on buyers, and recent wallet movement from one place.'
+            : role === 'buyer'
+              ? 'Review your active purchases, pending payments, and deliveries that still need your response.'
+              : 'Welcome back. Here is your current account overview.';
 
     return (
         <>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <Heading
-                    title="Dashboard"
-                    description={headingDescription}
-                />
+                <Heading title="Dashboard" description={headingDescription} />
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {stats.map((item) => (
@@ -99,8 +104,12 @@ export default function Dashboard() {
                             key={item.label}
                             className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
                         >
-                            <p className="text-sm text-muted-foreground">{item.label}</p>
-                            <p className="mt-3 text-2xl font-semibold">{item.value}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {item.label}
+                            </p>
+                            <p className="mt-3 text-2xl font-semibold">
+                                {item.value}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -115,10 +124,12 @@ export default function Dashboard() {
                                         Seller wallet
                                     </div>
                                     <p className="mt-2 text-3xl font-semibold">
-                                        {walletSummary.currency} {walletSummary.available_balance}
+                                        {walletSummary.currency}{' '}
+                                        {walletSummary.available_balance}
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        Released funds currently available for withdrawal requests.
+                                        Released funds currently available for
+                                        withdrawal requests.
                                     </p>
                                 </div>
                                 <div className="flex gap-2">
@@ -137,45 +148,79 @@ export default function Dashboard() {
 
                             <div className="mt-5 grid gap-3 md:grid-cols-3">
                                 <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                    <p className="text-sm text-muted-foreground">Pending withdrawals</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Pending withdrawals
+                                    </p>
                                     <p className="mt-2 text-xl font-semibold">
-                                        {walletSummary.currency} {walletSummary.pending_balance}
+                                        {walletSummary.currency}{' '}
+                                        {walletSummary.pending_balance}
                                     </p>
                                 </div>
                                 <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                    <p className="text-sm text-muted-foreground">Releasable orders</p>
-                                    <p className="mt-2 text-xl font-semibold">{walletSummary.releasable_orders}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Releasable orders
+                                    </p>
+                                    <p className="mt-2 text-xl font-semibold">
+                                        {walletSummary.releasable_orders}
+                                    </p>
                                 </div>
                                 <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                    <p className="text-sm text-muted-foreground">Delivered awaiting buyer</p>
-                                    <p className="mt-2 text-xl font-semibold">{walletSummary.delivered_orders}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Delivered awaiting buyer
+                                    </p>
+                                    <p className="mt-2 text-xl font-semibold">
+                                        {walletSummary.delivered_orders}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                             <div className="mb-4 flex items-center justify-between">
-                                <h3 className="font-semibold">Recent Wallet Activity</h3>
+                                <h3 className="font-semibold">
+                                    Recent Wallet Activity
+                                </h3>
                                 <Badge variant="outline">Live</Badge>
                             </div>
 
                             {recentTransactions.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
-                                    Wallet activity will appear here once funds are released, refunded, or moved into payout review.
+                                    Wallet activity will appear here once funds
+                                    are released, refunded, or moved into payout
+                                    review.
                                 </p>
                             ) : (
                                 <div className="space-y-3">
                                     {recentTransactions.map((item) => (
-                                        <div key={item.id} className="rounded-lg border border-border/70 px-3 py-3">
+                                        <div
+                                            key={item.id}
+                                            className="rounded-lg border border-border/70 px-3 py-3"
+                                        >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <p className="font-medium">{item.description ?? item.type}</p>
+                                                    <p className="font-medium">
+                                                        {item.description ??
+                                                            item.type}
+                                                    </p>
                                                     <p className="mt-1 text-xs text-muted-foreground">
-                                                        {item.balance_bucket} · {formatDate(item.created_at)}
+                                                        {item.balance_bucket} ·{' '}
+                                                        {formatDate(
+                                                            item.created_at,
+                                                        )}
                                                     </p>
                                                 </div>
-                                                <Badge variant={item.direction === 'credit' ? 'default' : 'outline'}>
-                                                    {item.direction === 'credit' ? '+' : '-'}{item.amount}
+                                                <Badge
+                                                    variant={
+                                                        item.direction ===
+                                                        'credit'
+                                                            ? 'default'
+                                                            : 'outline'
+                                                    }
+                                                >
+                                                    {item.direction === 'credit'
+                                                        ? '+'
+                                                        : '-'}
+                                                    {item.amount}
                                                 </Badge>
                                             </div>
                                         </div>
@@ -190,9 +235,12 @@ export default function Dashboard() {
                     <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <h3 className="font-semibold">Revenue Snapshot</h3>
+                                <h3 className="font-semibold">
+                                    Revenue Snapshot
+                                </h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Revenue generated from your own sold services.
+                                    Revenue generated from your own sold
+                                    services.
                                 </p>
                             </div>
                             <Badge variant="outline">Seller Revenue</Badge>
@@ -200,24 +248,49 @@ export default function Dashboard() {
 
                         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Gross sales</p>
-                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.gross_sales}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Gross sales
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {revenueSummary.currency}{' '}
+                                    {revenueSummary.gross_sales}
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Platform fees</p>
-                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.platform_fees}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Platform fees
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {revenueSummary.currency}{' '}
+                                    {revenueSummary.platform_fees}
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Net revenue</p>
-                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.net_revenue}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Net revenue
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {revenueSummary.currency}{' '}
+                                    {revenueSummary.net_revenue}
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Pending release</p>
-                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.pending_release}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Pending release
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {revenueSummary.currency}{' '}
+                                    {revenueSummary.pending_release}
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Withdrawn</p>
-                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.withdrawn_total}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Withdrawn
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {revenueSummary.currency}{' '}
+                                    {revenueSummary.withdrawn_total}
+                                </p>
                             </div>
                         </div>
                     </section>
@@ -226,7 +299,11 @@ export default function Dashboard() {
                 <section className="rounded-xl border border-sidebar-border/70 bg-card dark:border-sidebar-border">
                     <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h3 className="font-semibold">{role === 'buyer' ? 'Recent Orders' : 'Order Pipeline'}</h3>
+                            <h3 className="font-semibold">
+                                {role === 'buyer'
+                                    ? 'Recent Orders'
+                                    : 'Order Pipeline'}
+                            </h3>
                             <p className="text-sm text-muted-foreground">
                                 {role === 'buyer'
                                     ? 'Keep an eye on what still needs payment, review, or completion.'
@@ -250,35 +327,80 @@ export default function Dashboard() {
                             <div className="hidden overflow-x-auto lg:block">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                                            <th className="px-5 py-3 font-medium">Order</th>
-                                            <th className="px-5 py-3 font-medium">{role === 'buyer' ? 'Seller' : 'Buyer'}</th>
-                                            <th className="px-5 py-3 font-medium">Status</th>
-                                            <th className="px-5 py-3 font-medium">Payment</th>
-                                            <th className="px-5 py-3 font-medium">Funds</th>
-                                            <th className="px-5 py-3 font-medium">Total</th>
-                                            <th className="px-5 py-3 font-medium">Updated</th>
+                                        <tr className="border-b border-border bg-muted/30 text-left text-xs tracking-wide text-muted-foreground uppercase">
+                                            <th className="px-5 py-3 font-medium">
+                                                Order
+                                            </th>
+                                            <th className="px-5 py-3 font-medium">
+                                                {role === 'buyer'
+                                                    ? 'Seller'
+                                                    : 'Buyer'}
+                                            </th>
+                                            <th className="px-5 py-3 font-medium">
+                                                Status
+                                            </th>
+                                            <th className="px-5 py-3 font-medium">
+                                                Payment
+                                            </th>
+                                            <th className="px-5 py-3 font-medium">
+                                                Funds
+                                            </th>
+                                            <th className="px-5 py-3 font-medium">
+                                                Total
+                                            </th>
+                                            <th className="px-5 py-3 font-medium">
+                                                Updated
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
                                         {recentOrders.map((order) => (
-                                            <tr key={order.id} className="bg-background">
+                                            <tr
+                                                key={order.id}
+                                                className="bg-background"
+                                            >
                                                 <td className="px-5 py-4">
-                                                    <p className="font-medium">{order.gig_title}</p>
-                                                    <p className="text-xs text-muted-foreground">Order #{order.id}</p>
-                                                </td>
-                                                <td className="px-5 py-4">{order.counterparty_name}</td>
-                                                <td className="px-5 py-4">
-                                                    <Badge variant={badgeVariant(order.status)}>{order.status}</Badge>
-                                                </td>
-                                                <td className="px-5 py-4">
-                                                    <Badge variant={badgeVariant(order.payment_status)}>{order.payment_status}</Badge>
+                                                    <p className="font-medium">
+                                                        {order.gig_title}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Order #{order.id}
+                                                    </p>
                                                 </td>
                                                 <td className="px-5 py-4">
-                                                    <Badge variant="outline">{order.fund_status}</Badge>
+                                                    {order.counterparty_name}
                                                 </td>
-                                                <td className="px-5 py-4 font-medium">USD {order.total}</td>
-                                                <td className="px-5 py-4 text-xs text-muted-foreground">{formatDate(order.updated_at)}</td>
+                                                <td className="px-5 py-4">
+                                                    <Badge
+                                                        variant={badgeVariant(
+                                                            order.status,
+                                                        )}
+                                                    >
+                                                        {order.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <Badge
+                                                        variant={badgeVariant(
+                                                            order.payment_status,
+                                                        )}
+                                                    >
+                                                        {order.payment_status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <Badge variant="outline">
+                                                        {order.fund_status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-5 py-4 font-medium">
+                                                    USD {order.total}
+                                                </td>
+                                                <td className="px-5 py-4 text-xs text-muted-foreground">
+                                                    {formatDate(
+                                                        order.updated_at,
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -287,20 +409,42 @@ export default function Dashboard() {
 
                             <div className="grid gap-3 p-4 lg:hidden">
                                 {recentOrders.map((order) => (
-                                    <div key={order.id} className="rounded-lg border border-border/70 p-4">
+                                    <div
+                                        key={order.id}
+                                        className="rounded-lg border border-border/70 p-4"
+                                    >
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <p className="font-medium">{order.gig_title}</p>
+                                                <p className="font-medium">
+                                                    {order.gig_title}
+                                                </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Order #{order.id} · {order.counterparty_name}
+                                                    Order #{order.id} ·{' '}
+                                                    {order.counterparty_name}
                                                 </p>
                                             </div>
-                                            <span className="text-sm font-medium">USD {order.total}</span>
+                                            <span className="text-sm font-medium">
+                                                USD {order.total}
+                                            </span>
                                         </div>
                                         <div className="mt-3 flex flex-wrap gap-2">
-                                            <Badge variant={badgeVariant(order.status)}>{order.status}</Badge>
-                                            <Badge variant={badgeVariant(order.payment_status)}>{order.payment_status}</Badge>
-                                            <Badge variant="outline">{order.fund_status}</Badge>
+                                            <Badge
+                                                variant={badgeVariant(
+                                                    order.status,
+                                                )}
+                                            >
+                                                {order.status}
+                                            </Badge>
+                                            <Badge
+                                                variant={badgeVariant(
+                                                    order.payment_status,
+                                                )}
+                                            >
+                                                {order.payment_status}
+                                            </Badge>
+                                            <Badge variant="outline">
+                                                {order.fund_status}
+                                            </Badge>
                                         </div>
                                         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                                             <Clock3 className="size-3.5" />
@@ -320,7 +464,9 @@ export default function Dashboard() {
                             No role-specific data yet
                         </div>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Assign a buyer, seller, or super admin role to unlock the full operational dashboard for this account.
+                            Assign a buyer, seller, or super admin role to
+                            unlock the full operational dashboard for this
+                            account.
                         </p>
                     </section>
                 )}

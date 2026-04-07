@@ -1,5 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Clock3, Layers3, Search, SlidersHorizontal, Sparkles, Star } from 'lucide-react';
+import {
+    Clock3,
+    Layers3,
+    Search,
+    SlidersHorizontal,
+    Sparkles,
+    Star,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -78,7 +85,9 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
     const [showMobileFilters, setShowMobileFilters] = useState(false);
     const activeFilterCount = useMemo(
         () =>
-            Object.entries(query).filter(([key, value]) => key !== 'sort' && value !== '').length,
+            Object.entries(query).filter(
+                ([key, value]) => key !== 'sort' && value !== '',
+            ).length,
         [query],
     );
 
@@ -118,7 +127,9 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                     <SlidersHorizontal className="size-4" />
                     Filters
                     {activeFilterCount > 0 && (
-                        <Badge variant="secondary">{activeFilterCount} active</Badge>
+                        <Badge variant="secondary">
+                            {activeFilterCount} active
+                        </Badge>
                     )}
                 </div>
 
@@ -128,16 +139,24 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                         <Select
                             value={query.category_id || 'all'}
                             onValueChange={(value) =>
-                                setQuery({ ...query, category_id: value === 'all' ? '' : value })
+                                setQuery({
+                                    ...query,
+                                    category_id: value === 'all' ? '' : value,
+                                })
                             }
                         >
                             <SelectTrigger className="mt-2 w-full">
                                 <SelectValue placeholder="All categories" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All categories</SelectItem>
+                                <SelectItem value="all">
+                                    All categories
+                                </SelectItem>
                                 {categories.map((category) => (
-                                    <SelectItem key={category.id} value={String(category.id)}>
+                                    <SelectItem
+                                        key={category.id}
+                                        value={String(category.id)}
+                                    >
                                         {category.name}
                                     </SelectItem>
                                 ))}
@@ -153,7 +172,10 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                             min="1"
                             value={query.price_max}
                             onChange={(event) =>
-                                setQuery({ ...query, price_max: event.target.value })
+                                setQuery({
+                                    ...query,
+                                    price_max: event.target.value,
+                                })
                             }
                             className="mt-2"
                             placeholder="500"
@@ -168,7 +190,10 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                             min="1"
                             value={query.delivery_days}
                             onChange={(event) =>
-                                setQuery({ ...query, delivery_days: event.target.value })
+                                setQuery({
+                                    ...query,
+                                    delivery_days: event.target.value,
+                                })
                             }
                             className="mt-2"
                             placeholder="7"
@@ -180,7 +205,10 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                         <Select
                             value={query.rating || 'all'}
                             onValueChange={(value) =>
-                                setQuery({ ...query, rating: value === 'all' ? '' : value })
+                                setQuery({
+                                    ...query,
+                                    rating: value === 'all' ? '' : value,
+                                })
                             }
                         >
                             <SelectTrigger className="mt-2 w-full">
@@ -198,16 +226,24 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                         <Label>Sort</Label>
                         <Select
                             value={query.sort || 'latest'}
-                            onValueChange={(value) => setQuery({ ...query, sort: value })}
+                            onValueChange={(value) =>
+                                setQuery({ ...query, sort: value })
+                            }
                         >
                             <SelectTrigger className="mt-2 w-full">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="latest">Latest</SelectItem>
-                                <SelectItem value="price_asc">Price: Low to high</SelectItem>
-                                <SelectItem value="price_desc">Price: High to low</SelectItem>
-                                <SelectItem value="delivery_asc">Fastest delivery</SelectItem>
+                                <SelectItem value="price_asc">
+                                    Price: Low to high
+                                </SelectItem>
+                                <SelectItem value="price_desc">
+                                    Price: High to low
+                                </SelectItem>
+                                <SelectItem value="delivery_asc">
+                                    Fastest delivery
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -217,7 +253,11 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                     <Button className="w-full" onClick={applyFilters}>
                         Apply filters
                     </Button>
-                    <Button variant="outline" className="w-full" onClick={clearFilters}>
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={clearFilters}
+                    >
                         Clear filters
                     </Button>
                 </div>
@@ -229,8 +269,9 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                     Buyer tips
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
-                    Use broad search first, then tighten delivery and budget filters. Rating will
-                    help more once completed orders start collecting buyer reviews.
+                    Use broad search first, then tighten delivery and budget
+                    filters. Rating will help more once completed orders start
+                    collecting buyer reviews.
                 </p>
             </div>
         </div>
@@ -246,20 +287,21 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                         title="Explore Gigs"
                         description="Discover seller services, compare packages, and prepare your order with filters that match your brief."
                     />
-                    <Badge variant="outline">
-                        {gigs.length} gigs
-                    </Badge>
+                    <Badge variant="outline">{gigs.length} gigs</Badge>
                 </div>
 
                 <section className="rounded-[2rem] border border-border/70 bg-card p-4 sm:p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                         <div className="relative flex-1">
-                            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 id="buyer-search"
                                 value={query.keyword}
                                 onChange={(event) =>
-                                    setQuery({ ...query, keyword: event.target.value })
+                                    setQuery({
+                                        ...query,
+                                        keyword: event.target.value,
+                                    })
                                 }
                                 className="h-12 rounded-2xl border-border/70 pl-11"
                                 placeholder="Search for logo design, web development, copywriting..."
@@ -280,7 +322,10 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                     </span>
                                 )}
                             </Button>
-                            <Button className="rounded-2xl" onClick={applyFilters}>
+                            <Button
+                                className="rounded-2xl"
+                                onClick={applyFilters}
+                            >
                                 Search
                             </Button>
                         </div>
@@ -291,7 +336,9 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                             <Badge variant="secondary">Category selected</Badge>
                         )}
                         {query.price_max && (
-                            <Badge variant="secondary">Up to USD {query.price_max}</Badge>
+                            <Badge variant="secondary">
+                                Up to USD {query.price_max}
+                            </Badge>
                         )}
                         {query.delivery_days && (
                             <Badge variant="secondary">
@@ -299,7 +346,9 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                             </Badge>
                         )}
                         {query.rating && (
-                            <Badge variant="secondary">{query.rating}+ stars</Badge>
+                            <Badge variant="secondary">
+                                {query.rating}+ stars
+                            </Badge>
                         )}
                         {activeFilterCount > 0 && (
                             <Button
@@ -321,21 +370,30 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                     <section className="space-y-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Marketplace results</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Marketplace results
+                                </p>
                                 <p className="text-lg font-semibold">
                                     {gigs.length} services ready to compare
                                 </p>
                             </div>
                             <div className="hidden rounded-full border border-border/70 bg-card px-4 py-2 text-sm text-muted-foreground lg:block">
-                                Sort: <span className="font-medium text-foreground">{query.sort || 'latest'}</span>
+                                Sort:{' '}
+                                <span className="font-medium text-foreground">
+                                    {query.sort || 'latest'}
+                                </span>
                             </div>
                         </div>
 
                         {gigs.length === 0 ? (
                             <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                                <h2 className="text-lg font-semibold">No gigs matched these filters</h2>
+                                <h2 className="text-lg font-semibold">
+                                    No gigs matched these filters
+                                </h2>
                                 <p className="mt-2 text-sm text-muted-foreground">
-                                    Try broadening your search, removing the rating filter, or increasing the delivery range.
+                                    Try broadening your search, removing the
+                                    rating filter, or increasing the delivery
+                                    range.
                                 </p>
                             </section>
                         ) : (
@@ -376,7 +434,9 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="size-10 border border-border/70">
                                                         <AvatarFallback className="bg-secondary text-secondary-foreground">
-                                                            {sellerInitials(gig.seller_name)}
+                                                            {sellerInitials(
+                                                                gig.seller_name,
+                                                            )}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
@@ -384,13 +444,15 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                                             {gig.seller_name}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            {gig.subcategory_name}
+                                                            {
+                                                                gig.subcategory_name
+                                                            }
                                                         </p>
                                                     </div>
                                                 </div>
 
                                                 <div className="text-right">
-                                                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                                    <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
                                                         Starting at
                                                     </p>
                                                     <p className="mt-1 text-2xl font-semibold">
@@ -403,23 +465,30 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                             </div>
 
                                             <div className="mt-4">
-                                                <h2 className="line-clamp-2 text-lg font-semibold">{gig.title}</h2>
+                                                <h2 className="line-clamp-2 text-lg font-semibold">
+                                                    {gig.title}
+                                                </h2>
                                                 <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
                                                     {gig.description}
                                                 </p>
                                             </div>
 
                                             <div className="mt-4 flex flex-wrap gap-2">
-                                                {gig.tags.slice(0, 3).map((tag) => (
-                                                    <Badge key={tag} variant="secondary">
-                                                        {tag}
-                                                    </Badge>
-                                                ))}
+                                                {gig.tags
+                                                    .slice(0, 3)
+                                                    .map((tag) => (
+                                                        <Badge
+                                                            key={tag}
+                                                            variant="secondary"
+                                                        >
+                                                            {tag}
+                                                        </Badge>
+                                                    ))}
                                             </div>
 
                                             <div className="mt-5 grid grid-cols-3 gap-3 rounded-2xl border border-border/70 bg-muted/20 p-3 text-sm">
                                                 <div>
-                                                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                                         Delivery
                                                     </p>
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
@@ -428,7 +497,7 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                                         Packages
                                                     </p>
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
@@ -437,14 +506,21 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                                         Rating
                                                     </p>
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
                                                         <Star className="size-4 text-amber-500" />
-                                                        {gig.review_count > 0 ? gig.rating.toFixed(1) : 'New'}
+                                                        {gig.review_count > 0
+                                                            ? gig.rating.toFixed(
+                                                                  1,
+                                                              )
+                                                            : 'New'}
                                                         <span className="text-xs text-muted-foreground">
-                                                            {gig.review_count > 0 ? `(${gig.review_count})` : '(0 reviews)'}
+                                                            {gig.review_count >
+                                                            0
+                                                                ? `(${gig.review_count})`
+                                                                : '(0 reviews)'}
                                                         </span>
                                                     </p>
                                                 </div>
@@ -452,7 +528,8 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
 
                                             <div className="mt-5 flex items-center justify-between border-t border-border/70 pt-4">
                                                 <p className="text-sm text-muted-foreground">
-                                                    Open gig and compare all packages
+                                                    Open gig and compare all
+                                                    packages
                                                 </p>
                                                 <span className="text-sm font-medium text-primary">
                                                     View details
@@ -468,11 +545,15 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
             </div>
 
             <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-                <SheetContent side="left" className="w-full max-w-sm overflow-y-auto">
+                <SheetContent
+                    side="left"
+                    className="w-full max-w-sm overflow-y-auto"
+                >
                     <SheetHeader>
                         <SheetTitle>Refine Results</SheetTitle>
                         <SheetDescription>
-                            Narrow the catalog by budget, timeline, category, and sort order.
+                            Narrow the catalog by budget, timeline, category,
+                            and sort order.
                         </SheetDescription>
                     </SheetHeader>
                     <div className="mt-6">{filterPanel}</div>

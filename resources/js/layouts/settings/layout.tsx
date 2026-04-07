@@ -35,11 +35,17 @@ export default function SettingsLayout({
     return (
         <Layout breadcrumbs={resolvedBreadcrumbs}>
             <div className="px-4 py-6">
-                <Heading title="Settings" description="Manage your profile and account settings" />
+                <Heading
+                    title="Settings"
+                    description="Manage your profile and account settings"
+                />
 
                 <div className="flex flex-col lg:flex-row lg:space-x-12">
                     <aside className="w-full max-w-xl lg:w-48">
-                        <nav className="flex flex-col space-y-1 space-x-0" aria-label="Settings">
+                        <nav
+                            className="flex flex-col space-y-1 space-x-0"
+                            aria-label="Settings"
+                        >
                             {sidebarNavItems.map((item, index) => (
                                 <Button
                                     key={`${toUrl(item.href)}-${index}`}
@@ -47,11 +53,15 @@ export default function SettingsLayout({
                                     variant="ghost"
                                     asChild
                                     className={cn('w-full justify-start', {
-                                        'bg-muted': isCurrentOrParentUrl(item.href),
+                                        'bg-muted': isCurrentOrParentUrl(
+                                            item.href,
+                                        ),
                                     })}
                                 >
                                     <Link href={item.href}>
-                                        {item.icon && <item.icon className="h-4 w-4" />}
+                                        {item.icon && (
+                                            <item.icon className="h-4 w-4" />
+                                        )}
                                         {item.title}
                                     </Link>
                                 </Button>

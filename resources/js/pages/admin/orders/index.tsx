@@ -165,7 +165,10 @@ export default function AdminOrdersIndex({
         () =>
             stats.map((item) => ({
                 ...item,
-                value: typeof item.value === 'number' ? item.value.toLocaleString() : item.value,
+                value:
+                    typeof item.value === 'number'
+                        ? item.value.toLocaleString()
+                        : item.value,
             })),
         [stats],
     );
@@ -214,12 +217,22 @@ export default function AdminOrdersIndex({
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {summary.map((item) => (
-                        <div key={item.label} className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
-                            <p className="text-sm text-muted-foreground">{item.label}</p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {item.label.includes('Revenue') || item.label.includes('Volume') ? `USD ${item.value}` : item.value}
+                        <div
+                            key={item.label}
+                            className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
+                        >
+                            <p className="text-sm text-muted-foreground">
+                                {item.label}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {item.label.includes('Revenue') ||
+                                item.label.includes('Volume')
+                                    ? `USD ${item.value}`
+                                    : item.value}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {item.detail}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -227,90 +240,182 @@ export default function AdminOrdersIndex({
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-4 py-3 text-left font-medium">Order</th>
-                                <th className="px-4 py-3 text-left font-medium">Buyer</th>
-                                <th className="px-4 py-3 text-left font-medium">Seller</th>
-                                <th className="px-4 py-3 text-left font-medium">Status</th>
-                                <th className="px-4 py-3 text-left font-medium">Payment</th>
-                                <th className="px-4 py-3 text-left font-medium">Funds</th>
-                                <th className="px-4 py-3 text-left font-medium">Revenue</th>
-                                <th className="px-4 py-3 text-left font-medium">Updated Timestamps</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Order
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Buyer
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Seller
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Status
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Payment
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Funds
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Revenue
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Updated Timestamps
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {orders.map((order) => (
-                                <tr key={order.id} className="bg-background align-top transition-colors hover:bg-muted/20">
+                                <tr
+                                    key={order.id}
+                                    className="bg-background align-top transition-colors hover:bg-muted/20"
+                                >
                                     <td className="px-4 py-3">
-                                        <div className="font-medium text-foreground">{order.gig_title ?? 'Order'}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                            #{order.id} • {order.package?.title ?? 'Package'} • {order.package?.tier ?? 'Tier'}
+                                        <div className="font-medium text-foreground">
+                                            {order.gig_title ?? 'Order'}
                                         </div>
-                                        <p className="mt-2 text-xs text-muted-foreground">{summarizeText(order.requirements)}</p>
+                                        <div className="text-xs text-muted-foreground">
+                                            #{order.id} •{' '}
+                                            {order.package?.title ?? 'Package'}{' '}
+                                            • {order.package?.tier ?? 'Tier'}
+                                        </div>
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            {summarizeText(order.requirements)}
+                                        </p>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="font-medium">{order.buyer?.name ?? 'Buyer'}</div>
-                                        <div className="text-xs text-muted-foreground">{order.buyer?.email ?? 'No email'}</div>
+                                        <div className="font-medium">
+                                            {order.buyer?.name ?? 'Buyer'}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {order.buyer?.email ?? 'No email'}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="font-medium">{order.seller?.name ?? 'Seller'}</div>
-                                        <div className="text-xs text-muted-foreground">{order.seller?.email ?? 'No email'}</div>
+                                        <div className="font-medium">
+                                            {order.seller?.name ?? 'Seller'}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {order.seller?.email ?? 'No email'}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col gap-2">
-                                            <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                                            <Badge
+                                                variant={
+                                                    order.status === 'completed'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
                                                 {order.status}
                                             </Badge>
                                             <span className="text-xs text-muted-foreground">
-                                                Escrow {order.escrow_held ? 'held' : 'released'}
+                                                Escrow{' '}
+                                                {order.escrow_held
+                                                    ? 'held'
+                                                    : 'released'}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Badge variant={order.payment_status === 'paid' || order.payment_status === 'released' ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={
+                                                order.payment_status ===
+                                                    'paid' ||
+                                                order.payment_status ===
+                                                    'released'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
                                             {order.payment_status}
                                         </Badge>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col gap-2">
-                                            <Badge variant={order.fund_status === 'released' ? 'default' : 'secondary'}>
+                                            <Badge
+                                                variant={
+                                                    order.fund_status ===
+                                                    'released'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
                                                 {order.fund_status}
                                             </Badge>
                                             <span className="text-xs text-muted-foreground">
-                                                Released: {shortDate(order.funds_released_at)}
+                                                Released:{' '}
+                                                {shortDate(
+                                                    order.funds_released_at,
+                                                )}
                                             </span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="font-medium">USD {order.price}</div>
+                                        <div className="font-medium">
+                                            USD {order.price}
+                                        </div>
                                         <div className="text-xs text-muted-foreground">
-                                            Fee {platformFeePercentage}%: USD {order.platform_fee}
+                                            Fee {platformFeePercentage}%: USD{' '}
+                                            {order.platform_fee}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
                                             Seller net: USD {order.seller_net}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                                        <div>Created: {shortDate(order.created_at)}</div>
-                                        <div>Delivered: {shortDate(order.delivered_at)}</div>
-                                        <div>Completed: {shortDate(order.completed_at)}</div>
-                                        <div>Cancelled: {shortDate(order.cancelled_at)}</div>
+                                        <div>
+                                            Created:{' '}
+                                            {shortDate(order.created_at)}
+                                        </div>
+                                        <div>
+                                            Delivered:{' '}
+                                            {shortDate(order.delivered_at)}
+                                        </div>
+                                        <div>
+                                            Completed:{' '}
+                                            {shortDate(order.completed_at)}
+                                        </div>
+                                        <div>
+                                            Cancelled:{' '}
+                                            {shortDate(order.cancelled_at)}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1">
-                                            {order.status === 'completed' && order.payment_status === 'paid' && order.fund_status === 'releasable' && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        router.post(`/admin/orders/${order.id}/release-funds`, {}, { preserveScroll: true })
-                                                    }
-                                                >
-                                                    Release
-                                                </Button>
-                                            )}
-                                            <Button variant="ghost" size="icon" onClick={() => openEdit(order)}>
+                                            {order.status === 'completed' &&
+                                                order.payment_status ===
+                                                    'paid' &&
+                                                order.fund_status ===
+                                                    'releasable' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            router.post(
+                                                                `/admin/orders/${order.id}/release-funds`,
+                                                                {},
+                                                                {
+                                                                    preserveScroll: true,
+                                                                },
+                                                            )
+                                                        }
+                                                    >
+                                                        Release
+                                                    </Button>
+                                                )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => openEdit(order)}
+                                            >
                                                 <Pencil className="size-3.5" />
                                             </Button>
                                         </div>
@@ -322,46 +427,87 @@ export default function AdminOrdersIndex({
                 </div>
             </div>
 
-            <Dialog open={!!editTarget} onOpenChange={(open) => !open && closeEdit()}>
+            <Dialog
+                open={!!editTarget}
+                onOpenChange={(open) => !open && closeEdit()}
+            >
                 <DialogContent className="sm:max-w-4xl">
                     <DialogHeader className="space-y-1 border-b border-border pb-4">
                         <DialogTitle>Edit Order Override</DialogTitle>
                         <p className="text-sm text-muted-foreground">
-                            Adjust lifecycle state, payment state, escrow handling, and timestamps. Related files and audit history are shown below.
+                            Adjust lifecycle state, payment state, escrow
+                            handling, and timestamps. Related files and audit
+                            history are shown below.
                         </p>
                     </DialogHeader>
 
                     {editTarget && (
-                        <form onSubmit={handleUpdate} className="space-y-5 pt-1">
+                        <form
+                            onSubmit={handleUpdate}
+                            className="space-y-5 pt-1"
+                        >
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="rounded-md border border-border p-3">
-                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Order</p>
-                                    <p className="mt-2 font-medium">{editTarget.gig_title ?? 'Order'} #{editTarget.id}</p>
-                                    <p className="text-sm text-muted-foreground">{editTarget.package?.title ?? 'Package'} • {editTarget.package?.tier ?? 'Tier'}</p>
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Order
+                                    </p>
+                                    <p className="mt-2 font-medium">
+                                        {editTarget.gig_title ?? 'Order'} #
+                                        {editTarget.id}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {editTarget.package?.title ?? 'Package'}{' '}
+                                        • {editTarget.package?.tier ?? 'Tier'}
+                                    </p>
                                 </div>
                                 <div className="rounded-md border border-border p-3">
-                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Buyer / Seller</p>
-                                    <p className="mt-2 font-medium">{editTarget.buyer?.name ?? 'Buyer'}</p>
-                                    <p className="text-sm text-muted-foreground">{editTarget.seller?.name ?? 'Seller'}</p>
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Buyer / Seller
+                                    </p>
+                                    <p className="mt-2 font-medium">
+                                        {editTarget.buyer?.name ?? 'Buyer'}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {editTarget.seller?.name ?? 'Seller'}
+                                    </p>
                                 </div>
                                 <div className="rounded-md border border-border p-3">
-                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Revenue</p>
-                                    <p className="mt-2 font-medium">USD {editTarget.price}</p>
-                                    <p className="text-sm text-muted-foreground">Fee: USD {editTarget.platform_fee}</p>
-                                    <p className="text-sm text-muted-foreground">Net: USD {editTarget.seller_net}</p>
+                                    <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                                        Revenue
+                                    </p>
+                                    <p className="mt-2 font-medium">
+                                        USD {editTarget.price}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Fee: USD {editTarget.platform_fee}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Net: USD {editTarget.seller_net}
+                                    </p>
                                 </div>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="grid gap-2">
                                     <Label>Status</Label>
-                                    <Select value={form.data.status} onValueChange={(value) => form.setData('status', value as Status)}>
+                                    <Select
+                                        value={form.data.status}
+                                        onValueChange={(value) =>
+                                            form.setData(
+                                                'status',
+                                                value as Status,
+                                            )
+                                        }
+                                    >
                                         <SelectTrigger className="w-full">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {statusOptions.map((status) => (
-                                                <SelectItem key={status} value={status}>
+                                                <SelectItem
+                                                    key={status}
+                                                    value={status}
+                                                >
                                                     {status}
                                                 </SelectItem>
                                             ))}
@@ -372,138 +518,284 @@ export default function AdminOrdersIndex({
 
                                 <div className="grid gap-2">
                                     <Label>Payment Status</Label>
-                                    <Select value={form.data.payment_status} onValueChange={(value) => form.setData('payment_status', value as PaymentStatus)}>
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {paymentStatusOptions.map((status) => (
-                                                <SelectItem key={status} value={status}>
-                                                    {status}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={form.errors.payment_status} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label>Escrow</Label>
                                     <Select
-                                        value={form.data.escrow_held ? 'held' : 'released'}
-                                        onValueChange={(value) => form.setData('escrow_held', value === 'held')}
+                                        value={form.data.payment_status}
+                                        onValueChange={(value) =>
+                                            form.setData(
+                                                'payment_status',
+                                                value as PaymentStatus,
+                                            )
+                                        }
                                     >
                                         <SelectTrigger className="w-full">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="held">Held</SelectItem>
-                                            <SelectItem value="released">Released</SelectItem>
+                                            {paymentStatusOptions.map(
+                                                (status) => (
+                                                    <SelectItem
+                                                        key={status}
+                                                        value={status}
+                                                    >
+                                                        {status}
+                                                    </SelectItem>
+                                                ),
+                                            )}
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={form.errors.escrow_held} />
+                                    <InputError
+                                        message={form.errors.payment_status}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Escrow</Label>
+                                    <Select
+                                        value={
+                                            form.data.escrow_held
+                                                ? 'held'
+                                                : 'released'
+                                        }
+                                        onValueChange={(value) =>
+                                            form.setData(
+                                                'escrow_held',
+                                                value === 'held',
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="held">
+                                                Held
+                                            </SelectItem>
+                                            <SelectItem value="released">
+                                                Released
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        message={form.errors.escrow_held}
+                                    />
                                 </div>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="delivered_at">Delivered At</Label>
+                                    <Label htmlFor="delivered_at">
+                                        Delivered At
+                                    </Label>
                                     <input
                                         id="delivered_at"
                                         type="datetime-local"
                                         value={form.data.delivered_at}
-                                        onChange={(e) => form.setData('delivered_at', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'delivered_at',
+                                                e.target.value,
+                                            )
+                                        }
                                         className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                                     />
-                                    <InputError message={form.errors.delivered_at} />
+                                    <InputError
+                                        message={form.errors.delivered_at}
+                                    />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="completed_at">Completed At</Label>
+                                    <Label htmlFor="completed_at">
+                                        Completed At
+                                    </Label>
                                     <input
                                         id="completed_at"
                                         type="datetime-local"
                                         value={form.data.completed_at}
-                                        onChange={(e) => form.setData('completed_at', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'completed_at',
+                                                e.target.value,
+                                            )
+                                        }
                                         className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                                     />
-                                    <InputError message={form.errors.completed_at} />
+                                    <InputError
+                                        message={form.errors.completed_at}
+                                    />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="cancelled_at">Cancelled At</Label>
+                                    <Label htmlFor="cancelled_at">
+                                        Cancelled At
+                                    </Label>
                                     <input
                                         id="cancelled_at"
                                         type="datetime-local"
                                         value={form.data.cancelled_at}
-                                        onChange={(e) => form.setData('cancelled_at', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'cancelled_at',
+                                                e.target.value,
+                                            )
+                                        }
                                         className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                                     />
-                                    <InputError message={form.errors.cancelled_at} />
+                                    <InputError
+                                        message={form.errors.cancelled_at}
+                                    />
                                 </div>
                             </div>
 
                             <div className="grid gap-4 lg:grid-cols-2">
                                 <div className="rounded-md border border-border p-4">
-                                    <h3 className="font-medium">Files and brief</h3>
-                                    <p className="mt-2 text-sm text-muted-foreground">{editTarget.requirements}</p>
+                                    <h3 className="font-medium">
+                                        Files and brief
+                                    </h3>
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        {editTarget.requirements}
+                                    </p>
                                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                                         {editTarget.reference_link && (
-                                            <a href={editTarget.reference_link} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">
+                                            <a
+                                                href={editTarget.reference_link}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-primary underline underline-offset-4"
+                                            >
                                                 Reference link
                                             </a>
                                         )}
                                         {editTarget.brief_file_url && (
-                                            <a href={editTarget.brief_file_url} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">
+                                            <a
+                                                href={editTarget.brief_file_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-primary underline underline-offset-4"
+                                            >
                                                 Brief file
                                             </a>
                                         )}
-                                        {editTarget.style_notes && <span>Style: {editTarget.style_notes}</span>}
-                                        {editTarget.coupon_code && <span>Coupon: {editTarget.coupon_code}</span>}
+                                        {editTarget.style_notes && (
+                                            <span>
+                                                Style: {editTarget.style_notes}
+                                            </span>
+                                        )}
+                                        {editTarget.coupon_code && (
+                                            <span>
+                                                Coupon: {editTarget.coupon_code}
+                                            </span>
+                                        )}
                                     </div>
                                     {editTarget.deliveries.length > 0 && (
                                         <div className="mt-4 space-y-2">
-                                            <p className="text-sm font-medium">Delivery files</p>
-                                            {editTarget.deliveries.map((delivery) => (
-                                                <div key={delivery.id} className="rounded-md border border-border p-3 text-sm">
-                                                    <p>{formatDate(delivery.delivered_at)} by {delivery.delivered_by ?? 'Seller'}</p>
-                                                    {delivery.note && <p className="mt-1 text-muted-foreground">{delivery.note}</p>}
-                                                    <a href={delivery.file_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-primary underline underline-offset-4">
-                                                        Download file
-                                                    </a>
-                                                </div>
-                                            ))}
+                                            <p className="text-sm font-medium">
+                                                Delivery files
+                                            </p>
+                                            {editTarget.deliveries.map(
+                                                (delivery) => (
+                                                    <div
+                                                        key={delivery.id}
+                                                        className="rounded-md border border-border p-3 text-sm"
+                                                    >
+                                                        <p>
+                                                            {formatDate(
+                                                                delivery.delivered_at,
+                                                            )}{' '}
+                                                            by{' '}
+                                                            {delivery.delivered_by ??
+                                                                'Seller'}
+                                                        </p>
+                                                        {delivery.note && (
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {delivery.note}
+                                                            </p>
+                                                        )}
+                                                        <a
+                                                            href={
+                                                                delivery.file_url
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="mt-2 inline-block text-primary underline underline-offset-4"
+                                                        >
+                                                            Download file
+                                                        </a>
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="rounded-md border border-border p-4">
-                                        <h3 className="font-medium">Revision history</h3>
+                                        <h3 className="font-medium">
+                                            Revision history
+                                        </h3>
                                         {editTarget.revisions.length === 0 ? (
-                                            <p className="mt-2 text-sm text-muted-foreground">No revisions recorded.</p>
+                                            <p className="mt-2 text-sm text-muted-foreground">
+                                                No revisions recorded.
+                                            </p>
                                         ) : (
                                             <div className="mt-3 space-y-2">
-                                                {editTarget.revisions.map((revision) => (
-                                                    <div key={revision.id} className="rounded-md border border-border p-3 text-sm">
-                                                        <p>{revision.requested_by ?? 'User'} • {formatDate(revision.created_at)}</p>
-                                                        <p className="mt-1 text-muted-foreground">{revision.note}</p>
-                                                    </div>
-                                                ))}
+                                                {editTarget.revisions.map(
+                                                    (revision) => (
+                                                        <div
+                                                            key={revision.id}
+                                                            className="rounded-md border border-border p-3 text-sm"
+                                                        >
+                                                            <p>
+                                                                {revision.requested_by ??
+                                                                    'User'}{' '}
+                                                                •{' '}
+                                                                {formatDate(
+                                                                    revision.created_at,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {revision.note}
+                                                            </p>
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="rounded-md border border-border p-4">
-                                        <h3 className="font-medium">Cancellation trail</h3>
-                                        {editTarget.cancellations.length === 0 ? (
-                                            <p className="mt-2 text-sm text-muted-foreground">No cancellations recorded.</p>
+                                        <h3 className="font-medium">
+                                            Cancellation trail
+                                        </h3>
+                                        {editTarget.cancellations.length ===
+                                        0 ? (
+                                            <p className="mt-2 text-sm text-muted-foreground">
+                                                No cancellations recorded.
+                                            </p>
                                         ) : (
                                             <div className="mt-3 space-y-2">
-                                                {editTarget.cancellations.map((cancellation) => (
-                                                    <div key={cancellation.id} className="rounded-md border border-border p-3 text-sm">
-                                                        <p className="capitalize">{cancellation.cancelled_by} • {formatDate(cancellation.created_at)}</p>
-                                                        <p className="mt-1 text-muted-foreground">{cancellation.reason}</p>
-                                                    </div>
-                                                ))}
+                                                {editTarget.cancellations.map(
+                                                    (cancellation) => (
+                                                        <div
+                                                            key={
+                                                                cancellation.id
+                                                            }
+                                                            className="rounded-md border border-border p-3 text-sm"
+                                                        >
+                                                            <p className="capitalize">
+                                                                {
+                                                                    cancellation.cancelled_by
+                                                                }{' '}
+                                                                •{' '}
+                                                                {formatDate(
+                                                                    cancellation.created_at,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {
+                                                                    cancellation.reason
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -511,11 +803,20 @@ export default function AdminOrdersIndex({
                             </div>
 
                             <DialogFooter className="border-t border-border pt-4">
-                                <Button type="button" variant="outline" onClick={closeEdit}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={closeEdit}
+                                >
                                     Close
                                 </Button>
-                                <Button type="submit" disabled={form.processing}>
-                                    {form.processing ? 'Saving…' : 'Save override'}
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                >
+                                    {form.processing
+                                        ? 'Saving…'
+                                        : 'Save override'}
                                 </Button>
                             </DialogFooter>
                         </form>

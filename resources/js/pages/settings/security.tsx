@@ -242,11 +242,13 @@ export default function Security({
 
 Security.layout = (page: React.ReactNode) => (
     <SettingsLayout
-        breadcrumbs={[
-            { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Settings', href: '/settings/profile' },
-            { title: 'Security', href: '/settings/security' },
-        ] satisfies BreadcrumbItem[]}
+        breadcrumbs={
+            [
+                { title: 'Dashboard', href: '/dashboard' },
+                { title: 'Settings', href: '/settings/profile' },
+                { title: 'Security', href: '/settings/security' },
+            ] satisfies BreadcrumbItem[]
+        }
     >
         {page}
     </SettingsLayout>

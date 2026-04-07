@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useRef,
+    useState,
+} from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -24,7 +30,11 @@ export function useConfirm(): ConfirmFn {
     return useContext(ConfirmContext);
 }
 
-export function ConfirmDialogProvider({ children }: { children: React.ReactNode }) {
+export function ConfirmDialogProvider({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState<ConfirmOptions>({});
     const resolveRef = useRef<(value: boolean) => void>();
@@ -51,16 +61,23 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
     return (
         <ConfirmContext.Provider value={confirm}>
             {children}
-            <Dialog open={open} onOpenChange={(v) => {
- if (!v) {
-handleCancel();
-} 
-}}>
+            <Dialog
+                open={open}
+                onOpenChange={(v) => {
+                    if (!v) {
+                        handleCancel();
+                    }
+                }}
+            >
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>{options.title ?? 'Are you sure?'}</DialogTitle>
+                        <DialogTitle>
+                            {options.title ?? 'Are you sure?'}
+                        </DialogTitle>
                         {options.description && (
-                            <DialogDescription>{options.description}</DialogDescription>
+                            <DialogDescription>
+                                {options.description}
+                            </DialogDescription>
                         )}
                     </DialogHeader>
                     <DialogFooter>

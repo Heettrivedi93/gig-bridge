@@ -43,7 +43,12 @@ function formatDate(value: string | null) {
     return new Date(value).toLocaleString();
 }
 
-export default function AdminLedgerIndex({ stats, revenueSummary, walletSummary, transactions }: Props) {
+export default function AdminLedgerIndex({
+    stats,
+    revenueSummary,
+    walletSummary,
+    transactions,
+}: Props) {
     return (
         <>
             <Head title="Funds Ledger" />
@@ -56,12 +61,21 @@ export default function AdminLedgerIndex({ stats, revenueSummary, walletSummary,
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {stats.map((item) => (
-                        <div key={item.label} className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
-                            <p className="text-sm text-muted-foreground">{item.label}</p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {item.label === 'Ledger Entries' ? item.value : `USD ${item.value}`}
+                        <div
+                            key={item.label}
+                            className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
+                        >
+                            <p className="text-sm text-muted-foreground">
+                                {item.label}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {item.label === 'Ledger Entries'
+                                    ? item.value
+                                    : `USD ${item.value}`}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {item.detail}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -70,18 +84,28 @@ export default function AdminLedgerIndex({ stats, revenueSummary, walletSummary,
                     <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                         <h3 className="font-semibold">Revenue Channels</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Track paid plan revenue and commission earned from sellers selling services to buyers.
+                            Track paid plan revenue and commission earned from
+                            sellers selling services to buyers.
                         </p>
 
                         <div className="mt-4 space-y-3">
                             {revenueSummary.map((item) => (
-                                <div key={item.label} className="rounded-lg border border-border/70 p-4">
+                                <div
+                                    key={item.label}
+                                    className="rounded-lg border border-border/70 p-4"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium">{item.label}</p>
-                                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                                            <p className="font-medium">
+                                                {item.label}
+                                            </p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                {item.detail}
+                                            </p>
                                         </div>
-                                        <span className="text-base font-semibold">USD {item.value}</span>
+                                        <span className="text-base font-semibold">
+                                            USD {item.value}
+                                        </span>
                                     </div>
                                 </div>
                             ))}
@@ -91,18 +115,28 @@ export default function AdminLedgerIndex({ stats, revenueSummary, walletSummary,
                     <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                         <h3 className="font-semibold">Operational Balances</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Snapshot of held funds, payout queues, and released seller balances.
+                            Snapshot of held funds, payout queues, and released
+                            seller balances.
                         </p>
 
                         <div className="mt-4 space-y-3">
                             {walletSummary.map((item) => (
-                                <div key={item.label} className="rounded-lg border border-border/70 p-4">
+                                <div
+                                    key={item.label}
+                                    className="rounded-lg border border-border/70 p-4"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium">{item.label}</p>
-                                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                                            <p className="font-medium">
+                                                {item.label}
+                                            </p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                                {item.detail}
+                                            </p>
                                         </div>
-                                        <span className="text-base font-semibold">USD {item.value}</span>
+                                        <span className="text-base font-semibold">
+                                            USD {item.value}
+                                        </span>
                                     </div>
                                 </div>
                             ))}
@@ -111,54 +145,102 @@ export default function AdminLedgerIndex({ stats, revenueSummary, walletSummary,
 
                     <section className="overflow-hidden rounded-xl border border-sidebar-border/70 xl:col-span-2 dark:border-sidebar-border">
                         <div className="border-b border-border bg-card px-4 py-4">
-                            <h3 className="font-semibold">Transaction Stream</h3>
+                            <h3 className="font-semibold">
+                                Transaction Stream
+                            </h3>
                             <p className="text-sm text-muted-foreground">
-                                Every escrow hold, release, refund, fee, and withdrawal movement is logged here.
+                                Every escrow hold, release, refund, fee, and
+                                withdrawal movement is logged here.
                             </p>
                         </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                                        <th className="px-4 py-3 text-left font-medium">Wallet</th>
-                                        <th className="px-4 py-3 text-left font-medium">Type</th>
-                                        <th className="px-4 py-3 text-left font-medium">Bucket</th>
-                                        <th className="px-4 py-3 text-left font-medium">Amount</th>
-                                        <th className="px-4 py-3 text-left font-medium">Balance Shift</th>
-                                        <th className="px-4 py-3 text-left font-medium">Reference</th>
-                                        <th className="px-4 py-3 text-left font-medium">Created</th>
+                                    <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Wallet
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Type
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Bucket
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Amount
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Balance Shift
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Reference
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium">
+                                            Created
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
                                     {transactions.map((transaction) => (
-                                        <tr key={transaction.id} className="bg-background transition-colors hover:bg-muted/20">
+                                        <tr
+                                            key={transaction.id}
+                                            className="bg-background transition-colors hover:bg-muted/20"
+                                        >
                                             <td className="px-4 py-3">
-                                                <div className="font-medium capitalize">{transaction.wallet.owner_type ?? 'wallet'}</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {transaction.wallet.user_name ?? 'System wallet'}
+                                                <div className="font-medium capitalize">
+                                                    {transaction.wallet
+                                                        .owner_type ?? 'wallet'}
                                                 </div>
-                                                {transaction.wallet.user_email && (
-                                                    <div className="text-xs text-muted-foreground">{transaction.wallet.user_email}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {transaction.wallet
+                                                        .user_name ??
+                                                        'System wallet'}
+                                                </div>
+                                                {transaction.wallet
+                                                    .user_email && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {
+                                                            transaction.wallet
+                                                                .user_email
+                                                        }
+                                                    </div>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <Badge variant="outline">{transaction.type}</Badge>
-                                                <div className="mt-1 text-xs text-muted-foreground">{transaction.direction}</div>
+                                                <Badge variant="outline">
+                                                    {transaction.type}
+                                                </Badge>
+                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                    {transaction.direction}
+                                                </div>
                                             </td>
-                                            <td className="px-4 py-3 capitalize">{transaction.balance_bucket}</td>
-                                            <td className="px-4 py-3 font-medium">USD {transaction.amount}</td>
-                                            <td className="px-4 py-3 text-xs text-muted-foreground">
-                                                {transaction.balance_before} → {transaction.balance_after}
+                                            <td className="px-4 py-3 capitalize">
+                                                {transaction.balance_bucket}
+                                            </td>
+                                            <td className="px-4 py-3 font-medium">
+                                                USD {transaction.amount}
                                             </td>
                                             <td className="px-4 py-3 text-xs text-muted-foreground">
-                                                {transaction.order_id ? `Order #${transaction.order_id}` : 'General wallet action'}
+                                                {transaction.balance_before} →{' '}
+                                                {transaction.balance_after}
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-muted-foreground">
+                                                {transaction.order_id
+                                                    ? `Order #${transaction.order_id}`
+                                                    : 'General wallet action'}
                                                 {transaction.description && (
-                                                    <div className="mt-1">{transaction.description}</div>
+                                                    <div className="mt-1">
+                                                        {
+                                                            transaction.description
+                                                        }
+                                                    </div>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-xs text-muted-foreground">
-                                                {formatDate(transaction.created_at)}
+                                                {formatDate(
+                                                    transaction.created_at,
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

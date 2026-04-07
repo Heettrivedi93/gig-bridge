@@ -1,5 +1,15 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bell, BookText, LayoutGrid, Package, Settings, ShoppingBag, Tag, Users, Wallet2 } from 'lucide-react';
+import {
+    Bell,
+    BookText,
+    LayoutGrid,
+    Package,
+    Settings,
+    ShoppingBag,
+    Tag,
+    Users,
+    Wallet2,
+} from 'lucide-react';
 import { isValidElement } from 'react';
 import { AppContent } from '@/components/app-content';
 import AppLogo from '@/components/app-logo';
@@ -20,9 +30,9 @@ import admin from '@/routes/admin';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 const adminNavItems: NavItem[] = [
-    { title: 'Dashboard',  href: admin.dashboard.url(),           icon: LayoutGrid },
+    { title: 'Dashboard', href: admin.dashboard.url(), icon: LayoutGrid },
     { title: 'Notifications', href: '/notifications', icon: Bell },
-    { title: 'Categories', href: admin.categories.index.url(),    icon: Tag },
+    { title: 'Categories', href: admin.categories.index.url(), icon: Tag },
     { title: 'Plans', href: '/admin/plans', icon: Package },
     { title: 'Orders', href: '/admin/orders', icon: ShoppingBag },
     { title: 'Withdrawals', href: '/admin/withdrawals', icon: Wallet2 },
@@ -32,14 +42,18 @@ const adminNavItems: NavItem[] = [
 ];
 
 function AdminSidebar() {
-    const { notifications } = usePage<{ notifications?: { enabled?: boolean; unread_count?: number } }>().props;
+    const { notifications } = usePage<{
+        notifications?: { enabled?: boolean; unread_count?: number };
+    }>().props;
     const items = adminNavItems.map((item) =>
         item.title === 'Notifications'
             ? {
                   ...item,
-                  badge: notifications?.enabled && (notifications.unread_count ?? 0) > 0
-                      ? String(notifications.unread_count)
-                      : null,
+                  badge:
+                      notifications?.enabled &&
+                      (notifications.unread_count ?? 0) > 0
+                          ? String(notifications.unread_count)
+                          : null,
               }
             : item,
     );
@@ -79,7 +93,11 @@ export default function AdminLayout({
     const inferredBreadcrumbs =
         breadcrumbs.length > 0 || !isValidElement(children)
             ? breadcrumbs
-            : (((children.type as { layout?: { breadcrumbs?: BreadcrumbItem[] } }).layout?.breadcrumbs ?? []) as BreadcrumbItem[]);
+            : (((
+                  children.type as {
+                      layout?: { breadcrumbs?: BreadcrumbItem[] };
+                  }
+              ).layout?.breadcrumbs ?? []) as BreadcrumbItem[]);
 
     return (
         <AppShell variant="sidebar">

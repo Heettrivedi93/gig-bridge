@@ -1,5 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { ChevronDown, ChevronRight, Pencil, PlusIcon, Trash2 } from 'lucide-react';
+import {
+    ChevronDown,
+    ChevronRight,
+    Pencil,
+    PlusIcon,
+    Trash2,
+} from 'lucide-react';
 import { Fragment, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -37,7 +43,11 @@ interface Props {
     categories: Category[];
 }
 
-type FormData = { name: string; status: 'active' | 'inactive'; parent_id: string };
+type FormData = {
+    name: string;
+    status: 'active' | 'inactive';
+    parent_id: string;
+};
 
 function CategoryForm({
     data,
@@ -65,13 +75,17 @@ function CategoryForm({
                     <Label>Parent Category</Label>
                     <Select
                         value={data.parent_id || 'none'}
-                        onValueChange={(v) => setData('parent_id', v === 'none' ? '' : v)}
+                        onValueChange={(v) =>
+                            setData('parent_id', v === 'none' ? '' : v)
+                        }
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">None (top-level)</SelectItem>
+                            <SelectItem value="none">
+                                None (top-level)
+                            </SelectItem>
                             {parentCategories.map((c) => (
                                 <SelectItem key={c.id} value={String(c.id)}>
                                     {c.name}
@@ -80,7 +94,8 @@ function CategoryForm({
                         </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                        Leave this as "None (top-level)" to create a new parent category.
+                        Leave this as "None (top-level)" to create a new parent
+                        category.
                     </p>
                     <InputError message={errors.parent_id} />
                 </div>
@@ -103,7 +118,9 @@ function CategoryForm({
                 <Label>Status</Label>
                 <Select
                     value={data.status}
-                    onValueChange={(v) => setData('status', v as 'active' | 'inactive')}
+                    onValueChange={(v) =>
+                        setData('status', v as 'active' | 'inactive')
+                    }
                 >
                     <SelectTrigger className="w-full">
                         <SelectValue />
@@ -132,8 +149,16 @@ export default function CategoriesIndex({ categories: cats }: Props) {
     const [editTarget, setEditTarget] = useState<Category | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
-    const createForm = useForm<FormData>({ name: '', status: 'active', parent_id: '' });
-    const editForm = useForm<FormData>({ name: '', status: 'active', parent_id: '' });
+    const createForm = useForm<FormData>({
+        name: '',
+        status: 'active',
+        parent_id: '',
+    });
+    const editForm = useForm<FormData>({
+        name: '',
+        status: 'active',
+        parent_id: '',
+    });
 
     const confirm = useConfirm();
 
@@ -164,7 +189,10 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                 parent_id: createForm.data.parent_id || null,
             },
             {
-                onError: (errors) => createForm.setError(errors as Partial<Record<keyof FormData, string>>),
+                onError: (errors) =>
+                    createForm.setError(
+                        errors as Partial<Record<keyof FormData, string>>,
+                    ),
                 onSuccess: () => {
                     setShowCreate(false);
                     createForm.reset();
@@ -215,15 +243,25 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                     </Button>
                 </div>
 
-                <div className="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
+                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-4 py-3 text-left font-medium">Name</th>
-                                <th className="px-4 py-3 text-left font-medium">Slug</th>
-                                <th className="px-4 py-3 text-left font-medium">Subcategories</th>
-                                <th className="px-4 py-3 text-left font-medium">Status</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Name
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Slug
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Subcategories
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Status
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -232,33 +270,53 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                                     <tr className="bg-background transition-colors hover:bg-muted/30">
                                         <td className="px-4 py-3 font-medium text-foreground">
                                             <button
-                                                onClick={() => toggleExpand(cat.id)}
-                                                className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                                                onClick={() =>
+                                                    toggleExpand(cat.id)
+                                                }
+                                                className="flex items-center gap-1.5 transition-colors hover:text-primary"
                                             >
-                                                {expandedIds.has(cat.id)
-                                                    ? <ChevronDown className="size-3.5 text-muted-foreground" />
-                                                    : <ChevronRight className="size-3.5 text-muted-foreground" />}
+                                                {expandedIds.has(cat.id) ? (
+                                                    <ChevronDown className="size-3.5 text-muted-foreground" />
+                                                ) : (
+                                                    <ChevronRight className="size-3.5 text-muted-foreground" />
+                                                )}
                                                 {cat.name}
                                             </button>
                                         </td>
-                                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{cat.slug}</td>
+                                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                                            {cat.slug}
+                                        </td>
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {cat.subcategories.length}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <Badge variant={cat.status === 'active' ? 'default' : 'secondary'}>
+                                            <Badge
+                                                variant={
+                                                    cat.status === 'active'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
                                                 {cat.status}
                                             </Badge>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-1">
-                                                <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openEdit(cat)
+                                                    }
+                                                >
                                                     <Pencil className="size-3.5" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => handleDelete(cat)}
+                                                    onClick={() =>
+                                                        handleDelete(cat)
+                                                    }
                                                     className="text-destructive hover:text-destructive"
                                                 >
                                                     <Trash2 className="size-3.5" />
@@ -267,38 +325,63 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                                         </td>
                                     </tr>
 
-                                    {expandedIds.has(cat.id) && cat.subcategories.map((sub) => (
-                                        <tr key={sub.id} className="bg-muted/20 transition-colors hover:bg-muted/40">
-                                            <td className="flex items-center gap-1.5 px-4 py-2.5 pl-10 text-muted-foreground">
-                                                <span className="text-muted-foreground/50">↳</span>
-                                                {sub.name}
-                                            </td>
-                                            <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                                                {sub.slug}
-                                            </td>
-                                            <td className="px-4 py-2.5 text-muted-foreground">—</td>
-                                            <td className="px-4 py-2.5">
-                                                <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
-                                                    {sub.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-2.5">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => openEdit(sub)}>
-                                                        <Pencil className="size-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleDelete(sub)}
-                                                        className="text-destructive hover:text-destructive"
+                                    {expandedIds.has(cat.id) &&
+                                        cat.subcategories.map((sub) => (
+                                            <tr
+                                                key={sub.id}
+                                                className="bg-muted/20 transition-colors hover:bg-muted/40"
+                                            >
+                                                <td className="flex items-center gap-1.5 px-4 py-2.5 pl-10 text-muted-foreground">
+                                                    <span className="text-muted-foreground/50">
+                                                        ↳
+                                                    </span>
+                                                    {sub.name}
+                                                </td>
+                                                <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                                                    {sub.slug}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-muted-foreground">
+                                                    —
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    <Badge
+                                                        variant={
+                                                            sub.status ===
+                                                            'active'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
                                                     >
-                                                        <Trash2 className="size-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                        {sub.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                openEdit(sub)
+                                                            }
+                                                        >
+                                                            <Pencil className="size-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                handleDelete(
+                                                                    sub,
+                                                                )
+                                                            }
+                                                            className="text-destructive hover:text-destructive"
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
                                 </Fragment>
                             ))}
                         </tbody>
@@ -326,7 +409,10 @@ export default function CategoriesIndex({ categories: cats }: Props) {
             </Dialog>
 
             {/* Edit Dialog */}
-            <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+            <Dialog
+                open={!!editTarget}
+                onOpenChange={(open) => !open && setEditTarget(null)}
+            >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit Category</DialogTitle>

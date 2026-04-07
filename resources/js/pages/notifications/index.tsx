@@ -61,8 +61,16 @@ export default function NotificationsIndex({ notifications }: Props) {
                                             <h2 className="text-base font-semibold">
                                                 {notification.title}
                                             </h2>
-                                            <Badge variant={notification.read_at ? 'outline' : 'default'}>
-                                                {notification.read_at ? 'Read' : 'Unread'}
+                                            <Badge
+                                                variant={
+                                                    notification.read_at
+                                                        ? 'outline'
+                                                        : 'default'
+                                                }
+                                            >
+                                                {notification.read_at
+                                                    ? 'Read'
+                                                    : 'Unread'}
                                             </Badge>
                                         </div>
                                         <p className="mt-1 text-sm text-muted-foreground">
@@ -76,8 +84,16 @@ export default function NotificationsIndex({ notifications }: Props) {
 
                                 {notification.action_url ? (
                                     <div className="mt-4">
-                                        <Button asChild variant="outline" size="sm">
-                                            <Link href={notification.action_url}>Open related page</Link>
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            <Link
+                                                href={notification.action_url}
+                                            >
+                                                Open related page
+                                            </Link>
                                         </Button>
                                     </div>
                                 ) : null}
@@ -91,13 +107,20 @@ export default function NotificationsIndex({ notifications }: Props) {
 }
 
 NotificationsIndex.layout = (page: React.ReactNode) => {
-    function NotificationsPageLayout({ children }: { children: React.ReactNode }) {
+    function NotificationsPageLayout({
+        children,
+    }: {
+        children: React.ReactNode;
+    }) {
         const { Layout, isSuperAdmin } = useRoleLayout();
 
         return (
             <Layout
                 breadcrumbs={[
-                    { title: 'Dashboard', href: isSuperAdmin ? '/admin/dashboard' : '/dashboard' },
+                    {
+                        title: 'Dashboard',
+                        href: isSuperAdmin ? '/admin/dashboard' : '/dashboard',
+                    },
                     { title: 'Notifications', href: '/notifications' },
                 ]}
             >

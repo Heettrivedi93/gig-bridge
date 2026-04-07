@@ -69,7 +69,9 @@ function formatDate(value: string | null) {
 }
 
 export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
-    const [reviewTarget, setReviewTarget] = useState<WithdrawalRow | null>(null);
+    const [reviewTarget, setReviewTarget] = useState<WithdrawalRow | null>(
+        null,
+    );
 
     const form = useForm<ReviewForm>({
         status: 'approved',
@@ -80,7 +82,10 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
         () =>
             stats.map((item) => ({
                 ...item,
-                value: typeof item.value === 'number' ? item.value.toLocaleString() : item.value,
+                value:
+                    typeof item.value === 'number'
+                        ? item.value.toLocaleString()
+                        : item.value,
             })),
         [stats],
     );
@@ -125,12 +130,21 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {summary.map((item) => (
-                        <div key={item.label} className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
-                            <p className="text-sm text-muted-foreground">{item.label}</p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {item.label === 'Approved Payouts' ? `USD ${item.value}` : item.value}
+                        <div
+                            key={item.label}
+                            className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
+                        >
+                            <p className="text-sm text-muted-foreground">
+                                {item.label}
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                            <p className="mt-2 text-2xl font-semibold">
+                                {item.label === 'Approved Payouts'
+                                    ? `USD ${item.value}`
+                                    : item.value}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {item.detail}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -138,34 +152,68 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                                <th className="px-4 py-3 text-left font-medium">Seller</th>
-                                <th className="px-4 py-3 text-left font-medium">Amount</th>
-                                <th className="px-4 py-3 text-left font-medium">Method</th>
-                                <th className="px-4 py-3 text-left font-medium">Status</th>
-                                <th className="px-4 py-3 text-left font-medium">Requested</th>
-                                <th className="px-4 py-3 text-left font-medium">Reviewed</th>
-                                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Seller
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Amount
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Method
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Status
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Requested
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium">
+                                    Reviewed
+                                </th>
+                                <th className="px-4 py-3 text-right font-medium">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {requests.map((request) => (
-                                <tr key={request.id} className="bg-background transition-colors hover:bg-muted/20">
+                                <tr
+                                    key={request.id}
+                                    className="bg-background transition-colors hover:bg-muted/20"
+                                >
                                     <td className="px-4 py-3">
-                                        <div className="font-medium">{request.seller?.name ?? 'Seller'}</div>
-                                        <div className="text-xs text-muted-foreground">{request.seller?.email ?? 'No email'}</div>
+                                        <div className="font-medium">
+                                            {request.seller?.name ?? 'Seller'}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {request.seller?.email ??
+                                                'No email'}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3 font-medium">
-                                        {request.wallet_currency} {request.amount}
+                                        {request.wallet_currency}{' '}
+                                        {request.amount}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div>{request.method ?? 'Method pending'}</div>
+                                        <div>
+                                            {request.method ?? 'Method pending'}
+                                        </div>
                                         {request.note && (
-                                            <div className="mt-1 text-xs text-muted-foreground">{request.note}</div>
+                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                {request.note}
+                                            </div>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Badge variant={request.status === 'approved' || request.status === 'paid' ? 'default' : 'secondary'}>
+                                        <Badge
+                                            variant={
+                                                request.status === 'approved' ||
+                                                request.status === 'paid'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
                                             {request.status}
                                         </Badge>
                                     </td>
@@ -173,12 +221,20 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                                         {formatDate(request.created_at)}
                                     </td>
                                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                                        {request.reviewer?.name ? `${request.reviewer.name} • ${formatDate(request.reviewed_at)}` : 'Pending'}
+                                        {request.reviewer?.name
+                                            ? `${request.reviewer.name} • ${formatDate(request.reviewed_at)}`
+                                            : 'Pending'}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
                                             {request.status === 'pending' && (
-                                                <Button variant="outline" size="sm" onClick={() => openReview(request)}>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        openReview(request)
+                                                    }
+                                                >
                                                     Review
                                                 </Button>
                                             )}
@@ -191,7 +247,10 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                 </div>
             </div>
 
-            <Dialog open={!!reviewTarget} onOpenChange={(open) => !open && closeReview()}>
+            <Dialog
+                open={!!reviewTarget}
+                onOpenChange={(open) => !open && closeReview()}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Review Withdrawal Request</DialogTitle>
@@ -200,15 +259,32 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                     {reviewTarget && (
                         <form onSubmit={submitReview} className="space-y-4">
                             <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm">
-                                <p className="font-medium">{reviewTarget.seller?.name ?? 'Seller'}</p>
-                                <p className="mt-1 text-muted-foreground">{reviewTarget.seller?.email ?? 'No email'}</p>
-                                <p className="mt-3 text-lg font-semibold">{reviewTarget.wallet_currency} {reviewTarget.amount}</p>
-                                <p className="text-muted-foreground">{reviewTarget.method ?? 'Method pending'}</p>
+                                <p className="font-medium">
+                                    {reviewTarget.seller?.name ?? 'Seller'}
+                                </p>
+                                <p className="mt-1 text-muted-foreground">
+                                    {reviewTarget.seller?.email ?? 'No email'}
+                                </p>
+                                <p className="mt-3 text-lg font-semibold">
+                                    {reviewTarget.wallet_currency}{' '}
+                                    {reviewTarget.amount}
+                                </p>
+                                <p className="text-muted-foreground">
+                                    {reviewTarget.method ?? 'Method pending'}
+                                </p>
                             </div>
 
                             <div className="grid gap-2">
                                 <Label>Status</Label>
-                                <Select value={form.data.status} onValueChange={(value) => form.setData('status', value as ReviewForm['status'])}>
+                                <Select
+                                    value={form.data.status}
+                                    onValueChange={(value) =>
+                                        form.setData(
+                                            'status',
+                                            value as ReviewForm['status'],
+                                        )
+                                    }
+                                >
                                     <SelectTrigger className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -231,12 +307,16 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="withdrawal-note">Admin note</Label>
+                                <Label htmlFor="withdrawal-note">
+                                    Admin note
+                                </Label>
                                 <textarea
                                     id="withdrawal-note"
                                     rows={4}
                                     value={form.data.note}
-                                    onChange={(event) => form.setData('note', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData('note', event.target.value)
+                                    }
                                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                                     placeholder="Add approval or rejection note."
                                 />
@@ -244,11 +324,20 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                             </div>
 
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={closeReview}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={closeReview}
+                                >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={form.processing}>
-                                    {form.processing ? 'Saving…' : 'Save review'}
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                >
+                                    {form.processing
+                                        ? 'Saving…'
+                                        : 'Save review'}
                                 </Button>
                             </DialogFooter>
                         </form>

@@ -1,5 +1,11 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Clock3, FileText, PackageCheck, ShieldAlert, ShoppingBag } from 'lucide-react';
+import {
+    Clock3,
+    FileText,
+    PackageCheck,
+    ShieldAlert,
+    ShoppingBag,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -91,8 +97,12 @@ function shortDate(value: string | null) {
 }
 
 export default function SellerOrdersIndex({ orders }: Props) {
-    const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
-    const [deliveryTarget, setDeliveryTarget] = useState<SellerOrder | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(
+        null,
+    );
+    const [deliveryTarget, setDeliveryTarget] = useState<SellerOrder | null>(
+        null,
+    );
     const [cancelTarget, setCancelTarget] = useState<SellerOrder | null>(null);
 
     const deliveryForm = useForm<{
@@ -167,7 +177,9 @@ export default function SellerOrdersIndex({ orders }: Props) {
                             <ShoppingBag className="size-4" />
                             Total orders
                         </div>
-                        <p className="mt-2 text-2xl font-semibold">{orders.length}</p>
+                        <p className="mt-2 text-2xl font-semibold">
+                            {orders.length}
+                        </p>
                     </div>
 
                     <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">
@@ -175,7 +187,9 @@ export default function SellerOrdersIndex({ orders }: Props) {
                             <PackageCheck className="size-4" />
                             Active work
                         </div>
-                        <p className="mt-2 text-2xl font-semibold">{activeOrders.length}</p>
+                        <p className="mt-2 text-2xl font-semibold">
+                            {activeOrders.length}
+                        </p>
                     </div>
 
                     <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">
@@ -183,54 +197,112 @@ export default function SellerOrdersIndex({ orders }: Props) {
                             <Clock3 className="size-4" />
                             Awaiting buyer
                         </div>
-                        <p className="mt-2 text-2xl font-semibold">{deliveredOrders.length}</p>
+                        <p className="mt-2 text-2xl font-semibold">
+                            {deliveredOrders.length}
+                        </p>
                     </div>
                 </div>
 
                 {orders.length === 0 ? (
                     <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <h2 className="text-lg font-semibold">No seller orders yet</h2>
+                        <h2 className="text-lg font-semibold">
+                            No seller orders yet
+                        </h2>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Paid buyer orders will appear here once someone purchases one of your gigs.
+                            Paid buyer orders will appear here once someone
+                            purchases one of your gigs.
                         </p>
                     </section>
                 ) : (
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
                         <div className="hidden overflow-x-auto lg:block">
                             <table className="w-full text-sm">
-                                <thead className="bg-muted/30 text-left text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                                <thead className="bg-muted/30 text-left text-xs tracking-[0.16em] text-muted-foreground uppercase">
                                     <tr>
-                                        <th className="px-4 py-3 font-medium">Order</th>
-                                        <th className="px-4 py-3 font-medium">Buyer</th>
-                                        <th className="px-4 py-3 font-medium">Brief</th>
-                                        <th className="px-4 py-3 font-medium">Timeline</th>
-                                        <th className="px-4 py-3 font-medium">Status</th>
-                                        <th className="px-4 py-3 font-medium">Total</th>
-                                        <th className="px-4 py-3 font-medium">Actions</th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Order
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Buyer
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Brief
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Timeline
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Status
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Total
+                                        </th>
+                                        <th className="px-4 py-3 font-medium">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {orders.map((order) => (
-                                        <tr key={order.id} className="border-t border-border/70 align-top">
+                                        <tr
+                                            key={order.id}
+                                            className="border-t border-border/70 align-top"
+                                        >
                                             <td className="px-4 py-4">
-                                                <p className="font-medium">{order.gig_title ?? 'Order'}</p>
-                                                <p className="mt-1 text-muted-foreground">#{order.id} • {order.package?.title ?? 'Package'}</p>
+                                                <p className="font-medium">
+                                                    {order.gig_title ?? 'Order'}
+                                                </p>
+                                                <p className="mt-1 text-muted-foreground">
+                                                    #{order.id} •{' '}
+                                                    {order.package?.title ??
+                                                        'Package'}
+                                                </p>
                                                 <div className="mt-2 flex flex-wrap gap-2">
-                                                    <Badge variant="outline">{order.package?.tier ?? 'package'}</Badge>
+                                                    <Badge variant="outline">
+                                                        {order.package?.tier ??
+                                                            'package'}
+                                                    </Badge>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="font-medium">{order.buyer?.name ?? 'Buyer'}</p>
-                                                <p className="mt-1 text-muted-foreground">{order.buyer?.email ?? 'No email'}</p>
+                                                <p className="font-medium">
+                                                    {order.buyer?.name ??
+                                                        'Buyer'}
+                                                </p>
+                                                <p className="mt-1 text-muted-foreground">
+                                                    {order.buyer?.email ??
+                                                        'No email'}
+                                                </p>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="text-foreground">{summarizeText(order.requirements, 90)}</p>
+                                                <p className="text-foreground">
+                                                    {summarizeText(
+                                                        order.requirements,
+                                                        90,
+                                                    )}
+                                                </p>
                                                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                                     {order.reference_link && (
-                                                        <a href={order.reference_link} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">Reference</a>
+                                                        <a
+                                                            href={
+                                                                order.reference_link
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-primary underline underline-offset-4"
+                                                        >
+                                                            Reference
+                                                        </a>
                                                     )}
                                                     {order.brief_file_url && (
-                                                        <a href={order.brief_file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary underline underline-offset-4">
+                                                        <a
+                                                            href={
+                                                                order.brief_file_url
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                        >
                                                             <FileText className="size-3.5" />
                                                             File
                                                         </a>
@@ -238,22 +310,100 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p>{order.package?.delivery_days ?? 0} days</p>
-                                                <p className="text-muted-foreground">{order.package?.revision_count ?? 0} revisions</p>
-                                                <p className="mt-1 text-muted-foreground">Delivered: {shortDate(order.delivered_at)}</p>
+                                                <p>
+                                                    {order.package
+                                                        ?.delivery_days ??
+                                                        0}{' '}
+                                                    days
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {order.package
+                                                        ?.revision_count ??
+                                                        0}{' '}
+                                                    revisions
+                                                </p>
+                                                <p className="mt-1 text-muted-foreground">
+                                                    Delivered:{' '}
+                                                    {shortDate(
+                                                        order.delivered_at,
+                                                    )}
+                                                </p>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex flex-col gap-2">
-                                                    <Badge variant={order.status === 'active' ? 'default' : 'secondary'}>{order.status}</Badge>
-                                                    <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>{order.payment_status}</Badge>
+                                                    <Badge
+                                                        variant={
+                                                            order.status ===
+                                                            'active'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                    >
+                                                        {order.status}
+                                                    </Badge>
+                                                    <Badge
+                                                        variant={
+                                                            order.payment_status ===
+                                                            'paid'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                    >
+                                                        {order.payment_status}
+                                                    </Badge>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 font-medium">USD {order.price}</td>
+                                            <td className="px-4 py-4 font-medium">
+                                                USD {order.price}
+                                            </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex flex-col gap-2">
-                                                    <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>View</Button>
-                                                    <Button size="sm" onClick={() => setDeliveryTarget(order)} disabled={order.status !== 'active' || order.payment_status !== 'paid'}>Deliver</Button>
-                                                    <Button size="sm" variant="outline" onClick={() => setCancelTarget(order)} disabled={!['active', 'delivered'].includes(order.status)}>Cancel</Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setSelectedOrder(
+                                                                order,
+                                                            )
+                                                        }
+                                                    >
+                                                        View
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setDeliveryTarget(
+                                                                order,
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            order.status !==
+                                                                'active' ||
+                                                            order.payment_status !==
+                                                                'paid'
+                                                        }
+                                                    >
+                                                        Deliver
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setCancelTarget(
+                                                                order,
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            ![
+                                                                'active',
+                                                                'delivered',
+                                                            ].includes(
+                                                                order.status,
+                                                            )
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -264,24 +414,87 @@ export default function SellerOrdersIndex({ orders }: Props) {
 
                         <div className="space-y-3 p-4 lg:hidden">
                             {orders.map((order) => (
-                                <div key={order.id} className="rounded-xl border border-border/70 p-4">
+                                <div
+                                    key={order.id}
+                                    className="rounded-xl border border-border/70 p-4"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium">{order.gig_title ?? 'Order'}</p>
-                                            <p className="text-sm text-muted-foreground">#{order.id} • {order.buyer?.name ?? 'Buyer'}</p>
+                                            <p className="font-medium">
+                                                {order.gig_title ?? 'Order'}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                #{order.id} •{' '}
+                                                {order.buyer?.name ?? 'Buyer'}
+                                            </p>
                                         </div>
-                                        <p className="font-semibold">USD {order.price}</p>
+                                        <p className="font-semibold">
+                                            USD {order.price}
+                                        </p>
                                     </div>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Badge variant="outline">{order.package?.tier ?? 'package'}</Badge>
-                                        <Badge variant={order.status === 'active' ? 'default' : 'secondary'}>{order.status}</Badge>
-                                        <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>{order.payment_status}</Badge>
+                                        <Badge variant="outline">
+                                            {order.package?.tier ?? 'package'}
+                                        </Badge>
+                                        <Badge
+                                            variant={
+                                                order.status === 'active'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {order.status}
+                                        </Badge>
+                                        <Badge
+                                            variant={
+                                                order.payment_status === 'paid'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {order.payment_status}
+                                        </Badge>
                                     </div>
-                                    <p className="mt-3 text-sm text-muted-foreground">{summarizeText(order.requirements, 100)}</p>
+                                    <p className="mt-3 text-sm text-muted-foreground">
+                                        {summarizeText(order.requirements, 100)}
+                                    </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>View</Button>
-                                        <Button size="sm" onClick={() => setDeliveryTarget(order)} disabled={order.status !== 'active' || order.payment_status !== 'paid'}>Deliver</Button>
-                                        <Button size="sm" variant="outline" onClick={() => setCancelTarget(order)} disabled={!['active', 'delivered'].includes(order.status)}>Cancel</Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setSelectedOrder(order)
+                                            }
+                                        >
+                                            View
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            onClick={() =>
+                                                setDeliveryTarget(order)
+                                            }
+                                            disabled={
+                                                order.status !== 'active' ||
+                                                order.payment_status !== 'paid'
+                                            }
+                                        >
+                                            Deliver
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setCancelTarget(order)
+                                            }
+                                            disabled={
+                                                ![
+                                                    'active',
+                                                    'delivered',
+                                                ].includes(order.status)
+                                            }
+                                        >
+                                            Cancel
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -290,12 +503,16 @@ export default function SellerOrdersIndex({ orders }: Props) {
                 )}
             </div>
 
-            <Dialog open={Boolean(selectedOrder)} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+            <Dialog
+                open={Boolean(selectedOrder)}
+                onOpenChange={(open) => !open && setSelectedOrder(null)}
+            >
                 <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Seller order detail</DialogTitle>
                         <DialogDescription>
-                            Review delivery history, revision notes, and cancellation trail for this order.
+                            Review delivery history, revision notes, and
+                            cancellation trail for this order.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -304,11 +521,17 @@ export default function SellerOrdersIndex({ orders }: Props) {
                             <div className="rounded-3xl border border-border/70 bg-card p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Order #{selectedOrder.id}</p>
-                                        <p className="mt-1 text-xl font-semibold">{selectedOrder.gig_title}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Order #{selectedOrder.id}
+                                        </p>
+                                        <p className="mt-1 text-xl font-semibold">
+                                            {selectedOrder.gig_title}
+                                        </p>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Badge variant="outline">{selectedOrder.package?.tier}</Badge>
+                                        <Badge variant="outline">
+                                            {selectedOrder.package?.tier}
+                                        </Badge>
                                         <Badge>{selectedOrder.status}</Badge>
                                     </div>
                                 </div>
@@ -316,72 +539,128 @@ export default function SellerOrdersIndex({ orders }: Props) {
 
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                    <h3 className="text-base font-semibold">Deliveries</h3>
+                                    <h3 className="text-base font-semibold">
+                                        Deliveries
+                                    </h3>
                                     {selectedOrder.deliveries.length === 0 ? (
                                         <p className="mt-3 text-sm text-muted-foreground">
                                             No delivery submitted yet.
                                         </p>
                                     ) : (
                                         <div className="mt-4 space-y-4">
-                                            {selectedOrder.deliveries.map((delivery) => (
-                                                <div key={delivery.id} className="rounded-2xl border border-border/70 p-4 text-sm">
-                                                    <p className="font-medium">{formatDate(delivery.delivered_at)}</p>
-                                                    <p className="mt-1 text-muted-foreground">
-                                                        By {delivery.delivered_by ?? 'Seller'}
-                                                    </p>
-                                                    {delivery.note && (
-                                                        <p className="mt-2 text-muted-foreground">{delivery.note}</p>
-                                                    )}
-                                                    <a
-                                                        href={delivery.file_url}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="mt-3 inline-flex items-center gap-2 text-primary underline underline-offset-4"
+                                            {selectedOrder.deliveries.map(
+                                                (delivery) => (
+                                                    <div
+                                                        key={delivery.id}
+                                                        className="rounded-2xl border border-border/70 p-4 text-sm"
                                                     >
-                                                        <FileText className="size-4" />
-                                                        Download delivery
-                                                    </a>
-                                                </div>
-                                            ))}
+                                                        <p className="font-medium">
+                                                            {formatDate(
+                                                                delivery.delivered_at,
+                                                            )}
+                                                        </p>
+                                                        <p className="mt-1 text-muted-foreground">
+                                                            By{' '}
+                                                            {delivery.delivered_by ??
+                                                                'Seller'}
+                                                        </p>
+                                                        {delivery.note && (
+                                                            <p className="mt-2 text-muted-foreground">
+                                                                {delivery.note}
+                                                            </p>
+                                                        )}
+                                                        <a
+                                                            href={
+                                                                delivery.file_url
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="mt-3 inline-flex items-center gap-2 text-primary underline underline-offset-4"
+                                                        >
+                                                            <FileText className="size-4" />
+                                                            Download delivery
+                                                        </a>
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="space-y-6">
                                     <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">Revision requests</h3>
-                                        {selectedOrder.revisions.length === 0 ? (
+                                        <h3 className="text-base font-semibold">
+                                            Revision requests
+                                        </h3>
+                                        {selectedOrder.revisions.length ===
+                                        0 ? (
                                             <p className="mt-3 text-sm text-muted-foreground">
                                                 No revision requests yet.
                                             </p>
                                         ) : (
                                             <div className="mt-4 space-y-4">
-                                                {selectedOrder.revisions.map((revision) => (
-                                                    <div key={revision.id} className="rounded-2xl border border-border/70 p-4 text-sm">
-                                                        <p className="font-medium">{revision.requested_by ?? 'Buyer'}</p>
-                                                        <p className="mt-1 text-muted-foreground">{formatDate(revision.created_at)}</p>
-                                                        <p className="mt-2 text-muted-foreground">{revision.note}</p>
-                                                    </div>
-                                                ))}
+                                                {selectedOrder.revisions.map(
+                                                    (revision) => (
+                                                        <div
+                                                            key={revision.id}
+                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
+                                                        >
+                                                            <p className="font-medium">
+                                                                {revision.requested_by ??
+                                                                    'Buyer'}
+                                                            </p>
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {formatDate(
+                                                                    revision.created_at,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-2 text-muted-foreground">
+                                                                {revision.note}
+                                                            </p>
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">Cancellation trail</h3>
-                                        {selectedOrder.cancellations.length === 0 ? (
+                                        <h3 className="text-base font-semibold">
+                                            Cancellation trail
+                                        </h3>
+                                        {selectedOrder.cancellations.length ===
+                                        0 ? (
                                             <p className="mt-3 text-sm text-muted-foreground">
                                                 No cancellation recorded.
                                             </p>
                                         ) : (
                                             <div className="mt-4 space-y-4">
-                                                {selectedOrder.cancellations.map((cancellation) => (
-                                                    <div key={cancellation.id} className="rounded-2xl border border-border/70 p-4 text-sm">
-                                                        <p className="font-medium capitalize">{cancellation.cancelled_by}</p>
-                                                        <p className="mt-1 text-muted-foreground">{formatDate(cancellation.created_at)}</p>
-                                                        <p className="mt-2 text-muted-foreground">{cancellation.reason}</p>
-                                                    </div>
-                                                ))}
+                                                {selectedOrder.cancellations.map(
+                                                    (cancellation) => (
+                                                        <div
+                                                            key={
+                                                                cancellation.id
+                                                            }
+                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
+                                                        >
+                                                            <p className="font-medium capitalize">
+                                                                {
+                                                                    cancellation.cancelled_by
+                                                                }
+                                                            </p>
+                                                            <p className="mt-1 text-muted-foreground">
+                                                                {formatDate(
+                                                                    cancellation.created_at,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-2 text-muted-foreground">
+                                                                {
+                                                                    cancellation.reason
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -392,54 +671,92 @@ export default function SellerOrdersIndex({ orders }: Props) {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(deliveryTarget)} onOpenChange={(open) => !open && setDeliveryTarget(null)}>
+            <Dialog
+                open={Boolean(deliveryTarget)}
+                onOpenChange={(open) => !open && setDeliveryTarget(null)}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Submit delivery</DialogTitle>
                         <DialogDescription>
-                            Upload the delivery file and an optional note for the buyer.
+                            Upload the delivery file and an optional note for
+                            the buyer.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitDelivery} className="space-y-4">
                         <div className="grid gap-2">
-                            <label htmlFor="delivery_file" className="text-sm font-medium">Delivery file</label>
+                            <label
+                                htmlFor="delivery_file"
+                                className="text-sm font-medium"
+                            >
+                                Delivery file
+                            </label>
                             <input
                                 id="delivery_file"
                                 type="file"
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                                onChange={(event) => deliveryForm.setData('delivery_file', event.target.files?.[0] ?? null)}
+                                onChange={(event) =>
+                                    deliveryForm.setData(
+                                        'delivery_file',
+                                        event.target.files?.[0] ?? null,
+                                    )
+                                }
                                 required
                             />
-                            <InputError message={deliveryForm.errors.delivery_file} />
+                            <InputError
+                                message={deliveryForm.errors.delivery_file}
+                            />
                         </div>
 
                         <div className="grid gap-2">
-                            <label htmlFor="delivery_note" className="text-sm font-medium">Delivery note</label>
+                            <label
+                                htmlFor="delivery_note"
+                                className="text-sm font-medium"
+                            >
+                                Delivery note
+                            </label>
                             <textarea
                                 id="delivery_note"
                                 rows={4}
                                 value={deliveryForm.data.delivery_note}
-                                onChange={(event) => deliveryForm.setData('delivery_note', event.target.value)}
+                                onChange={(event) =>
+                                    deliveryForm.setData(
+                                        'delivery_note',
+                                        event.target.value,
+                                    )
+                                }
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 placeholder="Explain what is included and any next steps for the buyer."
                             />
-                            <InputError message={deliveryForm.errors.delivery_note} />
+                            <InputError
+                                message={deliveryForm.errors.delivery_note}
+                            />
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={deliveryForm.processing}>
-                            {deliveryForm.processing ? 'Submitting...' : 'Submit delivery'}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={deliveryForm.processing}
+                        >
+                            {deliveryForm.processing
+                                ? 'Submitting...'
+                                : 'Submit delivery'}
                         </Button>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(cancelTarget)} onOpenChange={(open) => !open && setCancelTarget(null)}>
+            <Dialog
+                open={Boolean(cancelTarget)}
+                onOpenChange={(open) => !open && setCancelTarget(null)}
+            >
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Cancel order</DialogTitle>
                         <DialogDescription>
-                            Add a clear reason so the cancellation is stored for audit.
+                            Add a clear reason so the cancellation is stored for
+                            audit.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -450,26 +767,45 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                 Cancellation note
                             </div>
                             <p className="mt-2">
-                                Paid orders will be marked as refunded in the current implementation.
+                                Paid orders will be marked as refunded in the
+                                current implementation.
                             </p>
                         </div>
 
                         <div className="grid gap-2">
-                            <label htmlFor="cancellation_reason" className="text-sm font-medium">Reason</label>
+                            <label
+                                htmlFor="cancellation_reason"
+                                className="text-sm font-medium"
+                            >
+                                Reason
+                            </label>
                             <textarea
                                 id="cancellation_reason"
                                 rows={5}
                                 value={cancelForm.data.cancellation_reason}
-                                onChange={(event) => cancelForm.setData('cancellation_reason', event.target.value)}
+                                onChange={(event) =>
+                                    cancelForm.setData(
+                                        'cancellation_reason',
+                                        event.target.value,
+                                    )
+                                }
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 placeholder="Explain why this order is being cancelled."
                                 required
                             />
-                            <InputError message={cancelForm.errors.cancellation_reason} />
+                            <InputError
+                                message={cancelForm.errors.cancellation_reason}
+                            />
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={cancelForm.processing}>
-                            {cancelForm.processing ? 'Cancelling...' : 'Confirm cancellation'}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={cancelForm.processing}
+                        >
+                            {cancelForm.processing
+                                ? 'Cancelling...'
+                                : 'Confirm cancellation'}
                         </Button>
                     </form>
                 </DialogContent>
