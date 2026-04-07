@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Wallet;
+use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Role;
 
 function ensureNotificationRole(string $name): Role
@@ -67,9 +68,31 @@ function notificationGig(User $seller, Category $category, Category $subcategory
     return $gig;
 }
 
-test('seller receives in app notification when buyer places an order', function () {
+test('seller receives in app notification when buyer payment is completed', function () {
     Setting::setValue('notifications_in_app_enabled', true);
     Setting::setValue('notifications_in_app_events', ['orders']);
+    Setting::setMany([
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
+    ]);
+
+    Http::fake([
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+            'id' => 'ORDER-NOTIFY-1',
+            'status' => 'CREATED',
+        ], 201),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-NOTIFY-1/capture' => Http::response([
+            'status' => 'COMPLETED',
+            'payer' => [
+                'payer_id' => 'PAYER-NOTIFY-1',
+            ],
+        ]),
+    ]);
 
     [$category, $subcategory] = notificationCategory();
     $seller = notificationUser('seller');
@@ -86,6 +109,18 @@ test('seller receives in app notification when buyer places an order', function 
             'billing_email' => 'buyer@example.com',
         ])
         ->assertRedirect(route('buyer.orders.index'));
+
+    $order = Order::query()->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.order', $order))
+        ->assertOk();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.capture', $order), [
+            'order_id' => 'ORDER-NOTIFY-1',
+        ])
+        ->assertOk();
 
     $seller->refresh();
 

@@ -34,6 +34,7 @@ class SellerOrderController extends Controller
                     'cancellations',
                 ])
                 ->where('seller_id', $seller->id)
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->latest('updated_at')
                 ->latest('id')
                 ->get()

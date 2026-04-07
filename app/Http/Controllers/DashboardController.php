@@ -11,9 +11,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly WalletService $wallets)
-    {
-    }
+    public function __construct(private readonly WalletService $wallets) {}
 
     public function index(Request $request): Response
     {
@@ -31,7 +29,9 @@ class DashboardController extends Controller
         if ($isSeller) {
             $role = 'seller';
             $wallet = $this->wallets->getOrCreateSellerWallet($user);
-            $sellerOrders = Order::query()->where('seller_id', $user->id);
+            $sellerOrders = Order::query()
+                ->where('seller_id', $user->id)
+                ->whereIn('payment_status', ['paid', 'released', 'refunded']);
             $activeOrdersCount = (clone $sellerOrders)->where('status', 'active')->count();
             $deliveredOrdersCount = (clone $sellerOrders)->where('status', 'delivered')->count();
             $completedSellerOrders = (clone $sellerOrders)->where('status', 'completed')->count();
@@ -57,6 +57,7 @@ class DashboardController extends Controller
             $recentOrders = Order::query()
                 ->with(['gig:id,title', 'buyer:id,name'])
                 ->where('seller_id', $user->id)
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->latest('updated_at')
                 ->latest('id')
                 ->take(6)

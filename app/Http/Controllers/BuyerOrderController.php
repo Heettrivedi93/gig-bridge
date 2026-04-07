@@ -199,8 +199,6 @@ class BuyerOrderController extends Controller
             'escrow_held' => false,
         ]);
 
-        $this->notifications->orderPlaced($order);
-
         return redirect()
             ->route('buyer.orders.index')
             ->with('success', 'Order created successfully. Continue to PayPal from your buyer orders list.');
@@ -321,6 +319,7 @@ class BuyerOrderController extends Controller
             'paypal_payer_id' => data_get($capture, 'payer.payer_id'),
         ]);
 
+        $this->notifications->orderPlaced($order->fresh());
         $this->funds->holdEscrow($order->fresh());
 
         return response()->json([

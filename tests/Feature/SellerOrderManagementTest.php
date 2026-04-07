@@ -107,6 +107,37 @@ test('seller can view assigned orders', function () {
             ->where('orders.0.buyer.name', $buyer->name));
 });
 
+test('seller cannot see unpaid pending orders', function () {
+    [$category, $subcategory] = sellerOrderCategory();
+    $seller = sellerOrderUser();
+    $buyer = buyerOrderUser();
+    $gig = sellerOrderGig($seller, $category, $subcategory);
+    $package = $gig->packages()->firstOrFail();
+
+    Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Need an SEO blog post.',
+        'billing_name' => 'Buyer One',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 40,
+        'price' => 40,
+        'status' => 'pending',
+        'payment_status' => 'pending',
+        'escrow_held' => false,
+    ]);
+
+    $this->actingAs($seller)
+        ->get(route('seller.orders.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('seller/orders/index')
+            ->where('orders', []));
+});
+
 test('seller can submit delivery for active paid order', function () {
     Storage::fake('public');
 

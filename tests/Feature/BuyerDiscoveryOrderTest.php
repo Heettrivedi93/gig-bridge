@@ -3,14 +3,16 @@
 use App\Models\Category;
 use App\Models\Gig;
 use App\Models\GigPackage;
-use App\Models\OrderCancellation;
 use App\Models\Order;
+use App\Models\OrderCancellation;
 use App\Models\OrderRevision;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Notifications\SystemUserNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
@@ -155,6 +157,8 @@ test('buyer can open a gig and create a pending order', function () {
 });
 
 test('buyer can create and capture paypal payment for a pending order', function () {
+    Notification::fake();
+
     [$category, $subcategory] = activeCategoryWithChild();
     $seller = sellerMarketUser();
     $buyer = buyerUser();
@@ -226,6 +230,20 @@ test('buyer can create and capture paypal payment for a pending order', function
     expect($order->escrow_held)->toBeTrue();
     expect($order->paypal_payer_id)->toBe('PAYER-123');
     expect(Wallet::query()->where('owner_type', 'system')->first()?->escrow_balance)->toEqual('25.00');
+
+    $this->actingAs($seller)
+        ->get(route('seller.orders.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('seller/orders/index')
+            ->where('orders.0.id', $order->id)
+            ->where('orders.0.payment_status', 'paid'));
+
+    Notification::assertSentTo(
+        $seller,
+        SystemUserNotification::class,
+        fn (SystemUserNotification $notification, array $channels) => in_array('database', $channels, true)
+    );
 });
 
 test('buyer can view payment history with invoice data', function () {
