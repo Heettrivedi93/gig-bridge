@@ -54,12 +54,19 @@ type SettingsForm = {
     trello_board_id: string;
     trello_list_id: string;
 
+    twilio_enabled: boolean;
+    twilio_account_sid: string;
+    twilio_auth_token: string;
+    twilio_from_number: string;
+
     notifications_email_enabled: boolean;
     notifications_in_app_enabled: boolean;
     notifications_trello_enabled: boolean;
+    notifications_twilio_enabled: boolean;
     notifications_email_events: string[];
     notifications_in_app_events: string[];
     notifications_trello_events: string[];
+    notifications_twilio_events: string[];
     setting_meta: Record<string, unknown>;
 };
 
@@ -71,10 +78,11 @@ type Props = {
         email: EventOption[];
         in_app: EventOption[];
         trello: EventOption[];
+        twilio: EventOption[];
     };
 };
 
-type SettingTab = 'email' | 'brand' | 'payment' | 'trello' | 'notifications';
+type SettingTab = 'email' | 'brand' | 'payment' | 'trello' | 'twilio' | 'notifications';
 
 function EventCheckboxList({
     title,
@@ -120,7 +128,8 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
         key:
             | 'notifications_email_events'
             | 'notifications_in_app_events'
-            | 'notifications_trello_events',
+            | 'notifications_trello_events'
+            | 'notifications_twilio_events',
         value: string,
     ) => {
         const current = form.data[key];
@@ -184,6 +193,14 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                         onClick={() => setActiveTab('trello')}
                     >
                         Trello
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={activeTab === 'twilio' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('twilio')}
+                    >
+                        Twilio
                     </Button>
                     <Button
                         type="button"
@@ -933,6 +950,71 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
 
                     <section
                         className={
+                            activeTab === 'twilio'
+                                ? 'rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border'
+                                : 'hidden'
+                        }
+                    >
+                        <h2 className="mb-4 text-base font-semibold">
+                            3.8 Twilio Settings
+                        </h2>
+                        <div className="mb-4">
+                            <label
+                                htmlFor="twilio-enabled"
+                                className="flex items-center gap-2 text-sm"
+                            >
+                                <input
+                                    id="twilio-enabled"
+                                    type="checkbox"
+                                    checked={form.data.twilio_enabled}
+                                    onChange={(e) =>
+                                        form.setData('twilio_enabled', e.target.checked)
+                                    }
+                                    className="size-4 accent-primary"
+                                />
+                                Enable Twilio SMS integration
+                            </label>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="twilio-account-sid">Account SID</Label>
+                                <Input
+                                    id="twilio-account-sid"
+                                    value={form.data.twilio_account_sid}
+                                    onChange={(e) =>
+                                        form.setData('twilio_account_sid', e.target.value)
+                                    }
+                                />
+                                <InputError message={form.errors.twilio_account_sid} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="twilio-auth-token">Auth Token</Label>
+                                <Input
+                                    id="twilio-auth-token"
+                                    value={form.data.twilio_auth_token}
+                                    onChange={(e) =>
+                                        form.setData('twilio_auth_token', e.target.value)
+                                    }
+                                />
+                                <InputError message={form.errors.twilio_auth_token} />
+                            </div>
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="twilio-from-number">From Number</Label>
+                                <Input
+                                    id="twilio-from-number"
+                                    value={form.data.twilio_from_number}
+                                    onChange={(e) =>
+                                        form.setData('twilio_from_number', e.target.value)
+                                    }
+                                    placeholder="+15005550006"
+                                />
+                                <InputError message={form.errors.twilio_from_number} />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section
+                        className={
                             activeTab === 'notifications'
                                 ? 'rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border'
                                 : 'hidden'
@@ -1002,6 +1084,21 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 />
                                 Enable Trello Notifications
                             </label>
+                            <label
+                                htmlFor="notifications-twilio-enabled"
+                                className="flex items-center gap-2 text-sm"
+                            >
+                                <input
+                                    id="notifications-twilio-enabled"
+                                    type="checkbox"
+                                    checked={form.data.notifications_twilio_enabled}
+                                    onChange={(e) =>
+                                        form.setData('notifications_twilio_enabled', e.target.checked)
+                                    }
+                                    className="size-4 accent-primary"
+                                />
+                                Enable Twilio SMS Notifications
+                            </label>
                         </div>
                         <div className="mt-4 space-y-4">
                             <EventCheckboxList
@@ -1033,6 +1130,17 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 toggle={(key) =>
                                     toggleValue(
                                         'notifications_trello_events',
+                                        key,
+                                    )
+                                }
+                            />
+                            <EventCheckboxList
+                                title="Twilio Events"
+                                options={eventOptions.twilio}
+                                values={form.data.notifications_twilio_events}
+                                toggle={(key) =>
+                                    toggleValue(
+                                        'notifications_twilio_events',
                                         key,
                                     )
                                 }

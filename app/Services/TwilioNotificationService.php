@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Setting;
+use App\Models\User;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+class TwilioNotificationService
+{
+    public function send(User $user, string $event, string $title, string $message): void
+    {
+        if (! $this->isEnabled($event, $user)) {
+            return;
+        }
+
+        $accountSid = (string) Setting::getValue('twilio_account_sid', '');
+        $authToken = (string) Setting::getValue('twilio_auth_token', '');
+
+        try {
+            $response = Http::asForm()
+                ->withBasicAuth($accountSid, $authToken)
+                ->timeout(10)
+                ->post(sprintf(
+                    'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json',
+                    $accountSid,
+                ), [
+                    'From' => (string) Setting::getValue('twilio_from_number', ''),
+                    'To' => (string) $user->phone,
+                    'Body' => trim($title."\n".$message),
+                ]);
+
+            if ($response->failed()) {
+                Log::warning('Twilio notification request failed.', [
+                    'event' => $event,
+                    'user_id' => $user->id,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Twilio notification request threw an exception.', [
+                'event' => $event,
+                'user_id' => $user->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private function isEnabled(string $event, User $user): bool
+    {
+        if (! (bool) Setting::getValue('twilio_enabled', false)) {
+            return false;
+        }
+
+        if (! (bool) Setting::getValue('notifications_twilio_enabled', false)) {
+            return false;
+        }
+
+        $events = Setting::getValue('notifications_twilio_events', []);
+
+        if (! in_array($event, is_array($events) ? $events : [], true)) {
+            return false;
+        }
+
+        if (! filled($user->phone)) {
+            return false;
+        }
+
+        return filled((string) Setting::getValue('twilio_account_sid', ''))
+            && filled((string) Setting::getValue('twilio_auth_token', ''))
+            && filled((string) Setting::getValue('twilio_from_number', ''));
+    }
+}

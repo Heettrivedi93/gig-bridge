@@ -11,32 +11,33 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 
-function ensureTrelloNotificationRole(string $name): Role
+function ensureTwilioNotificationRole(string $name): Role
 {
     return Role::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
 }
 
-function trelloNotificationUser(string $role): User
+function twilioNotificationUser(string $role, string $phone): User
 {
     $user = User::factory()->create([
         'status' => 'active',
+        'phone' => $phone,
     ]);
-    $user->assignRole(ensureTrelloNotificationRole($role));
+    $user->assignRole(ensureTwilioNotificationRole($role));
 
     return $user;
 }
 
-function trelloNotificationCategory(): array
+function twilioNotificationCategory(): array
 {
     $parent = Category::create([
-        'name' => 'Trello Design',
-        'slug' => 'trello-design',
+        'name' => 'Twilio Design',
+        'slug' => 'twilio-design',
         'status' => 'active',
     ]);
 
     $child = Category::create([
-        'name' => 'Trello Logo Design',
-        'slug' => 'trello-logo-design',
+        'name' => 'Twilio Logo Design',
+        'slug' => 'twilio-logo-design',
         'parent_id' => $parent->id,
         'status' => 'active',
     ]);
@@ -44,15 +45,15 @@ function trelloNotificationCategory(): array
     return [$parent, $child];
 }
 
-function trelloNotificationGig(User $seller, Category $category, Category $subcategory): Gig
+function twilioNotificationGig(User $seller, Category $category, Category $subcategory): Gig
 {
     $gig = Gig::create([
         'user_id' => $seller->id,
         'category_id' => $category->id,
         'subcategory_id' => $subcategory->id,
-        'title' => 'Trello Notification Gig',
-        'description' => 'Used for Trello notification tests.',
-        'tags' => ['trello'],
+        'title' => 'Twilio Notification Gig',
+        'description' => 'Used for Twilio notification tests.',
+        'tags' => ['twilio'],
         'status' => 'active',
     ]);
 
@@ -61,7 +62,7 @@ function trelloNotificationGig(User $seller, Category $category, Category $subca
         'tier' => 'basic',
         'title' => 'Basic package',
         'description' => 'Package details',
-        'price' => 90,
+        'price' => 95,
         'delivery_days' => 3,
         'revision_count' => 2,
     ]);
@@ -69,40 +70,39 @@ function trelloNotificationGig(User $seller, Category $category, Category $subca
     return $gig;
 }
 
-function configureTrelloNotifications(array $events): void
+function configureTwilioNotifications(array $events): void
 {
     Setting::setMany([
-        'trello_enabled' => true,
-        'trello_api_key' => 'trello-key',
-        'trello_token' => 'trello-token',
-        'trello_board_id' => 'board-id',
-        'trello_list_id' => 'list-id',
-        'notifications_trello_enabled' => true,
-        'notifications_trello_events' => $events,
+        'twilio_enabled' => true,
+        'twilio_account_sid' => 'AC123456789',
+        'twilio_auth_token' => 'twilio-token',
+        'twilio_from_number' => '+15005550006',
+        'notifications_twilio_enabled' => true,
+        'notifications_twilio_events' => $events,
         'notifications_in_app_enabled' => false,
         'notifications_email_enabled' => false,
     ]);
 }
 
-test('order placed sends trello card when enabled', function () {
+test('order placed sends twilio sms when enabled', function () {
     Http::fake([
-        'https://api.trello.com/1/cards' => Http::response(['id' => 'card-1'], 200),
+        'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json' => Http::response(['sid' => 'SM123'], 201),
         'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
             'access_token' => 'sandbox-token',
         ]),
         'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
-            'id' => 'ORDER-TRELLO-1',
+            'id' => 'ORDER-TWILIO-1',
             'status' => 'CREATED',
         ], 201),
-        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TRELLO-1/capture' => Http::response([
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TWILIO-1/capture' => Http::response([
             'status' => 'COMPLETED',
             'payer' => [
-                'payer_id' => 'PAYER-TRELLO-1',
+                'payer_id' => 'PAYER-TWILIO-1',
             ],
         ]),
     ]);
 
-    configureTrelloNotifications(['order_placed']);
+    configureTwilioNotifications(['order_placed']);
     Setting::setMany([
         'payment_paypal_mode' => 'sandbox',
         'payment_paypal_client_id' => 'test-client-id',
@@ -110,10 +110,10 @@ test('order placed sends trello card when enabled', function () {
         'payment_currency' => 'USD',
     ]);
 
-    [$category, $subcategory] = trelloNotificationCategory();
-    $seller = trelloNotificationUser('seller');
-    $buyer = trelloNotificationUser('buyer');
-    $gig = trelloNotificationGig($seller, $category, $subcategory);
+    [$category, $subcategory] = twilioNotificationCategory();
+    $seller = twilioNotificationUser('seller', '+15550000001');
+    $buyer = twilioNotificationUser('buyer', '+15550000002');
+    $gig = twilioNotificationGig($seller, $category, $subcategory);
     $package = $gig->packages()->firstOrFail();
 
     $this->actingAs($buyer)
@@ -134,54 +134,61 @@ test('order placed sends trello card when enabled', function () {
 
     $this->actingAs($buyer)
         ->postJson(route('buyer.orders.paypal.capture', $order), [
-            'order_id' => 'ORDER-TRELLO-1',
+            'order_id' => 'ORDER-TWILIO-1',
         ])
         ->assertOk();
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://api.trello.com/1/cards'
-        && $request['key'] === 'trello-key'
-        && $request['token'] === 'trello-token'
-        && $request['idList'] === 'list-id'
-        && str_contains($request['name'], 'New order')
+    Http::assertSent(fn ($request) => $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json'
+        && str_contains((string) $request->body(), 'To=%2B15550000001')
+        && str_contains((string) $request->body(), 'From=%2B15005550006')
+        && str_contains(urldecode((string) $request->body()), 'New order received')
     );
 });
 
-test('registration sends trello card when enabled', function () {
+test('registration sends twilio sms when enabled', function () {
     Http::fake([
-        'https://api.trello.com/1/cards' => Http::response(['id' => 'card-2'], 200),
+        'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json' => Http::response(['sid' => 'SM124'], 201),
     ]);
 
-    configureTrelloNotifications(['new_user_registrations']);
-    ensureTrelloNotificationRole('buyer');
+    configureTwilioNotifications(['registration']);
+    ensureTwilioNotificationRole('buyer');
 
-    app(CreateNewUser::class)->create([
-        'name' => 'Buyer Trello Test',
-        'email' => 'buyer-trello@example.com',
+    $user = app(CreateNewUser::class)->create([
+        'name' => 'Buyer Twilio Test',
+        'email' => 'buyer-twilio@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
         'role' => 'buyer',
     ]);
 
-    Http::assertSent(fn ($request) => $request->url() === 'https://api.trello.com/1/cards'
-        && str_contains($request['name'], 'New buyer registration')
+    $user->forceFill(['phone' => '+15550000003'])->save();
+    app(\App\Services\SystemNotificationService::class)->registration($user->fresh());
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json'
+        && str_contains((string) $request->body(), 'To=%2B15550000003')
+        && str_contains(urldecode((string) $request->body()), 'Welcome to GigBridge')
     );
 });
 
-test('trello request is skipped when trello notifications are disabled', function () {
+test('twilio request is skipped when twilio notifications are disabled', function () {
     Http::fake();
 
     Setting::setMany([
-        'trello_enabled' => false,
-        'notifications_trello_enabled' => false,
-        'notifications_trello_events' => ['order_placed'],
+        'twilio_enabled' => false,
+        'notifications_twilio_enabled' => false,
+        'notifications_twilio_events' => ['order_placed'],
         'notifications_in_app_enabled' => false,
         'notifications_email_enabled' => false,
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
     ]);
 
-    [$category, $subcategory] = trelloNotificationCategory();
-    $seller = trelloNotificationUser('seller');
-    $buyer = trelloNotificationUser('buyer');
-    $gig = trelloNotificationGig($seller, $category, $subcategory);
+    [$category, $subcategory] = twilioNotificationCategory();
+    $seller = twilioNotificationUser('seller', '+15550000004');
+    $buyer = twilioNotificationUser('buyer', '+15550000005');
+    $gig = twilioNotificationGig($seller, $category, $subcategory);
     $package = $gig->packages()->firstOrFail();
 
     $this->actingAs($buyer)
@@ -197,27 +204,27 @@ test('trello request is skipped when trello notifications are disabled', functio
     Http::assertNothingSent();
 });
 
-test('trello request failure does not break business action', function () {
+test('twilio request failure does not break business action', function () {
     Log::spy();
 
     Http::fake([
-        'https://api.trello.com/1/cards' => Http::response(['message' => 'bad request'], 400),
+        'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json' => Http::response(['message' => 'bad request'], 400),
         'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
             'access_token' => 'sandbox-token',
         ]),
         'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
-            'id' => 'ORDER-TRELLO-2',
+            'id' => 'ORDER-TWILIO-2',
             'status' => 'CREATED',
         ], 201),
-        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TRELLO-2/capture' => Http::response([
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TWILIO-2/capture' => Http::response([
             'status' => 'COMPLETED',
             'payer' => [
-                'payer_id' => 'PAYER-TRELLO-2',
+                'payer_id' => 'PAYER-TWILIO-2',
             ],
         ]),
     ]);
 
-    configureTrelloNotifications(['order_placed']);
+    configureTwilioNotifications(['order_placed']);
     Setting::setMany([
         'payment_paypal_mode' => 'sandbox',
         'payment_paypal_client_id' => 'test-client-id',
@@ -225,10 +232,10 @@ test('trello request failure does not break business action', function () {
         'payment_currency' => 'USD',
     ]);
 
-    [$category, $subcategory] = trelloNotificationCategory();
-    $seller = trelloNotificationUser('seller');
-    $buyer = trelloNotificationUser('buyer');
-    $gig = trelloNotificationGig($seller, $category, $subcategory);
+    [$category, $subcategory] = twilioNotificationCategory();
+    $seller = twilioNotificationUser('seller', '+15550000006');
+    $buyer = twilioNotificationUser('buyer', '+15550000007');
+    $gig = twilioNotificationGig($seller, $category, $subcategory);
     $package = $gig->packages()->firstOrFail();
 
     $this->actingAs($buyer)
@@ -249,7 +256,7 @@ test('trello request failure does not break business action', function () {
 
     $this->actingAs($buyer)
         ->postJson(route('buyer.orders.paypal.capture', $order), [
-            'order_id' => 'ORDER-TRELLO-2',
+            'order_id' => 'ORDER-TWILIO-2',
         ])
         ->assertOk();
 

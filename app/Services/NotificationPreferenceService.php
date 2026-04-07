@@ -29,4 +29,16 @@ class NotificationPreferenceService
 
         return in_array($event, is_array($events) ? $events : [], true);
     }
+
+    public function twilioEnabled(): bool
+    {
+        return (bool) Setting::getValue('notifications_twilio_enabled', false);
+    }
+
+    public function supportsTwilioEvent(string $event): bool
+    {
+        $events = Setting::getValue('notifications_twilio_events', ['order_placed', 'payment_released']);
+
+        return in_array($event, is_array($events) ? $events : [], true);
+    }
 }

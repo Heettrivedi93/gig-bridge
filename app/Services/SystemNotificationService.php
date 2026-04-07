@@ -12,11 +12,12 @@ class SystemNotificationService
     public function __construct(
         private readonly NotificationPreferenceService $preferences,
         private readonly TrelloNotificationService $trello,
+        private readonly TwilioNotificationService $twilio,
     ) {}
 
     public function orderPlaced(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name', 'seller:id,name,email', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,email,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -28,6 +29,7 @@ class SystemNotificationService
                 $order->gig?->title ?? 'your gig',
             ),
             'orders',
+            'order_placed',
             'order_placed',
             '/seller/orders',
         );
@@ -47,7 +49,7 @@ class SystemNotificationService
 
     public function orderDelivered(Order $order): void
     {
-        $order->loadMissing(['seller:id,name', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->buyer],
@@ -60,6 +62,7 @@ class SystemNotificationService
             ),
             'orders',
             null,
+            'order_delivered',
             '/buyer/orders',
         );
 
@@ -77,7 +80,7 @@ class SystemNotificationService
 
     public function revisionRequested(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -89,13 +92,14 @@ class SystemNotificationService
             ),
             'orders',
             null,
+            null,
             '/seller/orders',
         );
     }
 
     public function orderCompleted(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -106,6 +110,7 @@ class SystemNotificationService
                 $order->id,
             ),
             'orders',
+            'order_completed',
             'order_completed',
             '/seller/orders',
         );
@@ -124,7 +129,7 @@ class SystemNotificationService
 
     public function orderCancelledByBuyer(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name']);
+        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -135,6 +140,7 @@ class SystemNotificationService
                 $order->id,
             ),
             'orders',
+            'order_cancelled',
             'order_cancelled',
             '/seller/orders',
         );
@@ -153,7 +159,7 @@ class SystemNotificationService
 
     public function orderCancelledBySeller(Order $order): void
     {
-        $order->loadMissing(['seller:id,name']);
+        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone']);
 
         $this->notifyUsers(
             [$order->buyer],
@@ -164,6 +170,7 @@ class SystemNotificationService
                 $order->id,
             ),
             'orders',
+            'order_cancelled',
             'order_cancelled',
             '/buyer/orders',
         );
@@ -182,7 +189,7 @@ class SystemNotificationService
 
     public function paymentReleased(Order $order): void
     {
-        $order->loadMissing(['gig:id,title']);
+        $order->loadMissing(['seller:id,name,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -194,6 +201,7 @@ class SystemNotificationService
             ),
             'payment_released',
             'payments',
+            'payment_released',
             '/seller/wallet',
         );
     }
@@ -205,6 +213,7 @@ class SystemNotificationService
             'Welcome to GigBridge',
             'Your account has been created successfully. You can now sign in and start using the platform.',
             null,
+            'registration',
             'registration',
             '/dashboard',
         );
@@ -230,11 +239,13 @@ class SystemNotificationService
         string $message,
         ?string $inAppEvent = null,
         ?string $emailEvent = null,
+        ?string $twilioEvent = null,
         ?string $actionUrl = null,
     ): void {
         if (
             ! ($inAppEvent && $this->preferences->inAppEnabled() && $this->preferences->supportsInAppEvent($inAppEvent))
             && ! ($emailEvent && $this->preferences->emailEnabled() && $this->preferences->supportsEmailEvent($emailEvent))
+            && ! ($twilioEvent && $this->preferences->twilioEnabled() && $this->preferences->supportsTwilioEvent($twilioEvent))
         ) {
             return;
         }
@@ -242,13 +253,24 @@ class SystemNotificationService
         Collection::make($users)
             ->filter(fn ($user) => $user instanceof User)
             ->unique('id')
-            ->each(fn (User $user) => $user->notify(new SystemUserNotification(
-                $title,
-                $message,
-                $inAppEvent,
-                $emailEvent,
-                $actionUrl,
-            )));
+            ->each(function (User $user) use ($title, $message, $inAppEvent, $emailEvent, $twilioEvent, $actionUrl) {
+                if (
+                    ($inAppEvent && $this->preferences->inAppEnabled() && $this->preferences->supportsInAppEvent($inAppEvent))
+                    || ($emailEvent && $this->preferences->emailEnabled() && $this->preferences->supportsEmailEvent($emailEvent))
+                ) {
+                    $user->notify(new SystemUserNotification(
+                        $title,
+                        $message,
+                        $inAppEvent,
+                        $emailEvent,
+                        $actionUrl,
+                    ));
+                }
+
+                if ($twilioEvent && $this->preferences->twilioEnabled() && $this->preferences->supportsTwilioEvent($twilioEvent)) {
+                    $this->twilio->send($user, $twilioEvent, $title, $message);
+                }
+            });
     }
 
     private function notifyTrello(string $event, string $title, string $description): void

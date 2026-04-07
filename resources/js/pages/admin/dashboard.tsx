@@ -5,7 +5,6 @@ import {
     Coins,
     FolderTree,
     Package,
-    UserCheck,
     Users,
 } from 'lucide-react';
 import Heading from '@/components/heading';

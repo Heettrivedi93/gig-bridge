@@ -48,6 +48,14 @@ class AdminSettingController extends Controller
                     ['key' => 'withdrawal_requests', 'label' => 'Withdrawal requests'],
                     ['key' => 'new_user_registrations', 'label' => 'New user registrations'],
                 ],
+                'twilio' => [
+                    ['key' => 'registration', 'label' => 'Registration'],
+                    ['key' => 'order_placed', 'label' => 'Order placed'],
+                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
+                    ['key' => 'order_completed', 'label' => 'Order completed'],
+                    ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
+                    ['key' => 'payment_released', 'label' => 'Payment released'],
+                ],
             ],
         ]);
     }
@@ -94,15 +102,23 @@ class AdminSettingController extends Controller
             'trello_board_id' => ['nullable', 'string', 'max:255'],
             'trello_list_id' => ['nullable', 'string', 'max:255'],
 
+            'twilio_enabled' => ['required', 'boolean'],
+            'twilio_account_sid' => ['nullable', 'string', 'max:255'],
+            'twilio_auth_token' => ['nullable', 'string', 'max:2000'],
+            'twilio_from_number' => ['nullable', 'string', 'max:50'],
+
             'notifications_email_enabled' => ['required', 'boolean'],
             'notifications_in_app_enabled' => ['required', 'boolean'],
             'notifications_trello_enabled' => ['required', 'boolean'],
+            'notifications_twilio_enabled' => ['required', 'boolean'],
             'notifications_email_events' => ['array'],
             'notifications_email_events.*' => ['string'],
             'notifications_in_app_events' => ['array'],
             'notifications_in_app_events.*' => ['string'],
             'notifications_trello_events' => ['array'],
             'notifications_trello_events.*' => ['string'],
+            'notifications_twilio_events' => ['array'],
+            'notifications_twilio_events.*' => ['string'],
             'setting_meta' => ['nullable', 'array'],
         ]);
 
@@ -146,12 +162,19 @@ class AdminSettingController extends Controller
             'trello_board_id' => $data['trello_board_id'] ?: '',
             'trello_list_id' => $data['trello_list_id'] ?: '',
 
+            'twilio_enabled' => (bool) $data['twilio_enabled'],
+            'twilio_account_sid' => $data['twilio_account_sid'] ?: '',
+            'twilio_auth_token' => $data['twilio_auth_token'] ?: '',
+            'twilio_from_number' => $data['twilio_from_number'] ?: '',
+
             'notifications_email_enabled' => (bool) $data['notifications_email_enabled'],
             'notifications_in_app_enabled' => (bool) $data['notifications_in_app_enabled'],
             'notifications_trello_enabled' => (bool) $data['notifications_trello_enabled'],
+            'notifications_twilio_enabled' => (bool) $data['notifications_twilio_enabled'],
             'notifications_email_events' => array_values($data['notifications_email_events'] ?? []),
             'notifications_in_app_events' => array_values($data['notifications_in_app_events'] ?? []),
             'notifications_trello_events' => array_values($data['notifications_trello_events'] ?? []),
+            'notifications_twilio_events' => array_values($data['notifications_twilio_events'] ?? []),
             'setting_meta' => $data['setting_meta'] ?? [],
         ]);
 
@@ -202,12 +225,19 @@ class AdminSettingController extends Controller
             'trello_board_id' => '',
             'trello_list_id' => '',
 
+            'twilio_enabled' => false,
+            'twilio_account_sid' => '',
+            'twilio_auth_token' => '',
+            'twilio_from_number' => '',
+
             'notifications_email_enabled' => true,
             'notifications_in_app_enabled' => true,
             'notifications_trello_enabled' => false,
+            'notifications_twilio_enabled' => false,
             'notifications_email_events' => $this->defaultEmailEvents(),
             'notifications_in_app_events' => $this->defaultInAppEvents(),
             'notifications_trello_events' => $this->defaultTrelloEvents(),
+            'notifications_twilio_events' => $this->defaultTwilioEvents(),
             'setting_meta' => [],
         ];
     }
@@ -242,6 +272,17 @@ class AdminSettingController extends Controller
             'new_messages',
             'withdrawal_requests',
             'new_user_registrations',
+        ];
+    }
+
+    private function defaultTwilioEvents(): array
+    {
+        return [
+            'order_placed',
+            'order_delivered',
+            'order_completed',
+            'order_cancelled',
+            'payment_released',
         ];
     }
 }
