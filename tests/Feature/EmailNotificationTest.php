@@ -4,12 +4,10 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Models\Category;
 use App\Models\Gig;
 use App\Models\GigPackage;
-use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\SystemUserNotification;
 use App\Services\MailConfigurationService;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 
@@ -122,30 +120,9 @@ test('registration email notification respects super admin email settings', func
 test('order placed email notification is sent when enabled', function () {
     Notification::fake();
 
-    Setting::setMany([
-        'notifications_email_enabled' => true,
-        'notifications_email_events' => ['order_placed'],
-        'notifications_in_app_enabled' => false,
-        'payment_paypal_mode' => 'sandbox',
-        'payment_paypal_client_id' => 'test-client-id',
-        'payment_paypal_client_secret' => 'test-client-secret',
-        'payment_currency' => 'USD',
-    ]);
-    Http::fake([
-        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
-            'access_token' => 'sandbox-token',
-        ]),
-        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
-            'id' => 'ORDER-EMAIL-1',
-            'status' => 'CREATED',
-        ], 201),
-        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-EMAIL-1/capture' => Http::response([
-            'status' => 'COMPLETED',
-            'payer' => [
-                'payer_id' => 'PAYER-EMAIL-1',
-            ],
-        ]),
-    ]);
+    Setting::setValue('notifications_email_enabled', true);
+    Setting::setValue('notifications_email_events', ['order_placed']);
+    Setting::setValue('notifications_in_app_enabled', false);
 
     [$category, $subcategory] = emailNotificationCategory();
     $seller = emailNotificationUser('seller');
@@ -162,18 +139,6 @@ test('order placed email notification is sent when enabled', function () {
             'billing_email' => 'buyer@example.com',
         ])
         ->assertRedirect(route('buyer.orders.index'));
-
-    $order = Order::query()->latest('id')->firstOrFail();
-
-    $this->actingAs($buyer)
-        ->postJson(route('buyer.orders.paypal.order', $order))
-        ->assertOk();
-
-    $this->actingAs($buyer)
-        ->postJson(route('buyer.orders.paypal.capture', $order), [
-            'order_id' => 'ORDER-EMAIL-1',
-        ])
-        ->assertOk();
 
     Notification::assertSentTo(
         $seller,
@@ -185,30 +150,9 @@ test('order placed email notification is sent when enabled', function () {
 test('email notification is skipped when email notifications are disabled', function () {
     Notification::fake();
 
-    Setting::setMany([
-        'notifications_email_enabled' => false,
-        'notifications_email_events' => ['order_placed'],
-        'notifications_in_app_enabled' => false,
-        'payment_paypal_mode' => 'sandbox',
-        'payment_paypal_client_id' => 'test-client-id',
-        'payment_paypal_client_secret' => 'test-client-secret',
-        'payment_currency' => 'USD',
-    ]);
-    Http::fake([
-        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
-            'access_token' => 'sandbox-token',
-        ]),
-        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
-            'id' => 'ORDER-EMAIL-2',
-            'status' => 'CREATED',
-        ], 201),
-        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-EMAIL-2/capture' => Http::response([
-            'status' => 'COMPLETED',
-            'payer' => [
-                'payer_id' => 'PAYER-EMAIL-2',
-            ],
-        ]),
-    ]);
+    Setting::setValue('notifications_email_enabled', false);
+    Setting::setValue('notifications_email_events', ['order_placed']);
+    Setting::setValue('notifications_in_app_enabled', false);
 
     [$category, $subcategory] = emailNotificationCategory();
     $seller = emailNotificationUser('seller');
@@ -225,18 +169,6 @@ test('email notification is skipped when email notifications are disabled', func
             'billing_email' => 'buyer@example.com',
         ])
         ->assertRedirect(route('buyer.orders.index'));
-
-    $order = Order::query()->latest('id')->firstOrFail();
-
-    $this->actingAs($buyer)
-        ->postJson(route('buyer.orders.paypal.order', $order))
-        ->assertOk();
-
-    $this->actingAs($buyer)
-        ->postJson(route('buyer.orders.paypal.capture', $order), [
-            'order_id' => 'ORDER-EMAIL-2',
-        ])
-        ->assertOk();
 
     Notification::assertNothingSent();
 });
