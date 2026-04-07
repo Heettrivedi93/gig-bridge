@@ -1,0 +1,95 @@
+1. Install the basics
+Make sure your laptop has:
+
+git
+php
+composer
+node.js and npm
+mysql or another DB you use locally
+For this Laravel + React app, PHP, Composer, Node, and a database are required.
+
+2. Clone the project
+
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO
+If you use SSH:
+
+git clone git@github.com:YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO
+3. Install backend dependencies
+
+composer install
+4. Install frontend dependencies
+
+npm install
+5. Create your environment file
+
+cp .env.example .env
+Then open .env and update:
+
+APP_NAME
+APP_URL
+DB_DATABASE
+DB_USERNAME
+DB_PASSWORD
+mail/payment credentials if needed
+6. Generate app key
+
+php artisan key:generate
+7. Create your local database
+In MySQL, create the database name you put in .env, for example:
+
+CREATE DATABASE projectai;
+8. Run migrations
+
+php artisan migrate
+If you also need seed/demo data:
+
+php artisan db:seed
+Or:
+
+php artisan migrate --seed
+9. Create storage symlink
+
+php artisan storage:link
+10. Start the app
+Backend:
+
+php artisan serve
+Frontend in another terminal:
+
+npm run dev
+Then open:
+
+http://127.0.0.1:8000
+11. If login roles/data are missing
+If your app depends on seeded roles like buyer, seller, super admin, make sure seeders were run. Otherwise some menus/features may not appear.
+
+12. If you want the exact same data from your current laptop/server
+You also need:
+
+database export/import
+uploaded files from storage/app/public
+Typical move:
+
+export DB from current machine
+import into home laptop
+copy storage files
+run php artisan storage:link
+Quick setup summary
+
+git clone <repo-url>
+cd <repo>
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan storage:link
+php artisan serve
+npm run dev
+If you want, I can give you a more exact setup guide for your home laptop based on:
+
+Ubuntu / Windows / Mac
+XAMPP / Laragon / native PHP
+MySQL / MariaDB / SQLite
