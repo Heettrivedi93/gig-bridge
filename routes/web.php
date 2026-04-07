@@ -6,14 +6,16 @@ use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminUserController;
-use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\Admin\AdminWalletLedgerController;
+use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BuyerCatalogController;
 use App\Http\Controllers\BuyerOrderController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SellerGigController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerPlanController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -23,41 +25,66 @@ Route::inertia('/', 'welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
     Route::prefix('seller')->name('seller.')->group(function () {
-        Route::get('gigs', [SellerGigController::class, 'index'])->name('gigs.index');
-        Route::post('gigs', [SellerGigController::class, 'store'])->name('gigs.store');
-        Route::put('gigs/{gig}', [SellerGigController::class, 'update'])->name('gigs.update');
-        Route::delete('gigs/{gig}', [SellerGigController::class, 'destroy'])->name('gigs.destroy');
-        Route::get('orders', [SellerOrderController::class, 'index'])->name('orders.index');
-        Route::post('orders/{order}/deliver', [SellerOrderController::class, 'deliver'])->name('orders.deliver');
-        Route::post('orders/{order}/cancel', [SellerOrderController::class, 'cancel'])->name('orders.cancel');
+        Route::middleware('can:seller.gigs.access')->group(function () {
+            Route::get('gigs', [SellerGigController::class, 'index'])->name('gigs.index');
+            Route::post('gigs', [SellerGigController::class, 'store'])->name('gigs.store');
+            Route::put('gigs/{gig}', [SellerGigController::class, 'update'])->name('gigs.update');
+            Route::delete('gigs/{gig}', [SellerGigController::class, 'destroy'])->name('gigs.destroy');
+        });
 
-        Route::get('plans', [SellerPlanController::class, 'index'])->name('plans.index');
-        Route::get('wallet', [SellerPlanController::class, 'wallet'])->name('wallet.index');
-        Route::get('payments', [SellerPlanController::class, 'history'])->name('payments.index');
-        Route::post('withdrawals', [SellerPlanController::class, 'requestWithdrawal'])->name('withdrawals.store');
-        Route::post('plans/{plan}/activate-free', [SellerPlanController::class, 'activateFree'])->name('plans.activate-free');
-        Route::post('plans/{plan}/paypal/order', [SellerPlanController::class, 'createPaypalOrder'])->name('plans.paypal.order');
-        Route::post('plans/{plan}/paypal/capture', [SellerPlanController::class, 'capturePaypalOrder'])->name('plans.paypal.capture');
+        Route::middleware('can:seller.orders.access')->group(function () {
+            Route::get('orders', [SellerOrderController::class, 'index'])->name('orders.index');
+            Route::post('orders/{order}/deliver', [SellerOrderController::class, 'deliver'])->name('orders.deliver');
+            Route::post('orders/{order}/cancel', [SellerOrderController::class, 'cancel'])->name('orders.cancel');
+        });
+
+        Route::middleware('can:seller.plans.access')->group(function () {
+            Route::get('plans', [SellerPlanController::class, 'index'])->name('plans.index');
+            Route::post('plans/activate-next', [SellerPlanController::class, 'activateNext'])->name('plans.activate-next');
+            Route::post('plans/{plan}/activate-free', [SellerPlanController::class, 'activateFree'])->name('plans.activate-free');
+            Route::post('plans/{plan}/paypal/order', [SellerPlanController::class, 'createPaypalOrder'])->name('plans.paypal.order');
+            Route::post('plans/{plan}/paypal/capture', [SellerPlanController::class, 'capturePaypalOrder'])->name('plans.paypal.capture');
+        });
+
+        Route::middleware('can:seller.wallet.access')->group(function () {
+            Route::get('wallet', [SellerPlanController::class, 'wallet'])->name('wallet.index');
+            Route::post('withdrawals', [SellerPlanController::class, 'requestWithdrawal'])->name('withdrawals.store');
+        });
+
+        Route::middleware('can:seller.payments.access')->group(function () {
+            Route::get('payments', [SellerPlanController::class, 'history'])->name('payments.index');
+        });
     });
 
     Route::prefix('buyer')->name('buyer.')->group(function () {
-        Route::get('gigs', [BuyerCatalogController::class, 'index'])->name('gigs.index');
-        Route::get('gigs/{gig}', [BuyerCatalogController::class, 'show'])->name('gigs.show');
-        Route::get('orders', [BuyerOrderController::class, 'index'])->name('orders.index');
-        Route::get('payments', [BuyerOrderController::class, 'payments'])->name('payments.index');
-        Route::post('gigs/{gig}/orders', [BuyerOrderController::class, 'store'])->name('orders.store');
-        Route::post('orders/{order}/revision', [BuyerOrderController::class, 'requestRevision'])->name('orders.revision');
-        Route::post('orders/{order}/complete', [BuyerOrderController::class, 'complete'])->name('orders.complete');
-        Route::post('orders/{order}/cancel', [BuyerOrderController::class, 'cancel'])->name('orders.cancel');
-        Route::post('orders/{order}/paypal/order', [BuyerOrderController::class, 'createPaypalOrder'])->name('orders.paypal.order');
-        Route::post('orders/{order}/paypal/capture', [BuyerOrderController::class, 'capturePaypalOrder'])->name('orders.paypal.capture');
+        Route::middleware('can:buyer.gigs.access')->group(function () {
+            Route::get('gigs', [BuyerCatalogController::class, 'index'])->name('gigs.index');
+            Route::get('gigs/{gig}', [BuyerCatalogController::class, 'show'])->name('gigs.show');
+        });
+
+        Route::middleware('can:buyer.orders.access')->group(function () {
+            Route::get('orders', [BuyerOrderController::class, 'index'])->name('orders.index');
+            Route::post('gigs/{gig}/orders', [BuyerOrderController::class, 'store'])->name('orders.store');
+            Route::post('orders/{order}/revision', [BuyerOrderController::class, 'requestRevision'])->name('orders.revision');
+            Route::post('orders/{order}/complete', [BuyerOrderController::class, 'complete'])->name('orders.complete');
+            Route::post('orders/{order}/cancel', [BuyerOrderController::class, 'cancel'])->name('orders.cancel');
+            Route::post('orders/{order}/paypal/order', [BuyerOrderController::class, 'createPaypalOrder'])->name('orders.paypal.order');
+            Route::post('orders/{order}/paypal/capture', [BuyerOrderController::class, 'capturePaypalOrder'])->name('orders.paypal.capture');
+        });
+
+        Route::middleware('can:buyer.payments.access')->group(function () {
+            Route::get('payments', [BuyerOrderController::class, 'payments'])->name('payments.index');
+        });
     });
 });
 
 // Admin routes
-Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\EnsureSuperAdmin::class])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureSuperAdmin::class])->group(function () {
     Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Categories

@@ -7,12 +7,18 @@ use App\Concerns\ProfileValidationRules;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\SystemNotificationService;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+use Spatie\Permission\Models\Role;
 
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
+
+    public function __construct(
+        private readonly SystemNotificationService $notifications,
+    ) {}
 
     /**
      * Validate and create a newly registered user.
@@ -24,17 +30,20 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
-            'role'     => ['required', 'in:buyer,seller'],
+            'role' => ['required', 'in:buyer,seller'],
         ])->validate();
 
         $user = User::create([
-            'name'     => $input['name'],
-            'email'    => $input['email'],
+            'name' => $input['name'],
+            'email' => $input['email'],
             'password' => $input['password'],
-            'status'   => 'active',
+            'status' => 'active',
         ]);
 
-        $user->assignRole($input['role']);
+        $user->assignRole(Role::firstOrCreate([
+            'name' => $input['role'],
+            'guard_name' => 'web',
+        ]));
 
         if ($input['role'] === 'seller') {
             $defaultPlan = Plan::query()
@@ -53,6 +62,8 @@ class CreateNewUser implements CreatesNewUsers
                 ]);
             }
         }
+
+        $this->notifications->registration($user);
 
         return $user;
     }

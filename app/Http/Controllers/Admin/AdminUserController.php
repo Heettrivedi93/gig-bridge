@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\PortalPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use Spatie\Permission\Models\Permission;
 
 class AdminUserController extends Controller
 {
@@ -17,7 +17,7 @@ class AdminUserController extends Controller
             ->whereDoesntHave('roles', fn ($query) => $query->where('name', 'super_admin'))
             ->with(['roles:id,name', 'permissions:id,name'])
             ->orderByDesc('id')
-            ->get(['id', 'name', 'email', 'status', 'created_at'])
+            ->get(['id', 'name', 'email', 'status', 'permissions_managed_at', 'created_at'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -25,12 +25,13 @@ class AdminUserController extends Controller
                 'status' => $user->status,
                 'created_at' => $user->created_at,
                 'roles' => $user->getRoleNames()->values(),
-                'permissions' => $user->getDirectPermissions()->pluck('name')->values(),
+                'permissions' => $user->effectivePortalPermissions(),
+                'permissions_managed_at' => $user->permissions_managed_at?->toIso8601String(),
             ]);
 
         return Inertia::render('admin/users/index', [
             'users' => $users,
-            'permissions' => Permission::query()->orderBy('name')->pluck('name')->values(),
+            'permissionsByRole' => PortalPermissions::grouped(),
         ]);
     }
 
@@ -42,12 +43,14 @@ class AdminUserController extends Controller
             ]);
         }
 
+        $assignablePermissions = PortalPermissions::forRole($user->primaryRoleName());
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'status' => ['required', 'in:active,banned'],
             'permissions' => ['array'],
-            'permissions.*' => [Rule::exists('permissions', 'name')],
+            'permissions.*' => [Rule::in($assignablePermissions)],
         ]);
 
         $user->update([
@@ -57,6 +60,9 @@ class AdminUserController extends Controller
         ]);
 
         $user->syncPermissions($data['permissions'] ?? []);
+        $user->forceFill([
+            'permissions_managed_at' => now(),
+        ])->save();
 
         return back()->with('success', 'User updated successfully.');
     }

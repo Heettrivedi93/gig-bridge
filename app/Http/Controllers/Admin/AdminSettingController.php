@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\PaypalCheckoutService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Services\PaypalCheckoutService;
 
 class AdminSettingController extends Controller
 {
@@ -154,7 +155,9 @@ class AdminSettingController extends Controller
             'setting_meta' => $data['setting_meta'] ?? [],
         ]);
 
-        return back()->with('success', 'Settings updated successfully.');
+        return back()
+            ->with('success', 'Settings updated successfully.')
+            ->with('flash_nonce', Str::uuid()->toString());
     }
 
     private function defaults(): array

@@ -7,8 +7,8 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Models\WithdrawalRequest;
-use App\Services\WalletService;
 use App\Services\PaypalCheckoutService;
+use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,14 +23,20 @@ class SellerPlanController extends Controller
     public function __construct(
         private readonly PaypalCheckoutService $paypal,
         private readonly WalletService $wallets,
-    )
-    {
-    }
+    ) {}
 
     public function index(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
-        $activeSubscription = $seller->activeSubscription();
+        $activeSubscription = $seller->activeSubscription() ?? $this->ensureFallbackSubscription($seller);
+        $upcomingSubscription = $seller->upcomingSubscription();
+        $activeGigCount = $seller->gigs()->where('status', 'active')->count();
+        $canActivateNextNow = $activeSubscription
+            && $upcomingSubscription
+            && $upcomingSubscription->plan
+            && $activeSubscription->plan
+            && $activeGigCount >= $activeSubscription->plan->gig_limit
+            && $upcomingSubscription->plan->gig_limit > $activeSubscription->plan->gig_limit;
 
         return Inertia::render('seller/plans/index', [
             'plans' => Plan::query()
@@ -47,20 +53,75 @@ class SellerPlanController extends Controller
                     'features' => $plan->features ?? [],
                     'status' => $plan->status,
                     'is_current' => $activeSubscription?->plan_id === $plan->id,
+                    'is_upcoming' => $upcomingSubscription?->plan_id === $plan->id,
                 ]),
             'currentSubscription' => $activeSubscription ? [
+                'id' => $activeSubscription->id,
                 'plan_name' => $activeSubscription->plan?->name,
                 'starts_at' => $activeSubscription->starts_at?->toIso8601String(),
                 'ends_at' => $activeSubscription->ends_at?->toIso8601String(),
                 'status' => $activeSubscription->status,
+                'gig_limit' => $activeSubscription->plan?->gig_limit ?? 0,
             ] : null,
+            'nextSubscription' => $upcomingSubscription ? [
+                'id' => $upcomingSubscription->id,
+                'plan_name' => $upcomingSubscription->plan?->name,
+                'starts_at' => $upcomingSubscription->starts_at?->toIso8601String(),
+                'ends_at' => $upcomingSubscription->ends_at?->toIso8601String(),
+                'status' => $upcomingSubscription->status,
+                'gig_limit' => $upcomingSubscription->plan?->gig_limit ?? 0,
+            ] : null,
+            'planActivation' => [
+                'active_gig_count' => $activeGigCount,
+                'can_activate_next_now' => $canActivateNextNow,
+            ],
             'paypal' => $this->paypal->publicConfig(),
         ]);
+    }
+
+    public function activateNext(Request $request): RedirectResponse
+    {
+        $seller = $this->ensureSeller($request);
+        $current = $seller->activeSubscription();
+        $upcoming = $seller->upcomingSubscription();
+        $activeGigCount = $seller->gigs()->where('status', 'active')->count();
+
+        if (! $current || ! $upcoming || ! $current->plan || ! $upcoming->plan) {
+            throw ValidationException::withMessages([
+                'plan' => 'There is no queued plan available to activate.',
+            ]);
+        }
+
+        $canActivateNow = $activeGigCount >= $current->plan->gig_limit
+            && $upcoming->plan->gig_limit > $current->plan->gig_limit;
+
+        if (! $canActivateNow) {
+            throw ValidationException::withMessages([
+                'plan' => 'Queued plans can only be activated early after the current gig limit is reached and the next plan increases capacity.',
+            ]);
+        }
+
+        DB::transaction(function () use ($current, $upcoming) {
+            $now = now();
+
+            $current->update([
+                'status' => 'replaced',
+                'ends_at' => $now,
+            ]);
+
+            $upcoming->update([
+                'starts_at' => $now,
+                'ends_at' => $now->copy()->addDays($upcoming->plan->duration_days),
+            ]);
+        });
+
+        return back()->with('success', sprintf('%s activated successfully.', $upcoming->plan->name));
     }
 
     public function history(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
+
         return Inertia::render('seller/payments/index', [
             'payments' => $this->mapPayments($seller),
             'seller' => [
@@ -152,7 +213,11 @@ class SellerPlanController extends Controller
             ]);
         }
 
-        $this->activatePlan($seller, $plan, null);
+        if ($seller->activeSubscription() || $seller->upcomingSubscription()) {
+            return back()->with('error', 'The free plan activates automatically after your current plan expires.');
+        }
+
+        $this->ensureFallbackSubscription($seller, $plan);
 
         return back()->with('success', sprintf('%s plan activated successfully.', $plan->name));
     }
@@ -286,15 +351,30 @@ class SellerPlanController extends Controller
     {
         $current = $seller->activeSubscription();
         $now = now();
-        $startsAt = $current && $current->ends_at && $current->ends_at->isFuture()
-            ? $current->ends_at->copy()
-            : $now->copy();
+        $shouldActivateImmediately = $current
+            && $current->plan
+            && (float) $current->plan->price <= 0
+            && (float) $plan->price > 0;
+
+        $startsAt = $shouldActivateImmediately
+            ? $now->copy()
+            : ($current && $current->ends_at && $current->ends_at->isFuture()
+                ? $current->ends_at->copy()
+                : $now->copy());
         $endsAt = $startsAt->copy()->addDays($plan->duration_days);
 
-        if ($current) {
+        Subscription::query()
+            ->where('user_id', $seller->id)
+            ->where('status', 'active')
+            ->where('starts_at', '>', $now)
+            ->update([
+                'status' => 'replaced',
+            ]);
+
+        if ($shouldActivateImmediately) {
             $current->update([
                 'status' => 'replaced',
-                'ends_at' => $startsAt,
+                'ends_at' => $now,
             ]);
         }
 
@@ -367,5 +447,26 @@ class SellerPlanController extends Controller
                 'created_at' => $withdrawal->created_at?->toIso8601String(),
                 'reviewed_at' => $withdrawal->reviewed_at?->toIso8601String(),
             ]);
+    }
+
+    private function ensureFallbackSubscription(User $seller, ?Plan $fallbackPlan = null): ?Subscription
+    {
+        $plan = $fallbackPlan ?? Plan::query()
+            ->where('status', 'active')
+            ->orderBy('price')
+            ->orderBy('id')
+            ->first();
+
+        if (! $plan) {
+            return null;
+        }
+
+        return Subscription::create([
+            'user_id' => $seller->id,
+            'plan_id' => $plan->id,
+            'starts_at' => now(),
+            'ends_at' => now()->addDays($plan->duration_days),
+            'status' => 'active',
+        ])->load('plan');
     }
 }

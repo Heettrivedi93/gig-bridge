@@ -190,6 +190,54 @@ test('seller cannot activate more gigs than the active subscription allows', fun
     expect(Gig::query()->count())->toBe(1);
 });
 
+test('seller keeps current gig limit until a future downgrade subscription starts', function () {
+    Storage::fake('public');
+
+    $seller = makeSeller();
+    [$parent, $child] = makeCategoryTree();
+    $proPlan = Plan::create([
+        'name' => 'Pro plan',
+        'price' => 49.99,
+        'duration_days' => 30,
+        'gig_limit' => 50,
+        'features' => [],
+        'status' => 'active',
+    ]);
+    $standardPlan = Plan::create([
+        'name' => 'Standard plan',
+        'price' => 19.99,
+        'duration_days' => 30,
+        'gig_limit' => 10,
+        'features' => [],
+        'status' => 'active',
+    ]);
+
+    Subscription::create([
+        'user_id' => $seller->id,
+        'plan_id' => $proPlan->id,
+        'starts_at' => now(),
+        'ends_at' => now()->addDays(30),
+        'status' => 'active',
+    ]);
+
+    Subscription::create([
+        'user_id' => $seller->id,
+        'plan_id' => $standardPlan->id,
+        'starts_at' => now()->addDays(30),
+        'ends_at' => now()->addDays(60),
+        'status' => 'active',
+    ]);
+
+    $this->actingAs($seller)
+        ->post(route('seller.gigs.store'), gigPayload($parent, $child, [
+            'title' => 'Gig under current higher plan',
+        ]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect(Gig::query()->count())->toBe(1);
+});
+
 test('buyer cannot access seller gig management', function () {
     $buyer = makeBuyer();
 

@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils';
 
 type FlashLevel = 'success' | 'error' | 'warning' | 'info';
 
-type FlashPayload = Partial<Record<FlashLevel, string | null | undefined>>;
+type FlashPayload = Partial<Record<FlashLevel, string | null | undefined>> & {
+    nonce?: string | null;
+};
 
 type ToastItem = {
     id: string;
@@ -84,7 +86,14 @@ export default function FlashToaster() {
         const key = `${level}:${message}`;
 
         if (activeKeys.current.has(key)) {
-            return;
+            const existingToast = toasts.find((toast) => `${toast.level}:${toast.message}` === key);
+
+            if (existingToast) {
+                clearToastTimers(existingToast.id);
+                setToasts((current) => current.filter((toast) => toast.id !== existingToast.id));
+            }
+
+            activeKeys.current.delete(key);
         }
 
         activeKeys.current.add(key);
@@ -103,7 +112,7 @@ export default function FlashToaster() {
                 enqueueToast(level, message);
             }
         }
-    }, [flash]);
+    }, [flash?.nonce, flash?.success, flash?.error, flash?.warning, flash?.info]);
 
     useEffect(() => {
         const messages = Array.from(

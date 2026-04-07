@@ -3,12 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\PortalPermissions;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -30,7 +31,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles;
+    use HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.
@@ -42,8 +43,31 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permissions_managed_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function primaryRoleName(): ?string
+    {
+        return $this->getRoleNames()->first();
+    }
+
+    public function usesDefaultPortalPermissions(): bool
+    {
+        return $this->permissions_managed_at === null;
+    }
+
+    public function effectivePortalPermissions(): array
+    {
+        if ($this->usesDefaultPortalPermissions()) {
+            return PortalPermissions::forRoles($this->getRoleNames()->all());
+        }
+
+        return $this->getDirectPermissions()
+            ->pluck('name')
+            ->values()
+            ->all();
     }
 
     public function gigs(): HasMany
@@ -76,9 +100,23 @@ class User extends Authenticatable
         return $this->subscriptions()
             ->where('status', 'active')
             ->where(function ($query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query) {
                 $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
             })
             ->latest('ends_at')
+            ->latest('id')
+            ->with('plan')
+            ->first();
+    }
+
+    public function upcomingSubscription(): ?Subscription
+    {
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->where('starts_at', '>', now())
+            ->latest('starts_at')
             ->latest('id')
             ->with('plan')
             ->first();

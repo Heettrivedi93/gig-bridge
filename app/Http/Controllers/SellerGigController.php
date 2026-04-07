@@ -10,8 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -142,6 +142,9 @@ class SellerGigController extends Controller
             ->where('user_id', $userId)
             ->where('status', 'active')
             ->where(function ($query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query) {
                 $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
             })
             ->with('plan')
@@ -180,9 +183,9 @@ class SellerGigController extends Controller
         if ($activeGigCount >= $subscription->plan->gig_limit) {
             throw ValidationException::withMessages([
                 'status' => sprintf(
-                'Your %s plan allows only %d active gigs. Upgrade your subscription or deactivate an existing gig.',
-                $subscription->plan->name,
-                $subscription->plan->gig_limit,
+                    'Your %s plan allows only %d active gigs. Upgrade your subscription or deactivate an existing gig.',
+                    $subscription->plan->name,
+                    $subscription->plan->gig_limit,
                 ),
             ]);
         }

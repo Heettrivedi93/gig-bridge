@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Services\OrderFundService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,9 +16,10 @@ use Inertia\Response;
 
 class AdminOrderController extends Controller
 {
-    public function __construct(private readonly OrderFundService $funds)
-    {
-    }
+    public function __construct(
+        private readonly OrderFundService $funds,
+        private readonly SystemNotificationService $notifications,
+    ) {}
 
     public function index(): Response
     {
@@ -152,6 +154,7 @@ class AdminOrderController extends Controller
     public function releaseFunds(Request $request, Order $order): RedirectResponse
     {
         $this->funds->releaseToSeller($order, $request->user());
+        $this->notifications->paymentReleased($order->fresh());
 
         return back()->with('success', sprintf('Funds released for order #%d.', $order->id));
     }

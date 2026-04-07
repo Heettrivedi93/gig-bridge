@@ -33,11 +33,12 @@ type UserRow = {
     created_at: string;
     roles: string[];
     permissions: string[];
+    permissions_managed_at?: string | null;
 };
 
 type Props = {
     users: UserRow[];
-    permissions: string[];
+    permissionsByRole: Record<string, string[]>;
 };
 
 type UserUpdateForm = {
@@ -47,7 +48,7 @@ type UserUpdateForm = {
     permissions: string[];
 };
 
-export default function AdminUsersIndex({ users, permissions }: Props) {
+export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
     const [editTarget, setEditTarget] = useState<UserRow | null>(null);
 
     const form = useForm<UserUpdateForm>({
@@ -61,6 +62,8 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
         () => users.map((user) => ({ ...user, primaryRole: user.roles[0] ?? '—' })),
         [users],
     );
+    const assignablePermissions = permissionsByRole[editTarget?.roles?.[0] ?? ''] ?? [];
+    const formatPermission = (permission: string) => permission.split('.').slice(1, -1).join(' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
     const openEdit = (user: UserRow) => {
         setEditTarget(user);
@@ -104,6 +107,7 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
         form.put(`/admin/users/${editTarget.id}`, {
             onSuccess: closeEdit,
             preserveScroll: true,
+            preserveState: false,
         });
     };
 
@@ -170,7 +174,7 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
                             Edit User
                         </DialogTitle>
                         <p className="text-sm text-muted-foreground">
-                            Update account details, status, and direct permissions.
+                            Update account details, status, and feature permissions.
                         </p>
                     </DialogHeader>
 
@@ -208,6 +212,11 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
                                     disabled
                                     className="capitalize"
                                 />
+                                {editTarget?.permissions_managed_at ? (
+                                    <p className="text-xs text-muted-foreground">Custom permissions are active for this user.</p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">This user is still using the default full access for their role.</p>
+                                )}
                             </div>
 
                             <div className="grid gap-2">
@@ -231,18 +240,18 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
                         <div className="grid gap-2">
                             <Label className="flex items-center gap-2">
                                 <ShieldCheck className="size-4" />
-                                Direct Permissions
+                                Feature Permissions
                             </Label>
 
-                            {permissions.length === 0 ? (
+                            {assignablePermissions.length === 0 ? (
                                 <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-3">
                                     <p className="text-xs text-muted-foreground">
-                                        No permissions found yet. Seed or create permissions to assign them.
+                                        No permissions are configured for this role yet.
                                     </p>
                                 </div>
                             ) : (
                                 <div className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-2">
-                                    {permissions.map((permission) => {
+                                    {assignablePermissions.map((permission) => {
                                         const checked = form.data.permissions.includes(permission);
 
                                         return (
@@ -258,7 +267,7 @@ export default function AdminUsersIndex({ users, permissions }: Props) {
                                                     onChange={() => togglePermission(permission)}
                                                     className="size-4 accent-primary"
                                                 />
-                                                <span className="break-all">{permission}</span>
+                                                <span className="break-all">{formatPermission(permission)}</span>
                                             </label>
                                         );
                                     })}

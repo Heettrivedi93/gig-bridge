@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Services\OrderFundService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,9 +14,10 @@ use Inertia\Response;
 
 class SellerOrderController extends Controller
 {
-    public function __construct(private readonly OrderFundService $funds)
-    {
-    }
+    public function __construct(
+        private readonly OrderFundService $funds,
+        private readonly SystemNotificationService $notifications,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -113,6 +115,8 @@ class SellerOrderController extends Controller
             'delivered_at' => now(),
         ]);
 
+        $this->notifications->orderDelivered($order->fresh());
+
         return back()->with('success', 'Order delivered successfully.');
     }
 
@@ -148,6 +152,8 @@ class SellerOrderController extends Controller
         if ($wasPaid) {
             $this->funds->refundEscrow($order->fresh());
         }
+
+        $this->notifications->orderCancelledBySeller($order->fresh());
 
         return back()->with('success', 'Order cancelled successfully.');
     }

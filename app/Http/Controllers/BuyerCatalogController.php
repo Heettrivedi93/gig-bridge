@@ -29,7 +29,7 @@ class BuyerCatalogController extends Controller
             ->where('status', 'active')
             ->whereHas('category', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('subcategory', fn (Builder $query) => $query->where('status', 'active'))
-            ->whereHas('seller', fn (Builder $query) => $query->role('seller'))
+            ->whereHas('seller.roles', fn (Builder $query) => $query->where('name', 'seller'))
             ->with(['seller:id,name', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
             ->withMin('packages', 'price')
             ->withMin('packages', 'delivery_days')

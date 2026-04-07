@@ -22,13 +22,25 @@ type Plan = {
     features: string[];
     status: 'active' | 'inactive';
     is_current: boolean;
+    is_upcoming: boolean;
 };
 
 type CurrentSubscription = {
+    id: number;
     plan_name: string | null;
     starts_at: string | null;
     ends_at: string | null;
     status: string;
+    gig_limit: number;
+} | null;
+
+type NextSubscription = {
+    id: number;
+    plan_name: string | null;
+    starts_at: string | null;
+    ends_at: string | null;
+    status: string;
+    gig_limit: number;
 } | null;
 
 type PaypalConfig = {
@@ -42,6 +54,11 @@ type PaypalConfig = {
 type Props = {
     plans: Plan[];
     currentSubscription: CurrentSubscription;
+    nextSubscription: NextSubscription;
+    planActivation: {
+        active_gig_count: number;
+        can_activate_next_now: boolean;
+    };
     paypal: PaypalConfig;
 };
 
@@ -63,6 +80,18 @@ declare global {
 }
 
 const PAYPAL_SCRIPT_ID = 'paypal-js-sdk';
+
+function formatDisplayDate(value: string | null) {
+    if (!value) {
+        return 'No active subscription';
+    }
+
+    return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).format(new Date(value));
+}
 
 function getCsrfToken() {
     return document
@@ -99,6 +128,8 @@ async function requestJson<T>(url: string, body?: Record<string, unknown>): Prom
 export default function SellerPlansIndex({
     plans,
     currentSubscription,
+    nextSubscription,
+    planActivation,
     paypal,
 }: Props) {
     const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
@@ -114,9 +145,9 @@ export default function SellerPlansIndex({
         [plans],
     );
 
-    const subscriptionEndText = currentSubscription?.ends_at
-        ? new Date(currentSubscription.ends_at).toLocaleDateString()
-        : 'No active subscription';
+    const subscriptionEndText = formatDisplayDate(currentSubscription?.ends_at ?? null);
+    const nextSubscriptionStartsText = formatDisplayDate(nextSubscription?.starts_at ?? null);
+    const nextSubscriptionEndsText = formatDisplayDate(nextSubscription?.ends_at ?? null);
 
     useEffect(() => {
         if (!checkoutPlan || Number(checkoutPlan.price) <= 0 || !paypal.enabled) {
@@ -217,7 +248,7 @@ export default function SellerPlansIndex({
 
                         setCheckoutPlan(null);
                         setCheckoutOrderId(null);
-                        router.reload({ only: ['plans', 'currentSubscription'] });
+                        router.reload({ only: ['plans', 'currentSubscription', 'nextSubscription'] });
                     },
                     onError: (error) => {
                         setCheckoutError(
@@ -250,17 +281,17 @@ export default function SellerPlansIndex({
         setPaypalContainerElement(node);
     }, []);
 
-    const activateFreePlan = (plan: Plan) => {
-        router.post(`/seller/plans/${plan.id}/activate-free`, undefined, {
-            preserveScroll: true,
-        });
-    };
-
     const openCheckout = (plan: Plan) => {
         setCheckoutOrderId(null);
         setCheckoutError(null);
         setIsLoadingButtons(true);
         setCheckoutPlan(plan);
+    };
+
+    const activateNextPlanNow = () => {
+        router.post('/seller/plans/activate-next', undefined, {
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -296,6 +327,36 @@ export default function SellerPlansIndex({
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Sparkles className="size-4" />
+                            Next subscription
+                        </div>
+                        <p className="mt-3 text-2xl font-semibold">
+                            {nextSubscription?.plan_name ?? 'Nothing queued'}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {nextSubscription
+                                ? `Starts on ${nextSubscriptionStartsText} and runs until ${nextSubscriptionEndsText}`
+                                : 'If you buy another plan during an active cycle, it will queue here.'}
+                        </p>
+                        {nextSubscription && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                Current usage: {planActivation.active_gig_count}/{currentSubscription?.gig_limit ?? 0} active gigs
+                            </p>
+                        )}
+                        {planActivation.can_activate_next_now && nextSubscription && (
+                            <div className="mt-4">
+                                <Button size="sm" onClick={activateNextPlanNow}>
+                                    Activate now
+                                </Button>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Available because your current gig limit is fully used and the queued plan increases capacity.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="rounded-2xl border border-border/70 bg-card p-5">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <CreditCard className="size-4" />
                             Payment gateway
                         </div>
                         <p className="mt-3 text-2xl font-semibold">
@@ -303,18 +364,7 @@ export default function SellerPlansIndex({
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {paypal.message ??
-                                'Uses super admin PayPal credentials from payment settings.'}
-                        </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-border/70 bg-card p-5">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <CreditCard className="size-4" />
-                            Checkout currency
-                        </div>
-                        <p className="mt-3 text-2xl font-semibold">{paypal.currency}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Charged through PayPal testing checkout while in sandbox mode.
+                                `Charged in ${paypal.currency} through PayPal testing checkout while in sandbox mode.`}
                         </p>
                     </div>
                 </div>
@@ -345,7 +395,10 @@ export default function SellerPlansIndex({
                                         </p>
                                     </div>
 
-                                    {plan.is_current && <Badge>Current</Badge>}
+                                    <div className="flex gap-2">
+                                        {plan.is_current && <Badge>Current</Badge>}
+                                        {plan.is_upcoming && <Badge variant="outline">Queued</Badge>}
+                                    </div>
                                 </div>
 
                                 <div className="mt-6 space-y-3">
@@ -367,13 +420,17 @@ export default function SellerPlansIndex({
                                         <Button disabled className="w-full">
                                             Current plan
                                         </Button>
+                                    ) : plan.is_upcoming ? (
+                                        <Button disabled variant="outline" className="w-full">
+                                            Queued next plan
+                                        </Button>
                                     ) : isFree ? (
                                         <Button
                                             variant="outline"
                                             className="w-full"
-                                            onClick={() => activateFreePlan(plan)}
+                                            disabled
                                         >
-                                            Activate free plan
+                                            Auto fallback plan
                                         </Button>
                                     ) : (
                                         <Button
@@ -383,6 +440,17 @@ export default function SellerPlansIndex({
                                         >
                                             Buy with PayPal
                                         </Button>
+                                    )}
+
+                                    {isFree && (
+                                        <p className="mt-3 text-xs text-muted-foreground">
+                                            This plan is applied automatically only when no other seller plan is active.
+                                        </p>
+                                    )}
+                                    {!isFree && !plan.is_current && !plan.is_upcoming && currentSubscription && (
+                                        <p className="mt-3 text-xs text-muted-foreground">
+                                            Buying this plan now will queue it for activation after your current plan expires on {subscriptionEndText}.
+                                        </p>
                                     )}
                                 </div>
                             </section>

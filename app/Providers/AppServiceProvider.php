@@ -2,9 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Services\MailConfigurationService;
+use App\Support\PortalPermissions;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        app(MailConfigurationService::class)->apply();
+        $this->configurePermissionDefaults();
     }
 
     /**
@@ -46,5 +52,24 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    protected function configurePermissionDefaults(): void
+    {
+        Gate::before(function (User $user, string $ability) {
+            if ($user->hasRole('super_admin')) {
+                return true;
+            }
+
+            if (! PortalPermissions::isPortalPermission($ability)) {
+                return null;
+            }
+
+            if (! $user->usesDefaultPortalPermissions()) {
+                return null;
+            }
+
+            return in_array($ability, $user->effectivePortalPermissions(), true) ? true : null;
+        });
     }
 }

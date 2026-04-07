@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Gig;
 use App\Models\GigPackage;
 use App\Models\Order;
-use App\Services\PaypalCheckoutService;
-use App\Services\OrderFundService;
 use App\Models\Setting;
+use App\Services\OrderFundService;
+use App\Services\PaypalCheckoutService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,9 +23,8 @@ class BuyerOrderController extends Controller
     public function __construct(
         private readonly PaypalCheckoutService $paypal,
         private readonly OrderFundService $funds,
-    )
-    {
-    }
+        private readonly SystemNotificationService $notifications,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -177,7 +177,7 @@ class BuyerOrderController extends Controller
         $quantity = (int) $data['quantity'];
         $unitPrice = (float) $package->price;
 
-        Order::create([
+        $order = Order::create([
             'buyer_id' => $buyer->id,
             'seller_id' => $gig->user_id,
             'gig_id' => $gig->id,
@@ -185,9 +185,9 @@ class BuyerOrderController extends Controller
             'quantity' => $quantity,
             'requirements' => $data['requirements'],
             'brief_file_path' => $request->file('brief_file')?->store('order-briefs', 'public'),
-            'reference_link' => $data['reference_link'] ?: null,
-            'style_notes' => $data['style_notes'] ?: null,
-            'coupon_code' => $data['coupon_code'] ?: null,
+            'reference_link' => ($data['reference_link'] ?? '') ?: null,
+            'style_notes' => ($data['style_notes'] ?? '') ?: null,
+            'coupon_code' => ($data['coupon_code'] ?? '') ?: null,
             'billing_name' => $data['billing_name'],
             'billing_email' => $data['billing_email'],
             'unit_price' => $unitPrice,
@@ -198,6 +198,8 @@ class BuyerOrderController extends Controller
             'fund_status' => 'none',
             'escrow_held' => false,
         ]);
+
+        $this->notifications->orderPlaced($order);
 
         return redirect()
             ->route('buyer.orders.index')
@@ -363,6 +365,8 @@ class BuyerOrderController extends Controller
             'status' => 'active',
         ]);
 
+        $this->notifications->revisionRequested($order->fresh());
+
         return back()->with('success', 'Revision request submitted successfully.');
     }
 
@@ -391,6 +395,8 @@ class BuyerOrderController extends Controller
                 'fund_status' => 'releasable',
             ]);
         }
+
+        $this->notifications->orderCompleted($freshOrder->fresh());
 
         return back()->with('success', 'Order marked as completed.');
     }
@@ -427,6 +433,8 @@ class BuyerOrderController extends Controller
         if ($wasPaid) {
             $this->funds->refundEscrow($order->fresh());
         }
+
+        $this->notifications->orderCancelledByBuyer($order->fresh());
 
         return back()->with('success', 'Order cancelled successfully.');
     }

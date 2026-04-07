@@ -108,6 +108,18 @@ const emptyGigForm = (): GigFormState => ({
     },
 });
 
+function formatDisplayDate(value: string | null | undefined) {
+    if (!value) {
+        return 'No expiry date';
+    }
+
+    return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).format(new Date(value));
+}
+
 function buildGigFormState(gig?: GigItem | null): GigFormState {
     if (!gig) {
         return emptyGigForm();
@@ -506,11 +518,7 @@ export default function SellerGigsIndex({
     );
 
     const subscriptionEndsText = useMemo(() => {
-        if (!subscription.ends_at) {
-            return 'No expiry date';
-        }
-
-        return new Date(subscription.ends_at).toLocaleDateString();
+        return formatDisplayDate(subscription.ends_at);
     }, [subscription.ends_at]);
 
     const openEdit = (gig: GigItem) => {
