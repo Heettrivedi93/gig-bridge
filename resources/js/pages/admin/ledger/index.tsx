@@ -30,6 +30,7 @@ type LedgerRow = {
 
 type Props = {
     stats: StatCard[];
+    revenueSummary: StatCard[];
     walletSummary: StatCard[];
     transactions: LedgerRow[];
 };
@@ -42,15 +43,15 @@ function formatDate(value: string | null) {
     return new Date(value).toLocaleString();
 }
 
-export default function AdminLedgerIndex({ stats, walletSummary, transactions }: Props) {
+export default function AdminLedgerIndex({ stats, revenueSummary, walletSummary, transactions }: Props) {
     return (
         <>
-            <Head title="Wallet Ledger" />
+            <Head title="Funds Ledger" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="Wallet Ledger"
-                    description="Audit every wallet movement across escrow, seller credits, platform fees, refunds, and withdrawals."
+                    title="Funds Ledger"
+                    description="Audit escrow, seller releases, commissions, refunds, and payout movement across the platform."
                 />
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -58,18 +59,39 @@ export default function AdminLedgerIndex({ stats, walletSummary, transactions }:
                         <div key={item.label} className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
                             <p className="text-sm text-muted-foreground">{item.label}</p>
                             <p className="mt-2 text-2xl font-semibold">
-                                {item.label.includes('System') || item.label.includes('Pending') ? `USD ${item.value}` : item.value}
+                                {item.label === 'Ledger Entries' ? item.value : `USD ${item.value}`}
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
                         </div>
                     ))}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="grid gap-4 xl:grid-cols-3">
                     <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
-                        <h3 className="font-semibold">Wallet Balance Map</h3>
+                        <h3 className="font-semibold">Revenue Channels</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Snapshot of where platform and seller funds are currently sitting.
+                            Track paid plan revenue and commission earned from sellers selling services to buyers.
+                        </p>
+
+                        <div className="mt-4 space-y-3">
+                            {revenueSummary.map((item) => (
+                                <div key={item.label} className="rounded-lg border border-border/70 p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium">{item.label}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                                        </div>
+                                        <span className="text-base font-semibold">USD {item.value}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                        <h3 className="font-semibold">Operational Balances</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Snapshot of held funds, payout queues, and released seller balances.
                         </p>
 
                         <div className="mt-4 space-y-3">
@@ -87,7 +109,7 @@ export default function AdminLedgerIndex({ stats, walletSummary, transactions }:
                         </div>
                     </section>
 
-                    <section className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                    <section className="overflow-hidden rounded-xl border border-sidebar-border/70 xl:col-span-2 dark:border-sidebar-border">
                         <div className="border-b border-border bg-card px-4 py-4">
                             <h3 className="font-semibold">Transaction Stream</h3>
                             <p className="text-sm text-muted-foreground">
@@ -153,6 +175,6 @@ export default function AdminLedgerIndex({ stats, walletSummary, transactions }:
 AdminLedgerIndex.layout = {
     breadcrumbs: [
         { title: 'Dashboard', href: admin.dashboard.url() },
-        { title: 'Wallet Ledger', href: '/admin/ledger' },
+        { title: 'Funds Ledger', href: '/admin/ledger' },
     ] satisfies BreadcrumbItem[],
 };

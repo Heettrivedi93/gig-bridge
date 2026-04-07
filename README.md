@@ -106,7 +106,6 @@ Super admin can enable Trello-based notifications for system events.
 
 - Adjust **order status**, **payment_status**, **escrow_held**, and timestamps (`delivered_at`, `completed_at`, `cancelled_at`).
 - Monitor plateform revenue from sellers and buyers.
-- Monitor related **messages** and files.
 
 --------------------------------------------------------------------------------------------------------------------
 

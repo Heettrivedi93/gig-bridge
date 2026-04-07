@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Plan;
+use App\Models\SubscriptionPayment;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -13,30 +15,37 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
+        $paidOrders = Order::query()->whereIn('payment_status', ['paid', 'released']);
+        $paidPlanPayments = SubscriptionPayment::query()->where('status', 'completed');
+        $commissionRevenue = (float) (clone $paidOrders)->sum('platform_fee_amount');
+        $paidPlanRevenue = (float) (clone $paidPlanPayments)->sum('amount');
+        $totalPlatformRevenue = $commissionRevenue + $paidPlanRevenue;
+        $grossSales = (float) (clone $paidOrders)->sum('gross_amount');
+
         $stats = [
             [
-                'label' => 'Total Users',
-                'value' => User::count(),
-                'delta' => sprintf('+%d this month', User::where('created_at', '>=', now()->startOfMonth())->count()),
-                'key' => 'users',
+                'label' => 'Paid Plan Revenue',
+                'value' => number_format($paidPlanRevenue, 2, '.', ''),
+                'delta' => sprintf('%d completed plan payments', (clone $paidPlanPayments)->count()),
+                'key' => 'paid_plan_revenue',
             ],
             [
-                'label' => 'Active Users',
-                'value' => User::where('status', 'active')->count(),
-                'delta' => sprintf('%d banned', User::where('status', 'banned')->count()),
-                'key' => 'active_users',
+                'label' => 'Commission Revenue',
+                'value' => number_format($commissionRevenue, 2, '.', ''),
+                'delta' => sprintf('From %d paid seller orders', (clone $paidOrders)->count()),
+                'key' => 'commission_revenue',
             ],
             [
-                'label' => 'Categories',
-                'value' => Category::count(),
-                'delta' => sprintf('%d parent categories', Category::whereNull('parent_id')->count()),
-                'key' => 'categories',
+                'label' => 'Total Platform Revenue',
+                'value' => number_format($totalPlatformRevenue, 2, '.', ''),
+                'delta' => sprintf('Gross seller sales USD %s', number_format($grossSales, 2, '.', '')),
+                'key' => 'total_platform_revenue',
             ],
             [
-                'label' => 'Active Plans',
-                'value' => Plan::where('status', 'active')->count(),
-                'delta' => sprintf('%d total plans', Plan::count()),
-                'key' => 'plans',
+                'label' => 'Gross Seller Sales',
+                'value' => number_format($grossSales, 2, '.', ''),
+                'delta' => sprintf('%d paid seller orders', (clone $paidOrders)->count()),
+                'key' => 'gross_seller_sales',
             ],
         ];
 
@@ -78,6 +87,28 @@ class AdminDashboardController extends Controller
         return Inertia::render('admin/dashboard', [
             'stats' => $stats,
             'recentActivity' => $recentActivity,
+            'businessStats' => [
+                [
+                    'label' => 'Total Users',
+                    'value' => User::count(),
+                    'detail' => sprintf('+%d this month', User::where('created_at', '>=', now()->startOfMonth())->count()),
+                ],
+                [
+                    'label' => 'Active Users',
+                    'value' => User::where('status', 'active')->count(),
+                    'detail' => sprintf('%d banned', User::where('status', 'banned')->count()),
+                ],
+                [
+                    'label' => 'Categories',
+                    'value' => Category::count(),
+                    'detail' => sprintf('%d parent categories', Category::whereNull('parent_id')->count()),
+                ],
+                [
+                    'label' => 'Active Plans',
+                    'value' => Plan::where('status', 'active')->count(),
+                    'detail' => sprintf('%d total plans', Plan::count()),
+                ],
+            ],
         ]);
     }
 }

@@ -67,6 +67,10 @@ function sellerWalletGig(User $seller, Category $category, Category $subcategory
 
 test('seller can view wallet balances on payment history page', function () {
     $seller = sellerWalletUser();
+    $buyer = User::factory()->create();
+    [$category, $subcategory] = sellerWalletCategory();
+    $gig = sellerWalletGig($seller, $category, $subcategory);
+    $package = $gig->packages()->firstOrFail();
 
     Wallet::create([
         'user_id' => $seller->id,
@@ -78,13 +82,39 @@ test('seller can view wallet balances on payment history page', function () {
         'status' => 'active',
     ]);
 
+    Order::create([
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'gig_id' => $gig->id,
+        'package_id' => $package->id,
+        'quantity' => 1,
+        'requirements' => 'Revenue view order.',
+        'billing_name' => 'Buyer',
+        'billing_email' => 'buyer@example.com',
+        'unit_price' => 120,
+        'price' => 120,
+        'gross_amount' => 120,
+        'platform_fee_percentage' => 10,
+        'platform_fee_amount' => 12,
+        'seller_net_amount' => 108,
+        'status' => 'completed',
+        'payment_status' => 'released',
+        'fund_status' => 'released',
+        'escrow_held' => false,
+        'completed_at' => now(),
+        'funds_released_at' => now(),
+    ]);
+
     $this->actingAs($seller)
         ->get(route('seller.wallet.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('seller/wallet/index')
             ->where('wallet.available_balance', '90.00')
-            ->where('wallet.pending_balance', '20.00'));
+            ->where('wallet.pending_balance', '20.00')
+            ->where('revenue.gross_sales', '120.00')
+            ->where('revenue.platform_fees', '12.00')
+            ->where('revenue.net_revenue', '108.00'));
 });
 
 test('seller can submit withdrawal request from available balance', function () {
@@ -177,6 +207,9 @@ test('seller dashboard shows wallet and recent order data', function () {
             ->component('dashboard')
             ->where('role', 'seller')
             ->where('walletSummary.available_balance', '108.00')
+            ->where('revenueSummary.gross_sales', '120.00')
+            ->where('revenueSummary.platform_fees', '12.00')
+            ->where('revenueSummary.net_revenue', '108.00')
             ->where('recentTransactions.0.type', 'seller_credit')
             ->where('recentOrders.0.id', $order->id));
 });

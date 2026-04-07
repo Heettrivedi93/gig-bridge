@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
@@ -146,6 +147,25 @@ class SellerPlanController extends Controller
                 'pending_balance' => (string) $wallet->pending_balance,
                 'escrow_balance' => (string) $wallet->escrow_balance,
                 'currency' => $wallet->currency,
+            ],
+            'revenue' => [
+                'gross_sales' => number_format((float) Order::query()
+                    ->where('seller_id', $seller->id)
+                    ->whereIn('payment_status', ['paid', 'released'])
+                    ->sum('gross_amount'), 2, '.', ''),
+                'platform_fees' => number_format((float) Order::query()
+                    ->where('seller_id', $seller->id)
+                    ->whereIn('payment_status', ['paid', 'released'])
+                    ->sum('platform_fee_amount'), 2, '.', ''),
+                'net_revenue' => number_format((float) Order::query()
+                    ->where('seller_id', $seller->id)
+                    ->whereIn('payment_status', ['paid', 'released'])
+                    ->sum('seller_net_amount'), 2, '.', ''),
+                'pending_release' => number_format((float) Order::query()
+                    ->where('seller_id', $seller->id)
+                    ->whereIn('payment_status', ['paid', 'released'])
+                    ->whereIn('fund_status', ['escrow', 'releasable'])
+                    ->sum('seller_net_amount'), 2, '.', ''),
             ],
             'withdrawals' => $this->mapWithdrawals($seller),
         ]);

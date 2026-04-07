@@ -28,6 +28,12 @@ type Props = {
         escrow_balance: string;
         currency: string;
     };
+    revenue: {
+        gross_sales: string;
+        platform_fees: string;
+        net_revenue: string;
+        pending_release: string;
+    };
     withdrawals: {
         id: number;
         amount: string;
@@ -53,7 +59,7 @@ function formatDate(value: string | null) {
     return new Date(value).toLocaleString();
 }
 
-export default function SellerWalletIndex({ seller, wallet, withdrawals }: Props) {
+export default function SellerWalletIndex({ seller, wallet, revenue, withdrawals }: Props) {
     const [showWithdrawal, setShowWithdrawal] = useState(false);
     const withdrawalForm = useForm<WithdrawalForm>({
         amount: '',
@@ -113,6 +119,38 @@ export default function SellerWalletIndex({ seller, wallet, withdrawals }: Props
                             <p className="text-sm text-muted-foreground">Escrow bucket</p>
                             <p className="mt-2 text-2xl font-semibold">{wallet.currency} {wallet.escrow_balance}</p>
                             <p className="mt-1 text-xs text-muted-foreground">Reserved for future seller-side fund states.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="rounded-3xl border border-border/70 bg-card">
+                    <div className="border-b border-border/70 px-6 py-4">
+                        <h2 className="text-lg font-semibold">Revenue</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Revenue generated from your own sold services after platform commission.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+                            <p className="text-sm text-muted-foreground">Gross sales</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.gross_sales}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Total paid order value before commission.</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+                            <p className="text-sm text-muted-foreground">Platform fees</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.platform_fees}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Marketplace commission deducted from paid sales.</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+                            <p className="text-sm text-muted-foreground">Net revenue</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.net_revenue}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Your earnings from completed and paid service orders.</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+                            <p className="text-sm text-muted-foreground">Pending release</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.pending_release}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Paid orders still waiting to move into your wallet.</p>
                         </div>
                     </div>
                 </section>

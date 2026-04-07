@@ -20,10 +20,20 @@ type WalletSummary = {
     delivered_orders: number;
 };
 
+type RevenueSummary = {
+    currency: string;
+    gross_sales: string;
+    platform_fees: string;
+    net_revenue: string;
+    pending_release: string;
+    withdrawn_total: string;
+};
+
 type PageProps = {
     role: 'seller' | 'buyer' | 'general';
     stats: DashboardStat[];
     walletSummary: WalletSummary | null;
+    revenueSummary: RevenueSummary | null;
     recentOrders: {
         id: number;
         gig_title: string;
@@ -66,7 +76,7 @@ function badgeVariant(value: string) {
 }
 
 export default function Dashboard() {
-    const { role, stats, walletSummary, recentOrders, recentTransactions } = usePage<PageProps>().props;
+    const { role, stats, walletSummary, revenueSummary, recentOrders, recentTransactions } = usePage<PageProps>().props;
     const ordersHref = role === 'buyer' ? '/buyer/orders' : '/seller/orders';
     const headingDescription = role === 'seller'
         ? 'Track released funds, orders waiting on buyers, and recent wallet movement from one place.'
@@ -172,6 +182,43 @@ export default function Dashboard() {
                                     ))}
                                 </div>
                             )}
+                        </div>
+                    </section>
+                )}
+
+                {revenueSummary && (
+                    <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <h3 className="font-semibold">Revenue Snapshot</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Revenue generated from your own sold services.
+                                </p>
+                            </div>
+                            <Badge variant="outline">Seller Revenue</Badge>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
+                                <p className="text-sm text-muted-foreground">Gross sales</p>
+                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.gross_sales}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
+                                <p className="text-sm text-muted-foreground">Platform fees</p>
+                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.platform_fees}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
+                                <p className="text-sm text-muted-foreground">Net revenue</p>
+                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.net_revenue}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
+                                <p className="text-sm text-muted-foreground">Pending release</p>
+                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.pending_release}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
+                                <p className="text-sm text-muted-foreground">Withdrawn</p>
+                                <p className="mt-2 text-xl font-semibold">{revenueSummary.currency} {revenueSummary.withdrawn_total}</p>
+                            </div>
                         </div>
                     </section>
                 )}

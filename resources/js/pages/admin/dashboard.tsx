@@ -1,6 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     Activity,
+    BadgeDollarSign,
+    Coins,
     FolderTree,
     Package,
     UserCheck,
@@ -11,12 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
 
-type StatKey = 'users' | 'active_users' | 'categories' | 'plans';
+type StatKey = 'paid_plan_revenue' | 'commission_revenue' | 'total_platform_revenue' | 'gross_seller_sales';
 
 type StatItem = {
     key: StatKey;
     label: string;
-    value: number;
+    value: string;
     delta: string;
 };
 
@@ -25,19 +27,26 @@ type ActivityItem = {
     created_at: string | null;
 };
 
+type BusinessStat = {
+    label: string;
+    value: number;
+    detail: string;
+};
+
 type Props = {
     stats: StatItem[];
     recentActivity: ActivityItem[];
+    businessStats: BusinessStat[];
 };
 
 const statIcons: Record<StatKey, React.ComponentType<{ className?: string }>> = {
-    users: Users,
-    active_users: UserCheck,
-    categories: FolderTree,
-    plans: Package,
+    paid_plan_revenue: Package,
+    commission_revenue: BadgeDollarSign,
+    total_platform_revenue: Coins,
+    gross_seller_sales: Activity,
 };
 
-export default function AdminDashboard({ stats, recentActivity }: Props) {
+export default function AdminDashboard({ stats, recentActivity, businessStats }: Props) {
     const formatNumber = (value: number) => new Intl.NumberFormat().format(value);
 
     const formatDateTime = (value: string | null) => {
@@ -102,7 +111,7 @@ export default function AdminDashboard({ stats, recentActivity }: Props) {
                                     <p className="text-sm text-muted-foreground">{item.label}</p>
                                     <Icon className="size-4 text-muted-foreground" />
                                 </div>
-                                <p className="mt-3 text-2xl font-semibold">{formatNumber(item.value)}</p>
+                                <p className="mt-3 text-2xl font-semibold">USD {item.value}</p>
                                 <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">{item.delta}</p>
                             </div>
                         );
@@ -134,35 +143,19 @@ export default function AdminDashboard({ stats, recentActivity }: Props) {
                     </div>
 
                     <div className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
-                        <h3 className="mb-4 font-semibold">System Health</h3>
-                        <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span>Queue Workers</span>
-                                    <span className="text-emerald-600 dark:text-emerald-400">Healthy</span>
+                        <h3 className="mb-4 font-semibold">Platform Overview</h3>
+                        <div className="space-y-3">
+                            {businessStats.map((item) => (
+                                <div key={item.label} className="rounded-lg border border-border/70 p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium">{item.label}</p>
+                                            <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                                        </div>
+                                        <span className="text-lg font-semibold">{formatNumber(item.value)}</span>
+                                    </div>
                                 </div>
-                                <div className="h-2 rounded-full bg-muted">
-                                    <div className="h-2 w-[88%] rounded-full bg-emerald-500" />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span>Payment Gateway</span>
-                                    <span className="text-emerald-600 dark:text-emerald-400">Stable</span>
-                                </div>
-                                <div className="h-2 rounded-full bg-muted">
-                                    <div className="h-2 w-[93%] rounded-full bg-emerald-500" />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span>Notification Jobs</span>
-                                    <span className="text-amber-600 dark:text-amber-400">Minor Delay</span>
-                                </div>
-                                <div className="h-2 rounded-full bg-muted">
-                                    <div className="h-2 w-[67%] rounded-full bg-amber-500" />
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </section>

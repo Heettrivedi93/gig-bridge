@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\WalletTransaction;
+use App\Models\WithdrawalRequest;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +24,7 @@ class DashboardController extends Controller
         $role = 'general';
         $stats = [];
         $walletSummary = null;
+        $revenueSummary = null;
         $recentOrders = [];
         $recentTransactions = [];
 
@@ -36,12 +38,25 @@ class DashboardController extends Controller
             $deliveredOrdersCount = (clone $sellerOrders)->where('status', 'delivered')->count();
             $completedSellerOrders = (clone $sellerOrders)->where('status', 'completed')->count();
             $releasableCount = (clone $sellerOrders)->where('fund_status', 'releasable')->count();
+            $revenueOrders = Order::query()
+                ->where('seller_id', $user->id)
+                ->whereIn('payment_status', ['paid', 'released']);
+            $grossSales = (float) (clone $revenueOrders)->sum('gross_amount');
+            $platformFees = (float) (clone $revenueOrders)->sum('platform_fee_amount');
+            $netRevenue = (float) (clone $revenueOrders)->sum('seller_net_amount');
+            $pendingRelease = (float) (clone $revenueOrders)
+                ->whereIn('fund_status', ['escrow', 'releasable'])
+                ->sum('seller_net_amount');
+            $withdrawnTotal = (float) WithdrawalRequest::query()
+                ->where('seller_id', $user->id)
+                ->whereIn('status', ['approved', 'paid'])
+                ->sum('amount');
 
             $stats = [
                 ['label' => 'Open Orders', 'value' => $activeOrdersCount + $deliveredOrdersCount],
                 ['label' => 'Completed Orders', 'value' => $completedSellerOrders],
-                ['label' => 'Wallet Balance', 'value' => sprintf('USD %s', number_format((float) $wallet->available_balance, 2, '.', ''))],
-                ['label' => 'Pending Payouts', 'value' => sprintf('USD %s', number_format((float) $wallet->pending_balance, 2, '.', ''))],
+                ['label' => 'Net Revenue', 'value' => sprintf('USD %s', number_format($netRevenue, 2, '.', ''))],
+                ['label' => 'Available to Withdraw', 'value' => sprintf('USD %s', number_format((float) $wallet->available_balance, 2, '.', ''))],
             ];
 
             $walletSummary = [
@@ -52,6 +67,15 @@ class DashboardController extends Controller
                 'releasable_orders' => $releasableCount,
                 'active_orders' => $activeOrdersCount,
                 'delivered_orders' => $deliveredOrdersCount,
+            ];
+
+            $revenueSummary = [
+                'currency' => $wallet->currency,
+                'gross_sales' => number_format($grossSales, 2, '.', ''),
+                'platform_fees' => number_format($platformFees, 2, '.', ''),
+                'net_revenue' => number_format($netRevenue, 2, '.', ''),
+                'pending_release' => number_format($pendingRelease, 2, '.', ''),
+                'withdrawn_total' => number_format($withdrawnTotal, 2, '.', ''),
             ];
 
             $recentOrders = Order::query()
@@ -137,6 +161,7 @@ class DashboardController extends Controller
             'role' => $role,
             'stats' => $stats,
             'walletSummary' => $walletSummary,
+            'revenueSummary' => $revenueSummary,
             'recentOrders' => $recentOrders,
             'recentTransactions' => $recentTransactions,
         ]);
