@@ -45,16 +45,6 @@ class CreateNewUser implements CreatesNewUsers
             'guard_name' => 'web',
         ]));
 
-        // $rolePermissions = PortalPermissions::forRole($input['role']);
-
-        // if ($role->permissions()->count() === 0 && count($rolePermissions) > 0) {
-        //     $role->syncPermissions($rolePermissions);
-        // }
-
-        // app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-
-        // $user->assignRole($role);
-
         if ($input['role'] === 'seller') {
             $defaultPlan = Plan::query()
                 ->where('status', 'active')
