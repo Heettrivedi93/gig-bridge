@@ -7,7 +7,7 @@ import {
     Sparkles,
     Star,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -83,6 +83,7 @@ function sellerInitials(name: string | null) {
 export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
     const [query, setQuery] = useState<Filters>(filters);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
+    const keywordSearchTimeoutRef = useRef<number | null>(null);
     const activeFilterCount = useMemo(
         () =>
             Object.entries(query).filter(
@@ -91,16 +92,49 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
         [query],
     );
 
+    const clearKeywordSearchTimeout = () => {
+        if (keywordSearchTimeoutRef.current === null) {
+            return;
+        }
+
+        window.clearTimeout(keywordSearchTimeoutRef.current);
+        keywordSearchTimeoutRef.current = null;
+    };
+
+    const scheduleKeywordSearch = (nextQuery: Filters) => {
+        clearKeywordSearchTimeout();
+
+        keywordSearchTimeoutRef.current = window.setTimeout(() => {
+            router.get('/buyer/gigs', nextQuery, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                preserveUrl: true,
+            });
+        }, 350);
+    };
+
+    useEffect(() => {
+        return () => {
+            clearKeywordSearchTimeout();
+        };
+    }, []);
+
     const applyFilters = () => {
+        clearKeywordSearchTimeout();
+
         router.get('/buyer/gigs', query, {
             preserveState: true,
             preserveScroll: true,
+            preserveUrl: true,
         });
 
         setShowMobileFilters(false);
     };
 
     const clearFilters = () => {
+        clearKeywordSearchTimeout();
+
         const reset = {
             keyword: '',
             category_id: '',
@@ -115,6 +149,7 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
         router.get('/buyer/gigs', reset, {
             preserveState: true,
             preserveScroll: true,
+            preserveUrl: true,
         });
 
         setShowMobileFilters(false);
@@ -297,12 +332,15 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                             <Input
                                 id="buyer-search"
                                 value={query.keyword}
-                                onChange={(event) =>
-                                    setQuery({
+                                onChange={(event) => {
+                                    const nextQuery = {
                                         ...query,
                                         keyword: event.target.value,
-                                    })
-                                }
+                                    };
+
+                                    setQuery(nextQuery);
+                                    scheduleKeywordSearch(nextQuery);
+                                }}
                                 className="h-12 rounded-2xl border-border/70 pl-11"
                                 placeholder="Search for logo design, web development, copywriting..."
                             />
