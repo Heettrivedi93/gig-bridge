@@ -1,5 +1,5 @@
 import { Paperclip, SendHorizontal } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,22 @@ type Props = {
     recipientName: string | null;
 };
 
+type MessageSentEventPayload = {
+    order_id?: number;
+    message?: OrderChatMessage;
+};
+
+type EchoLike = {
+    private: (channel: string) => {
+        listen: (
+            event: string,
+            callback: (payload: MessageSentEventPayload) => void,
+        ) => unknown;
+    };
+    leave?: (channel: string) => void;
+    leaveChannel?: (channel: string) => void;
+};
+
 function formatDate(value: string | null) {
     if (!value) {
         return 'Just now';
@@ -69,6 +85,7 @@ export default function OrderChatModal({
     const [error, setError] = useState<string | null>(null);
     const [body, setBody] = useState('');
     const [attachment, setAttachment] = useState<File | null>(null);
+    const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
     const conversationTitle = useMemo(() => {
         if (recipientName) {
@@ -123,9 +140,7 @@ export default function OrderChatModal({
         [orderId],
     );
 
-    const sendMessage = async (event: React.FormEvent) => {
-        event.preventDefault();
-
+    const submitMessage = async () => {
         if (!orderId) {
             return;
         }
@@ -189,6 +204,27 @@ export default function OrderChatModal({
         }
     };
 
+    const sendMessage = async (event: React.FormEvent) => {
+        event.preventDefault();
+        await submitMessage();
+    };
+
+    const handleMessageKeyDown = (
+        event: React.KeyboardEvent<HTMLTextAreaElement>,
+    ) => {
+        if (event.key !== 'Enter' || event.shiftKey) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (isSending) {
+            return;
+        }
+
+        void submitMessage();
+    };
+
     useEffect(() => {
         if (!open || !orderId) {
             setMessages([]);
@@ -204,7 +240,23 @@ export default function OrderChatModal({
     }, [open, orderId, loadThread]);
 
     useEffect(() => {
-        if (!open || !orderId) {
+        if (!open) {
+            return;
+        }
+
+        const container = messagesContainerRef.current;
+
+        if (!container) {
+            return;
+        }
+
+        container.scrollTop = container.scrollHeight;
+    }, [messages, open]);
+
+    useEffect(() => {
+        const echo = window.Echo as EchoLike | undefined;
+
+        if (!open || !orderId || echo) {
             return;
         }
 
@@ -214,6 +266,38 @@ export default function OrderChatModal({
 
         return () => window.clearInterval(intervalId);
     }, [open, orderId, loadThread]);
+
+    useEffect(() => {
+        const echo = window.Echo as EchoLike | undefined;
+
+        if (!open || !orderId || !echo) {
+            return;
+        }
+
+        const channelName = `orders.${orderId}.messages`;
+        const channel = echo.private(channelName);
+
+        channel.listen('.message.sent', (payload: MessageSentEventPayload) => {
+            const incomingMessage = payload.message;
+
+            if (!incomingMessage) {
+                return;
+            }
+
+            setMessages((current) => {
+                if (current.some((message) => message.id === incomingMessage.id)) {
+                    return current;
+                }
+
+                return [...current, incomingMessage];
+            });
+        });
+
+        return () => {
+            echo.leave?.(channelName);
+            echo.leaveChannel?.(`private-${channelName}`);
+        };
+    }, [open, orderId]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,7 +310,10 @@ export default function OrderChatModal({
                 </DialogHeader>
 
                 <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                    <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+                    <div
+                        ref={messagesContainerRef}
+                        className="max-h-80 space-y-3 overflow-y-auto pr-1"
+                    >
                         {isLoading ? (
                             <p className="text-sm text-muted-foreground">
                                 Loading chat...
@@ -299,6 +386,7 @@ export default function OrderChatModal({
                         rows={4}
                         value={body}
                         onChange={(event) => setBody(event.target.value)}
+                        onKeyDown={handleMessageKeyDown}
                         className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                         placeholder="Type your message..."
                     />

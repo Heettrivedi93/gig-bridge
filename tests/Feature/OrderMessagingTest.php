@@ -1,10 +1,12 @@
 <?php
 
+use App\Events\OrderMessageSent;
 use App\Models\Category;
 use App\Models\Gig;
 use App\Models\GigPackage;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Support\Facades\Event;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -93,6 +95,8 @@ function orderMessageOrder(User $buyer, User $seller): Order
 }
 
 test('buyer can fetch and send order thread messages', function () {
+    Event::fake([OrderMessageSent::class]);
+
     $buyer = orderMessageBuyer();
     $seller = orderMessageSeller();
     $order = orderMessageOrder($buyer, $seller);
@@ -117,6 +121,12 @@ test('buyer can fetch and send order thread messages', function () {
         'receiver_id' => $seller->id,
         'body' => 'Can you share a progress update?',
     ]);
+
+    Event::assertDispatched(
+        OrderMessageSent::class,
+        fn (OrderMessageSent $event) => $event->orderId === $order->id
+            && data_get($event->message, 'body') === 'Can you share a progress update?',
+    );
 });
 
 test('user cannot access order thread for unrelated order', function () {

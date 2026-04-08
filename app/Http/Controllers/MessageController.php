@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\OrderMessageSent;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\User;
@@ -216,12 +217,17 @@ class MessageController extends Controller
             ]);
         }
 
-        Message::create([
+        $message = Message::create([
             'sender_id' => $sender->id,
             'receiver_id' => $receiver->id,
             'order_id' => $order->id,
             'body' => $body !== '' ? $body : null,
             'attachment_path' => $request->file('attachment')?->store('messages', 'public'),
+        ]);
+
+        $message->loadMissing([
+            'sender:id,name',
+            'receiver:id,name',
         ]);
 
         $this->notifications->newMessage(
@@ -230,6 +236,8 @@ class MessageController extends Controller
             $order,
             Str::limit($body !== '' ? $body : 'Sent an attachment.', 120),
         );
+
+        OrderMessageSent::dispatch($order->id, $this->messagePayload($message));
 
         return response()->json([
             'success' => true,
@@ -434,19 +442,27 @@ class MessageController extends Controller
             ->orderBy('created_at')
             ->orderBy('id')
             ->get()
-            ->map(fn (Message $message) => [
-                'id' => $message->id,
-                'body' => $message->body,
-                'attachment_url' => $message->attachment_path
-                    ? Storage::disk('public')->url($message->attachment_path)
-                    : null,
-                'sender_id' => $message->sender_id,
-                'sender_name' => $message->sender?->name,
-                'receiver_id' => $message->receiver_id,
-                'read_at' => $message->read_at?->toIso8601String(),
-                'created_at' => $message->created_at?->toIso8601String(),
-            ])
+            ->map(fn (Message $message) => $this->messagePayload($message))
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function messagePayload(Message $message): array
+    {
+        return [
+            'id' => $message->id,
+            'body' => $message->body,
+            'attachment_url' => $message->attachment_path
+                ? Storage::disk('public')->url($message->attachment_path)
+                : null,
+            'sender_id' => $message->sender_id,
+            'sender_name' => $message->sender?->name,
+            'receiver_id' => $message->receiver_id,
+            'read_at' => $message->read_at?->toIso8601String(),
+            'created_at' => $message->created_at?->toIso8601String(),
+        ];
     }
 }

@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import '@/echo';
 import FlashToaster from '@/components/flash-toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
