@@ -19,8 +19,8 @@ class DatabaseSeeder extends Seeder
 
         // Create roles
         $superAdminRole = Role::firstOrCreate(['name' => 'super_admin']);
-        Role::firstOrCreate(['name' => 'seller']);
-        Role::firstOrCreate(['name' => 'buyer']);
+        $sellerRole = Role::firstOrCreate(['name' => 'seller']);
+        $buyerRole = Role::firstOrCreate(['name' => 'buyer']);
 
         foreach (PortalPermissions::all() as $permission) {
             Permission::firstOrCreate([
@@ -28,6 +28,13 @@ class DatabaseSeeder extends Seeder
                 'guard_name' => 'web',
             ]);
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $sellerRole->syncPermissions(PortalPermissions::forRole('seller'));
+        $buyerRole->syncPermissions(PortalPermissions::forRole('buyer'));
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Create super admin (seeder-only, not via public registration)
         $admin = User::firstOrCreate(
