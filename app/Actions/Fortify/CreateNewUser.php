@@ -8,7 +8,6 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\SystemNotificationService;
-use App\Support\PortalPermissions;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Spatie\Permission\Models\Role;
@@ -41,20 +40,20 @@ class CreateNewUser implements CreatesNewUsers
             'status' => 'active',
         ]);
 
-        $role = Role::firstOrCreate([
+        $user->assignRole(Role::firstOrCreate([
             'name' => $input['role'],
             'guard_name' => 'web',
-        ]);
+        ]));
 
-        $rolePermissions = PortalPermissions::forRole($input['role']);
+        // $rolePermissions = PortalPermissions::forRole($input['role']);
 
-        if ($role->permissions()->count() === 0 && count($rolePermissions) > 0) {
-            $role->syncPermissions($rolePermissions);
-        }
+        // if ($role->permissions()->count() === 0 && count($rolePermissions) > 0) {
+        //     $role->syncPermissions($rolePermissions);
+        // }
 
-        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        // app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $user->assignRole($role);
+        // $user->assignRole($role);
 
         if ($input['role'] === 'seller') {
             $defaultPlan = Plan::query()
