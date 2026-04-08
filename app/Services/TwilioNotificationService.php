@@ -18,6 +18,17 @@ class TwilioNotificationService
 
         $accountSid = (string) Setting::getValue('twilio_account_sid', '');
         $authToken = (string) Setting::getValue('twilio_auth_token', '');
+        $fromNumber = (string) Setting::getValue('twilio_from_number', '');
+        $toNumber = (string) $user->phone;
+        $body = trim($title."\n".$message);
+
+        Log::info('Sending Twilio notification request.', [
+            'event' => $event,
+            'user_id' => $user->id,
+            'from' => $fromNumber,
+            'to' => $toNumber,
+            'account_sid_suffix' => substr($accountSid, -6),
+        ]);
 
         try {
             $response = Http::asForm()
@@ -27,23 +38,36 @@ class TwilioNotificationService
                     'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json',
                     $accountSid,
                 ), [
-                    'From' => (string) Setting::getValue('twilio_from_number', ''),
-                    'To' => (string) $user->phone,
-                    'Body' => trim($title."\n".$message),
+                    'From' => $fromNumber,
+                    'To' => $toNumber,
+                    'Body' => $body,
                 ]);
 
             if ($response->failed()) {
                 Log::warning('Twilio notification request failed.', [
                     'event' => $event,
                     'user_id' => $user->id,
+                    'from' => $fromNumber,
+                    'to' => $toNumber,
                     'status' => $response->status(),
                     'body' => $response->body(),
+                ]);
+            } else {
+                Log::info('Twilio notification request accepted.', [
+                    'event' => $event,
+                    'user_id' => $user->id,
+                    'from' => $fromNumber,
+                    'to' => $toNumber,
+                    'status' => $response->status(),
+                    'sid' => $response->json('sid'),
                 ]);
             }
         } catch (Throwable $exception) {
             Log::warning('Twilio notification request threw an exception.', [
                 'event' => $event,
                 'user_id' => $user->id,
+                'from' => $fromNumber,
+                'to' => $toNumber,
                 'message' => $exception->getMessage(),
             ]);
         }

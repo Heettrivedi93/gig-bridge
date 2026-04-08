@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\User;
 use App\Notifications\SystemUserNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class SystemNotificationService
 {
@@ -258,13 +260,23 @@ class SystemNotificationService
                     ($inAppEvent && $this->preferences->inAppEnabled() && $this->preferences->supportsInAppEvent($inAppEvent))
                     || ($emailEvent && $this->preferences->emailEnabled() && $this->preferences->supportsEmailEvent($emailEvent))
                 ) {
-                    $user->notify(new SystemUserNotification(
-                        $title,
-                        $message,
-                        $inAppEvent,
-                        $emailEvent,
-                        $actionUrl,
-                    ));
+                    try {
+                        $user->notify(new SystemUserNotification(
+                            $title,
+                            $message,
+                            $inAppEvent,
+                            $emailEvent,
+                            $actionUrl,
+                        ));
+                    } catch (Throwable $exception) {
+                        Log::warning('System user notification failed before Twilio send.', [
+                            'user_id' => $user->id,
+                            'title' => $title,
+                            'in_app_event' => $inAppEvent,
+                            'email_event' => $emailEvent,
+                            'message' => $exception->getMessage(),
+                        ]);
+                    }
                 }
 
                 if ($twilioEvent && $this->preferences->twilioEnabled() && $this->preferences->supportsTwilioEvent($twilioEvent)) {
