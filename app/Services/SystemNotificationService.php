@@ -232,6 +232,52 @@ class SystemNotificationService
         );
     }
 
+    public function newMessage(User $sender, User $receiver, ?Order $order, string $preview): void
+    {
+        $context = $order
+            ? sprintf(' on order #%d', $order->id)
+            : '';
+
+        $this->notifyUsers(
+            [$receiver],
+            'New message',
+            sprintf('%s sent you a message%s: %s', $sender->name, $context, $preview),
+            'messages',
+            'messages',
+            null,
+            $this->orderMessageActionUrl($receiver, $order),
+        );
+
+        $this->notifyTrello(
+            'new_messages',
+            sprintf('New message from %s', $sender->name),
+            sprintf(
+                "Sender: %s\nReceiver: %s\nOrder: %s\nPreview: %s",
+                $sender->name,
+                $receiver->name,
+                $order ? '#'.$order->id : 'General thread',
+                $preview,
+            ),
+        );
+    }
+
+    private function orderMessageActionUrl(User $receiver, ?Order $order): string
+    {
+        if (! $order) {
+            return '/notifications';
+        }
+
+        if ($receiver->hasRole('buyer')) {
+            return sprintf('/buyer/orders?message_order=%d', $order->id);
+        }
+
+        if ($receiver->hasRole('seller')) {
+            return sprintf('/seller/orders?message_order=%d', $order->id);
+        }
+
+        return '/notifications';
+    }
+
     /**
      * @param  array<int, User|null>  $users
      */

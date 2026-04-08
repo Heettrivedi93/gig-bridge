@@ -9,6 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import OrderChatModal from '@/components/order-chat-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +31,7 @@ type SellerOrder = {
         revision_count: number;
     } | null;
     buyer: {
+        id: number;
         name: string;
         email: string;
     } | null;
@@ -102,6 +104,19 @@ export default function SellerOrdersIndex({ orders }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(
         null,
     );
+    const [messageOrder, setMessageOrder] = useState<SellerOrder | null>(() => {
+        const messageOrderId = new URLSearchParams(window.location.search).get(
+            'message_order',
+        );
+
+        if (!messageOrderId) {
+            return null;
+        }
+
+        const parsedOrderId = Number(messageOrderId);
+
+        return orders.find((item) => item.id === parsedOrderId) ?? null;
+    });
     const [deliveryTarget, setDeliveryTarget] = useState<SellerOrder | null>(
         null,
     );
@@ -376,6 +391,19 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                     >
                                                         View
                                                     </Button>
+                                                    {order.buyer && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setMessageOrder(
+                                                                    order,
+                                                                )
+                                                            }
+                                                        >
+                                                            Message
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         size="sm"
                                                         onClick={() =>
@@ -480,6 +508,17 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         >
                                             View
                                         </Button>
+                                        {order.buyer && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setMessageOrder(order)
+                                                }
+                                            >
+                                                Message
+                                            </Button>
+                                        )}
                                         <Button
                                             size="sm"
                                             onClick={() =>
@@ -690,6 +729,17 @@ export default function SellerOrdersIndex({ orders }: Props) {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <OrderChatModal
+                open={Boolean(messageOrder)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setMessageOrder(null);
+                    }
+                }}
+                orderId={messageOrder?.id ?? null}
+                recipientName={messageOrder?.buyer?.name ?? null}
+            />
 
             <Dialog
                 open={Boolean(deliveryTarget)}

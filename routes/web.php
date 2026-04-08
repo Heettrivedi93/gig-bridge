@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BuyerCatalogController;
 use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SellerGigController;
 use App\Http\Controllers\SellerOrderController;
@@ -26,6 +27,8 @@ Route::inertia('/', 'welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('orders/{order}/messages', [MessageController::class, 'orderThread'])->name('messages.order-thread');
+    Route::post('orders/{order}/messages', [MessageController::class, 'storeForOrder'])->name('messages.order-store');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');

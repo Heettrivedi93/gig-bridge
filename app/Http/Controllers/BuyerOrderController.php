@@ -62,6 +62,7 @@ class BuyerOrderController extends Controller
                             'revision_count' => $order->package->revision_count,
                         ] : null,
                         'seller' => $order->seller ? [
+                            'id' => $order->seller->id,
                             'name' => $order->seller->name,
                             'email' => $order->seller->email,
                         ] : null,

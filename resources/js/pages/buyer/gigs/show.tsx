@@ -442,7 +442,7 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                     />
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="reference_link">
                                             Reference link
@@ -469,129 +469,6 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
 
                                 </div>
 
-                                <div className="grid gap-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label>Available coupons</Label>
-                                        {form.data.coupon_code && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    form.setData(
-                                                        'coupon_code',
-                                                        '',
-                                                    )
-                                                }
-                                            >
-                                                Clear coupon
-                                            </Button>
-                                        )}
-                                    </div>
-                                    {couponOptions.length === 0 ? (
-                                        <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                                            No active coupons are available right now.
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {couponOptions.map((coupon) => {
-                                                const active =
-                                                    form.data.coupon_code ===
-                                                    coupon.code;
-
-                                                return (
-                                                    <button
-                                                        key={coupon.id}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            form.setData(
-                                                                'coupon_code',
-                                                                coupon.code,
-                                                            )
-                                                        }
-                                                        className={`w-full rounded-2xl border p-4 text-left transition ${
-                                                            active
-                                                                ? 'border-primary bg-primary/5 shadow-sm'
-                                                                : 'border-border/70 bg-background'
-                                                        }`}
-                                                    >
-                                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <BadgePercent className="size-4 text-muted-foreground" />
-                                                                    <p className="font-semibold">
-                                                                        {coupon.code}
-                                                                    </p>
-                                                                    {active && (
-                                                                        <Badge>
-                                                                            Selected
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <p className="mt-2 text-sm text-muted-foreground">
-                                                                    {coupon.description ||
-                                                                        formatCouponDiscount(
-                                                                            coupon,
-                                                                        )}
-                                                                </p>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="font-semibold">
-                                                                    {formatCouponDiscount(
-                                                                        coupon,
-                                                                    )}
-                                                                </p>
-                                                                <p className="mt-1 text-xs text-emerald-600">
-                                                                    Est. save USD{' '}
-                                                                    {
-                                                                        coupon.estimatedDiscount
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                                            <span className="rounded-full bg-muted px-2.5 py-1">
-                                                                {formatCouponWindow(
-                                                                    coupon,
-                                                                )}
-                                                            </span>
-                                                            <span className="rounded-full bg-muted px-2.5 py-1">
-                                                                Min order:{' '}
-                                                                {coupon.minimumOrderAmount >
-                                                                0
-                                                                    ? `USD ${coupon.minimumOrderAmount.toFixed(
-                                                                          2,
-                                                                      )}`
-                                                                    : 'None'}
-                                                            </span>
-                                                            <span className="rounded-full bg-muted px-2.5 py-1">
-                                                                Uses:{' '}
-                                                                {coupon.used_count}
-                                                                {coupon.usage_limit !==
-                                                                null
-                                                                    ? ` / ${coupon.usage_limit}`
-                                                                    : '+'}
-                                                            </span>
-                                                        </div>
-                                                        {!coupon.isEligible && (
-                                                            <p className="mt-3 text-xs text-amber-700">
-                                                                Increase your subtotal to at least USD{' '}
-                                                                {coupon.minimumOrderAmount.toFixed(
-                                                                    2,
-                                                                )}{' '}
-                                                                to use this coupon.
-                                                            </p>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                    <InputError
-                                        message={form.errors.coupon_code}
-                                    />
-                                </div>
-
                                 <div className="grid gap-2">
                                     <Label htmlFor="style_notes">
                                         Style notes
@@ -608,7 +485,7 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                                     event.target.value,
                                                 )
                                             }
-                                            className="min-h-24 rounded-md border border-input bg-transparent py-2 pr-3 pl-9 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                            className="w-full min-h-24 rounded-md border border-input bg-transparent py-2 pr-3 pl-9 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                             placeholder="Preferred tone, color direction, examples to avoid, or anything style-specific."
                                         />
                                     </div>
@@ -642,6 +519,130 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="grid gap-3 md:col-span-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Available coupons</Label>
+                                            {form.data.coupon_code && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        form.setData(
+                                                            'coupon_code',
+                                                            '',
+                                                        )
+                                                    }
+                                                >
+                                                    Clear coupon
+                                                </Button>
+                                            )}
+                                        </div>
+                                        {couponOptions.length === 0 ? (
+                                            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+                                                No active coupons are available right now.
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {couponOptions.map((coupon) => {
+                                                    const active =
+                                                        form.data
+                                                            .coupon_code ===
+                                                        coupon.code;
+
+                                                    return (
+                                                        <button
+                                                            key={coupon.id}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                form.setData(
+                                                                    'coupon_code',
+                                                                    coupon.code,
+                                                                )
+                                                            }
+                                                            className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                                                                active
+                                                                    ? 'border-primary bg-primary/5 shadow-sm'
+                                                                    : 'border-border/70 bg-background hover:border-primary/50 hover:bg-muted/30'
+                                                            }`}
+                                                        >
+                                                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                                                <div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <BadgePercent className="size-4 text-muted-foreground" />
+                                                                        <p className="font-semibold">
+                                                                            {coupon.code}
+                                                                        </p>
+                                                                        {active && (
+                                                                            <Badge>
+                                                                                Selected
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="mt-2 text-sm text-muted-foreground">
+                                                                        {coupon.description ||
+                                                                            formatCouponDiscount(
+                                                                                coupon,
+                                                                            )}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="font-semibold">
+                                                                        {formatCouponDiscount(
+                                                                            coupon,
+                                                                        )}
+                                                                    </p>
+                                                                    <p className="mt-1 text-xs text-emerald-600">
+                                                                        Est. save USD{' '}
+                                                                        {
+                                                                            coupon.estimatedDiscount
+                                                                        }
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                                                <span className="rounded-full bg-muted px-2.5 py-1">
+                                                                    {formatCouponWindow(
+                                                                        coupon,
+                                                                    )}
+                                                                </span>
+                                                                <span className="rounded-full bg-muted px-2.5 py-1">
+                                                                    Min order:{' '}
+                                                                    {coupon.minimumOrderAmount >
+                                                                    0
+                                                                        ? `USD ${coupon.minimumOrderAmount.toFixed(
+                                                                              2,
+                                                                          )}`
+                                                                        : 'None'}
+                                                                </span>
+                                                                <span className="rounded-full bg-muted px-2.5 py-1">
+                                                                    Uses:{' '}
+                                                                    {coupon.used_count}
+                                                                    {coupon.usage_limit !==
+                                                                    null
+                                                                        ? ` / ${coupon.usage_limit}`
+                                                                        : '+'}
+                                                                </span>
+                                                            </div>
+                                                            {!coupon.isEligible && (
+                                                                <p className="mt-3 text-xs text-amber-700">
+                                                                    Increase your subtotal to at least USD{' '}
+                                                                    {coupon.minimumOrderAmount.toFixed(
+                                                                        2,
+                                                                    )}{' '}
+                                                                    to use this coupon.
+                                                                </p>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        <InputError
+                                            message={form.errors.coupon_code}
+                                        />
+                                    </div>
+
                                     <div className="grid gap-2">
                                         <Label htmlFor="billing_name">
                                             Billing name

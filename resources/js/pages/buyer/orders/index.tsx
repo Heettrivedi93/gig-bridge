@@ -3,6 +3,7 @@ import { FileText, Star } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import OrderChatModal from '@/components/order-chat-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ type OrderItem = {
         revision_count: number;
     } | null;
     seller: {
+        id: number;
         name: string;
         email: string;
     } | null;
@@ -165,6 +167,19 @@ async function requestJson<T>(
 
 export default function BuyerOrdersIndex({ orders, paypal }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+    const [messageOrder, setMessageOrder] = useState<OrderItem | null>(() => {
+        const messageOrderId = new URLSearchParams(window.location.search).get(
+            'message_order',
+        );
+
+        if (!messageOrderId) {
+            return null;
+        }
+
+        const parsedOrderId = Number(messageOrderId);
+
+        return orders.find((item) => item.id === parsedOrderId) ?? null;
+    });
     const [revisionTarget, setRevisionTarget] = useState<OrderItem | null>(
         null,
     );
@@ -604,6 +619,19 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                     >
                                                         View
                                                     </Button>
+                                                    {order.seller && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setMessageOrder(
+                                                                    order,
+                                                                )
+                                                            }
+                                                        >
+                                                            Message
+                                                        </Button>
+                                                    )}
                                                     {order.payment_status ===
                                                         'pending' && (
                                                         <Button
@@ -722,6 +750,17 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         >
                                             View
                                         </Button>
+                                        {order.seller && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setMessageOrder(order)
+                                                }
+                                            >
+                                                Message
+                                            </Button>
+                                        )}
                                         {order.payment_status === 'pending' && (
                                             <Button
                                                 size="sm"
@@ -1054,6 +1093,17 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <OrderChatModal
+                open={Boolean(messageOrder)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setMessageOrder(null);
+                    }
+                }}
+                orderId={messageOrder?.id ?? null}
+                recipientName={messageOrder?.seller?.name ?? null}
+            />
 
             <Dialog
                 open={Boolean(revisionTarget)}

@@ -42,7 +42,15 @@ class CouponService
             ->whereRaw('upper(code) = ?', [$code])
             ->first();
 
-        if (! $coupon || $coupon->status !== 'active') {
+        if (! $coupon) {
+            return [
+                'coupon' => null,
+                'code' => $code,
+                'discount_amount' => 0.0,
+            ];
+        }
+
+        if ($coupon->status !== 'active') {
             throw ValidationException::withMessages([
                 'coupon_code' => 'This coupon code is invalid or inactive.',
             ]);
