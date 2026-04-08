@@ -38,6 +38,8 @@ type SellerOrder = {
     reference_link: string | null;
     style_notes: string | null;
     coupon_code: string | null;
+    subtotal_amount: string;
+    discount_amount: string;
     brief_file_url: string | null;
     price: string;
     status: string;
@@ -355,6 +357,11 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                             </td>
                                             <td className="px-4 py-4 font-medium">
                                                 USD {order.price}
+                                                {Number(order.discount_amount) > 0 && (
+                                                    <p className="mt-1 text-xs font-normal text-emerald-600">
+                                                        Buyer saved USD {order.discount_amount}
+                                                    </p>
+                                                )}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex flex-col gap-2">
@@ -432,6 +439,11 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                             USD {order.price}
                                         </p>
                                     </div>
+                                    {Number(order.discount_amount) > 0 && (
+                                        <p className="mt-2 text-xs text-emerald-600">
+                                            Buyer saved USD {order.discount_amount}
+                                        </p>
+                                    )}
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         <Badge variant="outline">
                                             {order.package?.tier ?? 'package'}
@@ -528,14 +540,22 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                             {selectedOrder.gig_title}
                                         </p>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Badge variant="outline">
-                                            {selectedOrder.package?.tier}
-                                        </Badge>
-                                        <Badge>{selectedOrder.status}</Badge>
-                                    </div>
+                                <div className="flex gap-2">
+                                    <Badge variant="outline">
+                                        {selectedOrder.package?.tier}
+                                    </Badge>
+                                    <Badge>{selectedOrder.status}</Badge>
                                 </div>
                             </div>
+                            {Number(selectedOrder.discount_amount) > 0 && (
+                                <p className="mt-4 text-sm text-emerald-600">
+                                    Subtotal USD {selectedOrder.subtotal_amount} • Discount USD {selectedOrder.discount_amount}
+                                    {selectedOrder.coupon_code
+                                        ? ` • Coupon ${selectedOrder.coupon_code}`
+                                        : ''}
+                                </p>
+                            )}
+                        </div>
 
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="rounded-3xl border border-border/70 bg-card p-6">

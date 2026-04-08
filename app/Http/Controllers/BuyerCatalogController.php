@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Gig;
+use App\Services\CouponService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,10 @@ use Inertia\Response;
 
 class BuyerCatalogController extends Controller
 {
+    public function __construct(
+        private readonly CouponService $coupons,
+    ) {}
+
     public function index(Request $request): Response
     {
         $this->ensureBuyer($request);
@@ -137,6 +142,22 @@ class BuyerCatalogController extends Controller
                         'created_at' => $review->created_at?->toIso8601String(),
                     ]),
             ],
+            'coupons' => $this->coupons->availableCoupons()
+                ->map(fn ($coupon) => [
+                    'id' => $coupon->id,
+                    'code' => $coupon->code,
+                    'description' => $coupon->description,
+                    'discount_type' => $coupon->discount_type,
+                    'discount_value' => (string) $coupon->discount_value,
+                    'minimum_order_amount' => $coupon->minimum_order_amount !== null
+                        ? (string) $coupon->minimum_order_amount
+                        : null,
+                    'usage_limit' => $coupon->usage_limit,
+                    'used_count' => $coupon->used_count,
+                    'starts_at' => $coupon->starts_at?->toIso8601String(),
+                    'expires_at' => $coupon->expires_at?->toIso8601String(),
+                ])
+                ->values(),
         ]);
     }
 

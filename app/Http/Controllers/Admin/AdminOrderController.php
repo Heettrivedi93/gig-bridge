@@ -96,6 +96,8 @@ class AdminOrderController extends Controller
                     'style_notes' => $order->style_notes,
                     'coupon_code' => $order->coupon_code,
                     'brief_file_url' => $order->brief_file_path ? Storage::disk('public')->url($order->brief_file_path) : null,
+                    'subtotal_amount' => (string) $order->subtotal_amount,
+                    'discount_amount' => (string) $order->discount_amount,
                     'price' => (string) $order->price,
                     'platform_fee' => number_format($platformFee, 2, '.', ''),
                     'seller_net' => number_format($price - $platformFee, 2, '.', ''),

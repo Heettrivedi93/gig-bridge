@@ -7,6 +7,7 @@ use App\Models\GigPackage;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\Setting;
+use App\Services\CouponService;
 use App\Services\OrderFundService;
 use App\Services\PaypalCheckoutService;
 use App\Services\SystemNotificationService;
@@ -23,6 +24,7 @@ class BuyerOrderController extends Controller
 {
     public function __construct(
         private readonly PaypalCheckoutService $paypal,
+        private readonly CouponService $coupons,
         private readonly OrderFundService $funds,
         private readonly SystemNotificationService $notifications,
     ) {}
@@ -69,6 +71,8 @@ class BuyerOrderController extends Controller
                         'style_notes' => $order->style_notes,
                         'coupon_code' => $order->coupon_code,
                         'brief_file_url' => $order->brief_file_path ? Storage::disk('public')->url($order->brief_file_path) : null,
+                        'subtotal_amount' => (string) $order->subtotal_amount,
+                        'discount_amount' => (string) $order->discount_amount,
                         'price' => (string) $order->price,
                         'unit_price' => (string) $order->unit_price,
                         'status' => $order->status,
@@ -130,6 +134,9 @@ class BuyerOrderController extends Controller
                     'provider_order_id' => $order->paypal_order_id,
                     'provider_reference' => $order->paypal_payer_id,
                     'amount' => (string) $order->price,
+                    'subtotal_amount' => (string) $order->subtotal_amount,
+                    'discount_amount' => (string) $order->discount_amount,
+                    'coupon_code' => $order->coupon_code,
                     'currency' => 'USD',
                     'status' => $order->payment_status,
                     'created_at' => $order->created_at?->toIso8601String(),
@@ -184,23 +191,30 @@ class BuyerOrderController extends Controller
 
         $quantity = (int) $data['quantity'];
         $unitPrice = (float) $package->price;
+        $subtotal = round($unitPrice * $quantity, 2);
+        $coupon = $this->coupons->validateForSubtotal($data['coupon_code'] ?? null, $subtotal);
+        $discountAmount = (float) $coupon['discount_amount'];
+        $finalPrice = round(max(0, $subtotal - $discountAmount), 2);
 
         $order = Order::create([
             'buyer_id' => $buyer->id,
             'seller_id' => $gig->user_id,
             'gig_id' => $gig->id,
             'package_id' => $package->id,
+            'coupon_id' => $coupon['coupon']?->id,
             'quantity' => $quantity,
             'requirements' => $data['requirements'],
             'brief_file_path' => $request->file('brief_file')?->store('order-briefs', 'public'),
             'reference_link' => ($data['reference_link'] ?? '') ?: null,
             'style_notes' => ($data['style_notes'] ?? '') ?: null,
-            'coupon_code' => ($data['coupon_code'] ?? '') ?: null,
+            'coupon_code' => $coupon['code'],
             'billing_name' => $data['billing_name'],
             'billing_email' => $data['billing_email'],
             'unit_price' => $unitPrice,
-            'price' => $unitPrice * $quantity,
-            'gross_amount' => $unitPrice * $quantity,
+            'subtotal_amount' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'price' => $finalPrice,
+            'gross_amount' => $finalPrice,
             'status' => 'pending',
             'payment_status' => 'pending',
             'fund_status' => 'none',
@@ -326,6 +340,8 @@ class BuyerOrderController extends Controller
             'seller_net_amount' => $sellerNetAmount,
             'paypal_payer_id' => data_get($capture, 'payer.payer_id'),
         ]);
+
+        $this->coupons->markUsed($order->coupon);
 
         $this->notifications->orderPlaced($order->fresh());
         $this->funds->holdEscrow($order->fresh());

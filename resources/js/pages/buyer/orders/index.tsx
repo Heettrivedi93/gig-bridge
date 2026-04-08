@@ -32,6 +32,8 @@ type OrderItem = {
     reference_link: string | null;
     style_notes: string | null;
     coupon_code: string | null;
+    subtotal_amount: string;
+    discount_amount: string;
     brief_file_url: string | null;
     price: string;
     unit_price: string;
@@ -583,6 +585,11 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                             </td>
                                             <td className="px-4 py-4 font-medium">
                                                 USD {order.price}
+                                                {Number(order.discount_amount) > 0 && (
+                                                    <p className="mt-1 text-xs font-normal text-emerald-600">
+                                                        Saved USD {order.discount_amount}
+                                                    </p>
+                                                )}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex flex-col gap-2">
@@ -674,6 +681,11 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                             USD {order.price}
                                         </p>
                                     </div>
+                                    {Number(order.discount_amount) > 0 && (
+                                        <p className="mt-2 text-xs text-emerald-600">
+                                            Saved USD {order.discount_amount}
+                                        </p>
+                                    )}
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         <Badge variant="outline">
                                             {order.package?.tier ?? 'package'}
@@ -862,6 +874,14 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         </Button>
                                     )}
                                 </div>
+                                {Number(selectedOrder.discount_amount) > 0 && (
+                                    <p className="mt-4 text-sm text-emerald-600">
+                                        Subtotal USD {selectedOrder.subtotal_amount} • Discount USD {selectedOrder.discount_amount}
+                                        {selectedOrder.coupon_code
+                                            ? ` • Coupon ${selectedOrder.coupon_code}`
+                                            : ''}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid gap-6 lg:grid-cols-2">
@@ -1273,6 +1293,14 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         {paypal.currency} {checkoutOrder.price}
                                     </span>
                                 </div>
+                                {Number(checkoutOrder.discount_amount) > 0 && (
+                                    <div className="mt-2 flex items-center justify-between text-sm text-emerald-600">
+                                        <span>Discount</span>
+                                        <span className="font-medium">
+                                            -{paypal.currency} {checkoutOrder.discount_amount}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {checkoutError && (

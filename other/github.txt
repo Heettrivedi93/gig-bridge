@@ -93,3 +93,8 @@ If you want, I can give you a more exact setup guide for your home laptop based 
 Ubuntu / Windows / Mac
 XAMPP / Laragon / native PHP
 MySQL / MariaDB / SQLite
+
+
+email only sending when new registration happens and order placed in other event email is not sending please fix this.
+
+there is one problem when first user onboarding in this app as when email or other settings is setted when i refresh the migration and when i create first user after it is showing unauthorized action after refresh the acount is showing and after that i create new user it is working fine so please fix this issue.

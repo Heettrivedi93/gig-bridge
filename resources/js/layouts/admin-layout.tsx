@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Bell,
     BookText,
+    BadgePercent,
     LayoutGrid,
     Package,
     Settings,
@@ -34,6 +35,7 @@ const adminNavItems: NavItem[] = [
     { title: 'Notifications', href: '/notifications', icon: Bell },
     { title: 'Categories', href: admin.categories.index.url(), icon: Tag },
     { title: 'Plans', href: '/admin/plans', icon: Package },
+    { title: 'Coupons', href: '/admin/coupons', icon: BadgePercent },
     { title: 'Orders', href: '/admin/orders', icon: ShoppingBag },
     { title: 'Withdrawals', href: '/admin/withdrawals', icon: Wallet2 },
     { title: 'Ledger', href: '/admin/ledger', icon: BookText },

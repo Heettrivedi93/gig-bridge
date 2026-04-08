@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminCategoryController;
+use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPlanController;
@@ -115,6 +116,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureSuperAdmin::cl
     Route::post('plans', [AdminPlanController::class, 'store'])->name('plans.store');
     Route::put('plans/{plan}', [AdminPlanController::class, 'update'])->name('plans.update');
     Route::delete('plans/{plan}', [AdminPlanController::class, 'destroy'])->name('plans.destroy');
+
+    // Coupons
+    Route::get('coupons', [AdminCouponController::class, 'index'])->name('coupons.index');
+    Route::post('coupons', [AdminCouponController::class, 'store'])->name('coupons.store');
+    Route::put('coupons/{coupon}', [AdminCouponController::class, 'update'])->name('coupons.update');
+    Route::delete('coupons/{coupon}', [AdminCouponController::class, 'destroy'])->name('coupons.destroy');
 
     // System settings
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');

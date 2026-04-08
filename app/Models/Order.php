@@ -14,6 +14,7 @@ class Order extends Model
         'seller_id',
         'gig_id',
         'package_id',
+        'coupon_id',
         'quantity',
         'requirements',
         'brief_file_path',
@@ -23,6 +24,8 @@ class Order extends Model
         'billing_name',
         'billing_email',
         'unit_price',
+        'subtotal_amount',
+        'discount_amount',
         'price',
         'gross_amount',
         'platform_fee_percentage',
@@ -45,6 +48,8 @@ class Order extends Model
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
+        'subtotal_amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'price' => 'decimal:2',
         'gross_amount' => 'decimal:2',
         'platform_fee_percentage' => 'decimal:2',
@@ -76,6 +81,11 @@ class Order extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(GigPackage::class, 'package_id');
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function releasedBy(): BelongsTo

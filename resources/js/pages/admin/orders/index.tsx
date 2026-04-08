@@ -48,6 +48,8 @@ type OrderRow = {
     reference_link: string | null;
     style_notes: string | null;
     coupon_code: string | null;
+    subtotal_amount: string;
+    discount_amount: string;
     brief_file_url: string | null;
     price: string;
     platform_fee: string;
@@ -362,6 +364,11 @@ export default function AdminOrdersIndex({
                                         <div className="font-medium">
                                             USD {order.price}
                                         </div>
+                                        {Number(order.discount_amount) > 0 && (
+                                            <div className="text-xs text-emerald-600">
+                                                Discount: USD {order.discount_amount}
+                                            </div>
+                                        )}
                                         <div className="text-xs text-muted-foreground">
                                             Fee {platformFeePercentage}%: USD{' '}
                                             {order.platform_fee}
@@ -478,6 +485,11 @@ export default function AdminOrdersIndex({
                                     <p className="mt-2 font-medium">
                                         USD {editTarget.price}
                                     </p>
+                                    {Number(editTarget.discount_amount) > 0 && (
+                                        <p className="text-sm text-emerald-600">
+                                            Subtotal USD {editTarget.subtotal_amount} • Discount USD {editTarget.discount_amount}
+                                        </p>
+                                    )}
                                     <p className="text-sm text-muted-foreground">
                                         Fee: USD {editTarget.platform_fee}
                                     </p>
@@ -681,6 +693,11 @@ export default function AdminOrdersIndex({
                                         {editTarget.coupon_code && (
                                             <span>
                                                 Coupon: {editTarget.coupon_code}
+                                            </span>
+                                        )}
+                                        {Number(editTarget.discount_amount) > 0 && (
+                                            <span>
+                                                Discount: USD {editTarget.discount_amount}
                                             </span>
                                         )}
                                     </div>
