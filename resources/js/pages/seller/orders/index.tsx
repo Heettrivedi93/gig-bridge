@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import {
     Clock3,
+    Download,
     FileText,
     PackageCheck,
     ShieldAlert,
@@ -183,10 +184,26 @@ export default function SellerOrdersIndex({ orders }: Props) {
             <Head title="Seller Orders" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <Heading
-                    title="Seller Orders"
-                    description="A clean view of active work, delivery status, and buyer briefs."
-                />
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <Heading
+                        title="Seller Orders"
+                        description="A clean view of active work, delivery status, and buyer briefs."
+                    />
+                    <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <a href="/seller/orders/export/excel">
+                                <Download className="size-4" />
+                                Export Excel
+                            </a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                            <a href="/seller/orders/export/pdf">
+                                <FileText className="size-4" />
+                                Export PDF
+                            </a>
+                        </Button>
+                    </div>
+                </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
                     <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">

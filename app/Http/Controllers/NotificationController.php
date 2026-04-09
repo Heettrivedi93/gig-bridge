@@ -27,7 +27,7 @@ class NotificationController extends Controller
             ->values();
 
         return Inertia::render('notifications/index', [
-            'notifications' => $notifications,
+            'notificationItems' => $notifications,
         ]);
     }
 

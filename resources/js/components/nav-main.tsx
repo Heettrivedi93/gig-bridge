@@ -24,10 +24,14 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             tooltip={{ children: item.title }}
                         >
                             <Link href={item.href} prefetch>
-                                {item.icon && <item.icon />}
+                                {item.icon ? (
+                                    <span className="flex size-4 shrink-0 items-center justify-center">
+                                        <item.icon />
+                                    </span>
+                                ) : null}
                                 <span>{item.title}</span>
                                 {item.badge ? (
-                                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] leading-5 font-semibold text-primary-foreground">
+                                    <span className="ml-auto inline-flex shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] leading-5 font-semibold text-primary-foreground">
                                         {item.badge}
                                     </span>
                                 ) : null}

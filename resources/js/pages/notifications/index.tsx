@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { BellRing } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { BellRing, CheckCheck } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ type NotificationItem = {
 };
 
 type Props = {
-    notifications: NotificationItem[];
+    notificationItems: NotificationItem[];
 };
 
 function formatDate(value?: string | null) {
@@ -30,19 +30,39 @@ function formatDate(value?: string | null) {
     }).format(new Date(value));
 }
 
-export default function NotificationsIndex({ notifications }: Props) {
+export default function NotificationsIndex({ notificationItems }: Props) {
+    const unreadCount = notificationItems.filter(
+        (notification) => !notification.read_at,
+    ).length;
+
+    const markAllAsRead = () => {
+        router.post('/notifications/read-all', {}, { preserveScroll: true });
+    };
+
     return (
         <>
             <Head title="Notifications" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <Heading
-                    title="Notifications"
-                    description="Review recent in-app notifications triggered by orders and payment events."
-                />
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <Heading
+                        title="Notifications"
+                        description="Review recent in-app notifications triggered by orders and payment events."
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={markAllAsRead}
+                        disabled={unreadCount === 0}
+                    >
+                        <CheckCheck className="size-4" />
+                        Mark all messages
+                    </Button>
+                </div>
 
                 <div className="grid gap-4">
-                    {notifications.length === 0 ? (
+                    {notificationItems.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
                             <BellRing className="mx-auto size-8 text-muted-foreground" />
                             <p className="mt-3 text-sm text-muted-foreground">
@@ -50,7 +70,7 @@ export default function NotificationsIndex({ notifications }: Props) {
                             </p>
                         </div>
                     ) : (
-                        notifications.map((notification) => (
+                        notificationItems.map((notification) => (
                             <div
                                 key={notification.id}
                                 className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border"

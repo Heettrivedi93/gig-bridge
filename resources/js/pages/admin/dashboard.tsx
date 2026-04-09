@@ -485,6 +485,65 @@ function BreakdownCard({
     );
 }
 
+function AnimatedCategoryChart({
+    data,
+}: {
+    data: CategoryRow[];
+}) {
+    const { ref, inView } = useInViewOnce<HTMLDivElement>();
+
+    return (
+        <div ref={ref}>
+            {inView ? (
+                <ChartContainer
+                    key="animated-category-chart"
+                    config={categoryChartConfig}
+                    className="h-[280px] w-full rounded-2xl border border-border/70 bg-background/80 p-4"
+                >
+                    <RechartsPrimitive.BarChart
+                        data={data}
+                        layout="vertical"
+                        margin={{ top: 4, right: 12, left: 12, bottom: 4 }}
+                    >
+                        <RechartsPrimitive.CartesianGrid horizontal={false} />
+                        <RechartsPrimitive.XAxis
+                            type="number"
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(value) => `$${Number(value).toFixed(0)}`}
+                        />
+                        <RechartsPrimitive.YAxis
+                            type="category"
+                            dataKey="name"
+                            tickLine={false}
+                            axisLine={false}
+                            width={96}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={
+                                <ChartTooltipContent
+                                    hideLabel
+                                    formatter={(value) => formatCurrency(Number(value))}
+                                />
+                            }
+                        />
+                        <RechartsPrimitive.Bar
+                            dataKey="gross_sales"
+                            radius={[0, 10, 10, 0]}
+                            fill="var(--color-gross_sales)"
+                            animationDuration={900}
+                            animationEasing="ease-out"
+                        />
+                    </RechartsPrimitive.BarChart>
+                </ChartContainer>
+            ) : (
+                <div className="h-[280px] w-full rounded-2xl border border-border/70 bg-background/80 p-4" />
+            )}
+        </div>
+    );
+}
+
 export default function AdminDashboard({
     filters,
     stats,
@@ -498,6 +557,22 @@ export default function AdminDashboard({
     recentActivity,
     businessStats,
 }: Props) {
+    const handleRangeChange = (value: string) => {
+        router.get(
+            '/admin/dashboard',
+            {
+                range: value,
+                month: filters.revenue_month.value,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                preserveUrl: true,
+            },
+        );
+    };
+
     const handleRevenueMonthChange = (value: string) => {
         router.get(
             '/admin/dashboard',
@@ -509,6 +584,7 @@ export default function AdminDashboard({
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                preserveUrl: true,
             },
         );
     };
@@ -542,15 +618,13 @@ export default function AdminDashboard({
                                 {filters.options.map((option) => (
                                     <Button
                                         key={option.value}
-                                        asChild
                                         size="sm"
                                         variant={
                                             filters.range === option.value ? 'default' : 'outline'
                                         }
+                                        onClick={() => handleRangeChange(option.value)}
                                     >
-                                        <Link href={`/admin/dashboard?range=${option.value}`} prefetch>
-                                            {option.label}
-                                        </Link>
+                                        {option.label}
                                     </Button>
                                 ))}
                             </div>
@@ -805,49 +879,7 @@ export default function AdminDashboard({
                             )}
 
                             {topCategories.length > 0 ? (
-                                <ChartContainer
-                                    config={categoryChartConfig}
-                                    className="h-[280px] w-full rounded-2xl border border-border/70 bg-background/80 p-4"
-                                >
-                                    <RechartsPrimitive.BarChart
-                                        data={topCategories}
-                                        layout="vertical"
-                                        margin={{ top: 4, right: 12, left: 12, bottom: 4 }}
-                                    >
-                                        <RechartsPrimitive.CartesianGrid horizontal={false} />
-                                        <RechartsPrimitive.XAxis
-                                            type="number"
-                                            tickLine={false}
-                                            axisLine={false}
-                                            tickFormatter={(value) => `$${Number(value).toFixed(0)}`}
-                                        />
-                                        <RechartsPrimitive.YAxis
-                                            type="category"
-                                            dataKey="name"
-                                            tickLine={false}
-                                            axisLine={false}
-                                            width={96}
-                                        />
-                                        <ChartTooltip
-                                            cursor={false}
-                                            content={
-                                                <ChartTooltipContent
-                                                    hideLabel
-                                                    formatter={(value) =>
-                                                        formatCurrency(Number(value))
-                                                    }
-                                                />
-                                            }
-                                        />
-                                        <RechartsPrimitive.Bar
-                                            dataKey="gross_sales"
-                                            radius={[0, 10, 10, 0]}
-                                            fill="var(--color-gross_sales)"
-                                            animationDuration={900}
-                                            animationEasing="ease-out"
-                                        />
-                                    </RechartsPrimitive.BarChart>
-                                </ChartContainer>
+                                <AnimatedCategoryChart data={topCategories} />
                             ) : null}
 
                             {topCategories.map((category) => (

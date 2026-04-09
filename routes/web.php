@@ -43,6 +43,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware('can:seller.orders.access')->group(function () {
             Route::get('orders', [SellerOrderController::class, 'index'])->name('orders.index');
+            Route::get('orders/export/excel', [SellerOrderController::class, 'exportExcel'])->name('orders.export.excel');
+            Route::get('orders/export/pdf', [SellerOrderController::class, 'exportPdf'])->name('orders.export.pdf');
             Route::post('orders/{order}/deliver', [SellerOrderController::class, 'deliver'])->name('orders.deliver');
             Route::post('orders/{order}/cancel', [SellerOrderController::class, 'cancel'])->name('orders.cancel');
         });
