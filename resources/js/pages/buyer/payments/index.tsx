@@ -353,12 +353,15 @@ export default function BuyerPaymentsIndex({ payments, buyer }: Props) {
                             </div>
 
                             <div className="flex justify-end">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => window.print()}
-                                >
-                                    <Download className="mr-2 size-4" />
-                                    Print invoice
+                                <Button asChild variant="outline">
+                                    <a
+                                        href={`/buyer/payments/${selectedPayment.id}/invoice.pdf`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <Download className="mr-2 size-4" />
+                                        Download PDF
+                                    </a>
                                 </Button>
                             </div>
                         </div>

@@ -68,14 +68,20 @@ class SellerGigController extends Controller
         }
 
         DB::transaction(function () use ($request, $seller, $data) {
+            $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
+
             $gig = Gig::create([
                 'user_id' => $seller->id,
                 'category_id' => $data['category_id'],
                 'subcategory_id' => $data['subcategory_id'],
                 'title' => $data['title'],
                 'description' => $data['description'],
-                'tags' => $this->normalizeTags($data['tags'] ?? null),
+                'tags' => $normalizedTags,
                 'status' => $data['status'],
+                'approval_status' => 'pending',
+                'rejection_reason' => null,
+                'approved_at' => null,
+                'rejected_at' => null,
             ]);
 
             $this->syncPackages($gig, $data['packages']);
@@ -98,13 +104,20 @@ class SellerGigController extends Controller
         }
 
         DB::transaction(function () use ($request, $gig, $data) {
+            $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
+            $needsReapproval = $this->needsReapproval($gig, $data, $normalizedTags);
+
             $gig->update([
                 'category_id' => $data['category_id'],
                 'subcategory_id' => $data['subcategory_id'],
                 'title' => $data['title'],
                 'description' => $data['description'],
-                'tags' => $this->normalizeTags($data['tags'] ?? null),
+                'tags' => $normalizedTags,
                 'status' => $data['status'],
+                'approval_status' => $needsReapproval ? 'pending' : $gig->approval_status,
+                'rejection_reason' => $needsReapproval ? null : $gig->rejection_reason,
+                'approved_at' => $needsReapproval ? null : $gig->approved_at,
+                'rejected_at' => $needsReapproval ? null : $gig->rejected_at,
             ]);
 
             $this->syncPackages($gig, $data['packages']);
@@ -308,6 +321,10 @@ class SellerGigController extends Controller
             'subcategory_name' => $gig->subcategory?->name,
             'tags' => implode(', ', $gig->tags ?? []),
             'status' => $gig->status,
+            'approval_status' => $gig->approval_status,
+            'rejection_reason' => $gig->rejection_reason,
+            'approved_at' => $gig->approved_at?->toIso8601String(),
+            'rejected_at' => $gig->rejected_at?->toIso8601String(),
             'images' => $gig->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => Storage::disk('public')->url($image->path),
@@ -322,5 +339,49 @@ class SellerGigController extends Controller
                 ],
             ])->all(),
         ];
+    }
+
+    private function needsReapproval(Gig $gig, array $data, array $normalizedTags): bool
+    {
+        if ($gig->approval_status !== 'approved') {
+            return false;
+        }
+
+        if ((int) $gig->category_id !== (int) $data['category_id']) {
+            return true;
+        }
+
+        if ((int) $gig->subcategory_id !== (int) $data['subcategory_id']) {
+            return true;
+        }
+
+        if ($gig->title !== $data['title'] || $gig->description !== $data['description']) {
+            return true;
+        }
+
+        if (($gig->tags ?? []) !== $normalizedTags) {
+            return true;
+        }
+
+        foreach (self::PACKAGE_TIERS as $tier) {
+            $existing = $gig->packages->firstWhere('tier', $tier);
+            $payload = $data['packages'][$tier] ?? null;
+
+            if (! $existing || ! $payload) {
+                return true;
+            }
+
+            if (
+                (string) $existing->title !== (string) $payload['title']
+                || (string) $existing->description !== (string) $payload['description']
+                || (float) $existing->price !== (float) $payload['price']
+                || (int) $existing->delivery_days !== (int) $payload['delivery_days']
+                || (int) $existing->revision_count !== (int) $payload['revision_count']
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

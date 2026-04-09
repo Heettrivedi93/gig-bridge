@@ -11,6 +11,7 @@ use App\Services\CouponService;
 use App\Services\OrderFundService;
 use App\Services\PaypalCheckoutService;
 use App\Services\SystemNotificationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -165,6 +166,27 @@ class BuyerOrderController extends Controller
                 'email' => $buyer->email,
             ],
         ]);
+    }
+
+    public function downloadInvoicePdf(Request $request, Order $order)
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+
+        $order->load(['gig:id,title', 'package:id,title,tier,delivery_days,revision_count', 'seller:id,name,email']);
+
+        abort_unless($order->paypal_order_id !== null, 404);
+
+        $invoiceNumber = 'INV-ORDER-'.$order->id;
+
+        $pdf = Pdf::loadView('invoices.buyer-order-payment', [
+            'invoiceNumber' => $invoiceNumber,
+            'buyer' => $buyer,
+            'order' => $order,
+            'generatedAt' => now(),
+        ])->setPaper('a4');
+
+        return $pdf->download(sprintf('buyer-invoice-%s.pdf', strtolower($invoiceNumber)));
     }
 
     public function store(Request $request, Gig $gig): RedirectResponse

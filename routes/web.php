@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminGigModerationController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPlanController;
 use App\Http\Controllers\Admin\AdminSettingController;
@@ -64,6 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware('can:seller.payments.access')->group(function () {
             Route::get('payments', [SellerPlanController::class, 'history'])->name('payments.index');
+            Route::get('payments/{payment}/invoice.pdf', [SellerPlanController::class, 'downloadInvoicePdf'])->name('payments.invoice.pdf');
         });
     });
 
@@ -86,6 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware('can:buyer.payments.access')->group(function () {
             Route::get('payments', [BuyerOrderController::class, 'payments'])->name('payments.index');
+            Route::get('payments/{order}/invoice.pdf', [BuyerOrderController::class, 'downloadInvoicePdf'])->name('payments.invoice.pdf');
         });
     });
 });
@@ -108,6 +111,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureSuperAdmin::cl
     Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::put('orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
     Route::post('orders/{order}/release-funds', [AdminOrderController::class, 'releaseFunds'])->name('orders.release-funds');
+
+    // Gig moderation
+    Route::get('gigs', [AdminGigModerationController::class, 'index'])->name('gigs.index');
+    Route::post('gigs/{gig}/approve', [AdminGigModerationController::class, 'approve'])->name('gigs.approve');
+    Route::post('gigs/{gig}/reject', [AdminGigModerationController::class, 'reject'])->name('gigs.reject');
 
     // Withdrawals
     Route::get('withdrawals', [AdminWithdrawalController::class, 'index'])->name('withdrawals.index');

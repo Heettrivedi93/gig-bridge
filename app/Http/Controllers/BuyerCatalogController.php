@@ -32,6 +32,7 @@ class BuyerCatalogController extends Controller
 
         $gigs = Gig::query()
             ->where('status', 'active')
+            ->where('approval_status', 'approved')
             ->whereHas('category', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('subcategory', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('seller.roles', fn (Builder $query) => $query->where('name', 'seller'))
@@ -93,7 +94,7 @@ class BuyerCatalogController extends Controller
     {
         $this->ensureBuyer($request);
 
-        abort_unless($gig->status === 'active', 404);
+        abort_unless($gig->status === 'active' && $gig->approval_status === 'approved', 404);
 
         $gig->load([
             'seller:id,name,email',

@@ -63,6 +63,10 @@ type GigItem = {
     subcategory_name: string | null;
     tags: string;
     status: GigStatus;
+    approval_status: 'pending' | 'approved' | 'rejected';
+    rejection_reason: string | null;
+    approved_at: string | null;
+    rejected_at: string | null;
     images: { id: number; url: string }[];
     packages: Record<PackageTier, PackageForm>;
 };
@@ -774,6 +778,30 @@ export default function SellerGigsIndex({
                                                 {gig.status}
                                             </Badge>
                                         </div>
+
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge
+                                                variant={
+                                                    gig.approval_status === 'approved'
+                                                        ? 'default'
+                                                        : gig.approval_status === 'rejected'
+                                                          ? 'destructive'
+                                                          : 'secondary'
+                                                }
+                                            >
+                                                {gig.approval_status}
+                                            </Badge>
+                                        </div>
+
+                                        {gig.rejection_reason ? (
+                                            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                                                Rejected: {gig.rejection_reason}
+                                            </p>
+                                        ) : gig.approval_status === 'pending' ? (
+                                            <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                                                Pending admin review. This gig is not visible to buyers until approved.
+                                            </p>
+                                        ) : null}
 
                                         <p className="line-clamp-3 text-sm text-muted-foreground">
                                             {gig.description}

@@ -1,9 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
+    BadgeCheck,
+    CircleDollarSign,
     Clock3,
     ShoppingBag,
     Sparkles,
+    Wallet,
     Wallet2,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -201,6 +204,20 @@ const buyerSeries = [
     { key: 'spend' as const, color: '#1d4ed8' },
     { key: 'discounts' as const, color: '#d97706' },
 ];
+
+const sellerStatIcons = {
+    net_revenue: Wallet,
+    gross_sales: CircleDollarSign,
+    open_orders: ShoppingBag,
+    available_withdraw: Wallet2,
+} as const;
+
+const buyerStatIcons = {
+    total_spend: Wallet,
+    pending_actions: Clock3,
+    completed_orders: BadgeCheck,
+    active_orders: ShoppingBag,
+} as const;
 
 function formatDate(value: string | null) {
     if (!value) {
@@ -902,18 +919,29 @@ function SellerDashboard({
             </section>
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {sellerAnalytics.stats.map((item) => (
-                    <div key={item.key} className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
-                        <p className="text-sm text-muted-foreground">{item.label}</p>
-                        <AnimatedMetricValue
-                            value={item.value}
-                            kind={item.key === 'open_orders' ? 'number' : 'currency'}
-                            className="mt-3 block text-2xl font-semibold"
-                        />
-                        <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{item.delta}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
-                    </div>
-                ))}
+                {sellerAnalytics.stats.map((item) => {
+                    const Icon = sellerStatIcons[item.key as keyof typeof sellerStatIcons] ?? Sparkles;
+
+                    return (
+                        <div key={item.key} className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                                    <AnimatedMetricValue
+                                        value={item.value}
+                                        kind={item.key === 'open_orders' ? 'number' : 'currency'}
+                                        className="mt-3 block text-2xl font-semibold"
+                                    />
+                                </div>
+                                <div className="rounded-2xl bg-muted/60 p-2.5">
+                                    <Icon className="size-4 text-muted-foreground" />
+                                </div>
+                            </div>
+                            <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{item.delta}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
+                        </div>
+                    );
+                })}
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[1.55fr_0.95fr]">
@@ -1266,18 +1294,29 @@ function BuyerDashboard({
             </section>
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {buyerAnalytics.stats.map((item) => (
-                    <div key={item.key} className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
-                        <p className="text-sm text-muted-foreground">{item.label}</p>
-                        <AnimatedMetricValue
-                            value={item.value}
-                            kind={item.key === 'total_spend' ? 'currency' : 'number'}
-                            className="mt-3 block text-2xl font-semibold"
-                        />
-                        <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{item.delta}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
-                    </div>
-                ))}
+                {buyerAnalytics.stats.map((item) => {
+                    const Icon = buyerStatIcons[item.key as keyof typeof buyerStatIcons] ?? Sparkles;
+
+                    return (
+                        <div key={item.key} className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                                    <AnimatedMetricValue
+                                        value={item.value}
+                                        kind={item.key === 'total_spend' ? 'currency' : 'number'}
+                                        className="mt-3 block text-2xl font-semibold"
+                                    />
+                                </div>
+                                <div className="rounded-2xl bg-muted/60 p-2.5">
+                                    <Icon className="size-4 text-muted-foreground" />
+                                </div>
+                            </div>
+                            <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{item.delta}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
+                        </div>
+                    );
+                })}
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[1.55fr_0.95fr]">

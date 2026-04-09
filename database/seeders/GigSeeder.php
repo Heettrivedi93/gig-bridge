@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Gig;
+use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -222,19 +223,46 @@ class GigSeeder extends Seeder
             ],
         ];
 
-        foreach (array_values(array_slice($definitions, 0, 15)) as $index => $definition) {
-            $seller = $sellers[$index % $sellers->count()];
+        foreach ($sellers as $seller) {
+            $gigLimit = $this->resolveGigLimitForSeller($seller);
+            $seedCount = min($gigLimit, count($definitions));
 
-            $this->seedGig(
-                seller: $seller,
-                category: $definition['category'],
-                subcategory: $definition['subcategory'],
-                title: $definition['title'],
-                description: $definition['description'],
-                tags: $definition['tags'],
-                packages: $definition['packages'],
-            );
+            foreach (array_slice($definitions, 0, $seedCount) as $definition) {
+                $this->seedGig(
+                    seller: $seller,
+                    category: $definition['category'],
+                    subcategory: $definition['subcategory'],
+                    title: $definition['title'],
+                    description: $definition['description'],
+                    tags: $definition['tags'],
+                    packages: $definition['packages'],
+                );
+            }
+
+            $this->command?->info(sprintf(
+                'Seeded %d gigs for seller %s (limit: %d).',
+                $seedCount,
+                $seller->email,
+                $gigLimit,
+            ));
         }
+    }
+
+    private function resolveGigLimitForSeller(User $seller): int
+    {
+        $activeSubscription = $seller->activeSubscription();
+
+        if ($activeSubscription?->plan?->gig_limit) {
+            return (int) $activeSubscription->plan->gig_limit;
+        }
+
+        $fallbackPlan = Plan::query()
+            ->where('status', 'active')
+            ->orderBy('price')
+            ->orderBy('id')
+            ->first();
+
+        return max(1, (int) ($fallbackPlan?->gig_limit ?? 3));
     }
 
     private function seedGig(
@@ -257,6 +285,10 @@ class GigSeeder extends Seeder
                 'description' => $description,
                 'tags' => $tags,
                 'status' => 'active',
+                'approval_status' => 'approved',
+                'rejection_reason' => null,
+                'approved_at' => now(),
+                'rejected_at' => null,
             ]
         );
 

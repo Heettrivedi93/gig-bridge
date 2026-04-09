@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WithdrawalRequest;
 use App\Services\PaypalCheckoutService;
 use App\Services\WalletService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,6 +131,27 @@ class SellerPlanController extends Controller
                 'email' => $seller->email,
             ],
         ]);
+    }
+
+    public function downloadInvoicePdf(Request $request, SubscriptionPayment $payment)
+    {
+        $seller = $this->ensureSeller($request);
+        abort_unless($payment->user_id === $seller->id, 403);
+
+        $payment->load(['plan:id,name,duration_days,gig_limit', 'subscription:id,starts_at,ends_at,status']);
+
+        $invoiceNumber = $payment->provider_capture_id
+            ? 'INV-'.$payment->provider_capture_id
+            : 'INV-'.$payment->provider_order_id;
+
+        $pdf = Pdf::loadView('invoices.seller-payment', [
+            'invoiceNumber' => $invoiceNumber,
+            'seller' => $seller,
+            'payment' => $payment,
+            'generatedAt' => now(),
+        ])->setPaper('a4');
+
+        return $pdf->download(sprintf('seller-invoice-%s.pdf', strtolower($invoiceNumber)));
     }
 
     public function wallet(Request $request): Response
