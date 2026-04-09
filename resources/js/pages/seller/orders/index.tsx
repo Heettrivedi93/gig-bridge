@@ -1,11 +1,15 @@
 import { Head, useForm } from '@inertiajs/react';
 import {
+    Ban,
     Clock3,
     Download,
+    Eye,
     FileText,
+    MessageCircle,
     PackageCheck,
     ShieldAlert,
     ShoppingBag,
+    Truck,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
@@ -20,6 +24,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { BreadcrumbItem } from '@/types';
 
 type SellerOrder = {
@@ -99,6 +108,29 @@ function shortDate(value: string | null) {
     }
 
     return new Date(value).toLocaleDateString();
+}
+
+function ActionIconButton({
+    label,
+    children,
+    className,
+    ...props
+}: { label: string } & React.ComponentProps<typeof Button>) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${className ?? ''}`}
+                    {...props}
+                >
+                    {children}
+                    <span className="sr-only">{label}</span>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
 }
 
 export default function SellerOrdersIndex({ orders }: Props) {
@@ -396,9 +428,9 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                 )}
                                             </td>
                                             <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-2">
-                                                    <Button
-                                                        size="sm"
+                                                <div className="flex flex-wrap gap-2">
+                                                    <ActionIconButton
+                                                        label="View"
                                                         variant="outline"
                                                         onClick={() =>
                                                             setSelectedOrder(
@@ -406,11 +438,11 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                             )
                                                         }
                                                     >
-                                                        View
-                                                    </Button>
+                                                        <Eye className="size-4" />
+                                                    </ActionIconButton>
                                                     {order.buyer && (
-                                                        <Button
-                                                            size="sm"
+                                                        <ActionIconButton
+                                                            label="Message"
                                                             variant="outline"
                                                             onClick={() =>
                                                                 setMessageOrder(
@@ -418,11 +450,11 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                                 )
                                                             }
                                                         >
-                                                            Message
-                                                        </Button>
+                                                            <MessageCircle className="size-4" />
+                                                        </ActionIconButton>
                                                     )}
-                                                    <Button
-                                                        size="sm"
+                                                    <ActionIconButton
+                                                        label="Deliver"
                                                         onClick={() =>
                                                             setDeliveryTarget(
                                                                 order,
@@ -435,10 +467,10 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                                 'paid'
                                                         }
                                                     >
-                                                        Deliver
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
+                                                        <Truck className="size-4" />
+                                                    </ActionIconButton>
+                                                    <ActionIconButton
+                                                        label="Cancel"
                                                         variant="outline"
                                                         onClick={() =>
                                                             setCancelTarget(
@@ -454,8 +486,8 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                             )
                                                         }
                                                     >
-                                                        Cancel
-                                                    </Button>
+                                                        <Ban className="size-4" />
+                                                    </ActionIconButton>
                                                 </div>
                                             </td>
                                         </tr>
@@ -516,28 +548,28 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         {summarizeText(order.requirements, 100)}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Button
-                                            size="sm"
+                                        <ActionIconButton
+                                            label="View"
                                             variant="outline"
                                             onClick={() =>
                                                 setSelectedOrder(order)
                                             }
                                         >
-                                            View
-                                        </Button>
+                                            <Eye className="size-4" />
+                                        </ActionIconButton>
                                         {order.buyer && (
-                                            <Button
-                                                size="sm"
+                                            <ActionIconButton
+                                                label="Message"
                                                 variant="outline"
                                                 onClick={() =>
                                                     setMessageOrder(order)
                                                 }
                                             >
-                                                Message
-                                            </Button>
+                                                <MessageCircle className="size-4" />
+                                            </ActionIconButton>
                                         )}
-                                        <Button
-                                            size="sm"
+                                        <ActionIconButton
+                                            label="Deliver"
                                             onClick={() =>
                                                 setDeliveryTarget(order)
                                             }
@@ -546,10 +578,10 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                 order.payment_status !== 'paid'
                                             }
                                         >
-                                            Deliver
-                                        </Button>
-                                        <Button
-                                            size="sm"
+                                            <Truck className="size-4" />
+                                        </ActionIconButton>
+                                        <ActionIconButton
+                                            label="Cancel"
                                             variant="outline"
                                             onClick={() =>
                                                 setCancelTarget(order)
@@ -561,8 +593,8 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                 ].includes(order.status)
                                             }
                                         >
-                                            Cancel
-                                        </Button>
+                                            <Ban className="size-4" />
+                                        </ActionIconButton>
                                     </div>
                                 </div>
                             ))}

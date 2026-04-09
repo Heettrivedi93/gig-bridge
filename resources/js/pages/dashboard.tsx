@@ -907,7 +907,7 @@ function SellerDashboard({
                                     Orders
                                 </Link>
                             </Button>
-                            <Button asChild size="sm">
+                            <Button asChild size="sm" variant="outline">
                                 <Link href="/seller/wallet" prefetch>
                                     <Wallet2 className="mr-1.5 size-4" />
                                     Wallet
@@ -1282,7 +1282,7 @@ function BuyerDashboard({
                                     Orders
                                 </Link>
                             </Button>
-                            <Button asChild size="sm">
+                            <Button asChild size="sm" variant="outline">
                                 <Link href="/buyer/payments" prefetch>
                                     <Wallet2 className="mr-1.5 size-4" />
                                     Payments

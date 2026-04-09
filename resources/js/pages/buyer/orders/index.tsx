@@ -1,5 +1,12 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { FileText, Star } from 'lucide-react';
+import {
+    CreditCard,
+    Eye,
+    FileText,
+    MessageCircle,
+    RefreshCcw,
+    Star,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -13,6 +20,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { BreadcrumbItem } from '@/types';
 
 type OrderItem = {
@@ -130,6 +142,29 @@ function shortDate(value: string | null) {
     }
 
     return new Date(value).toLocaleDateString();
+}
+
+function ActionIconButton({
+    label,
+    children,
+    className,
+    ...props
+}: { label: string } & React.ComponentProps<typeof Button>) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${className ?? ''}`}
+                    {...props}
+                >
+                    {children}
+                    <span className="sr-only">{label}</span>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
 }
 
 function getCsrfToken() {
@@ -607,9 +642,9 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                 )}
                                             </td>
                                             <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-2">
-                                                    <Button
-                                                        size="sm"
+                                                <div className="flex flex-wrap gap-2">
+                                                    <ActionIconButton
+                                                        label="View"
                                                         variant="outline"
                                                         onClick={() =>
                                                             setSelectedOrder(
@@ -617,11 +652,11 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                             )
                                                         }
                                                     >
-                                                        View
-                                                    </Button>
+                                                        <Eye className="size-4" />
+                                                    </ActionIconButton>
                                                     {order.seller && (
-                                                        <Button
-                                                            size="sm"
+                                                        <ActionIconButton
+                                                            label="Message"
                                                             variant="outline"
                                                             onClick={() =>
                                                                 setMessageOrder(
@@ -629,13 +664,13 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                                 )
                                                             }
                                                         >
-                                                            Message
-                                                        </Button>
+                                                            <MessageCircle className="size-4" />
+                                                        </ActionIconButton>
                                                     )}
                                                     {order.payment_status ===
                                                         'pending' && (
-                                                        <Button
-                                                            size="sm"
+                                                        <ActionIconButton
+                                                            label="Pay"
                                                             onClick={() =>
                                                                 openCheckout(
                                                                     order,
@@ -645,8 +680,8 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                                 !paypal.enabled
                                                             }
                                                         >
-                                                            Pay
-                                                        </Button>
+                                                            <CreditCard className="size-4" />
+                                                        </ActionIconButton>
                                                     )}
                                                     {order.status ===
                                                         'delivered' &&
@@ -654,8 +689,8 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                             'paid' &&
                                                         order.remaining_revisions >
                                                             0 && (
-                                                            <Button
-                                                                size="sm"
+                                                            <ActionIconButton
+                                                                label="Revision"
                                                                 variant="outline"
                                                                 onClick={() =>
                                                                     setRevisionTarget(
@@ -663,14 +698,14 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                                     )
                                                                 }
                                                             >
-                                                                Revision
-                                                            </Button>
+                                                                <RefreshCcw className="size-4" />
+                                                            </ActionIconButton>
                                                         )}
                                                     {order.status ===
                                                         'completed' &&
                                                         !order.review && (
-                                                            <Button
-                                                                size="sm"
+                                                            <ActionIconButton
+                                                                label="Review"
                                                                 variant="outline"
                                                                 onClick={() =>
                                                                     setReviewTarget(
@@ -678,8 +713,8 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                                     )
                                                                 }
                                                             >
-                                                                Review
-                                                            </Button>
+                                                                <Star className="size-4" />
+                                                            </ActionIconButton>
                                                         )}
                                                 </div>
                                             </td>
@@ -741,61 +776,61 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         {summarizeText(order.requirements, 100)}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Button
-                                            size="sm"
+                                        <ActionIconButton
+                                            label="View"
                                             variant="outline"
                                             onClick={() =>
                                                 setSelectedOrder(order)
                                             }
                                         >
-                                            View
-                                        </Button>
+                                            <Eye className="size-4" />
+                                        </ActionIconButton>
                                         {order.seller && (
-                                            <Button
-                                                size="sm"
+                                            <ActionIconButton
+                                                label="Message"
                                                 variant="outline"
                                                 onClick={() =>
                                                     setMessageOrder(order)
                                                 }
                                             >
-                                                Message
-                                            </Button>
+                                                <MessageCircle className="size-4" />
+                                            </ActionIconButton>
                                         )}
                                         {order.payment_status === 'pending' && (
-                                            <Button
-                                                size="sm"
+                                            <ActionIconButton
+                                                label="Pay"
                                                 onClick={() =>
                                                     openCheckout(order)
                                                 }
                                                 disabled={!paypal.enabled}
                                             >
-                                                Pay
-                                            </Button>
+                                                <CreditCard className="size-4" />
+                                            </ActionIconButton>
                                         )}
                                         {order.status === 'delivered' &&
                                             order.payment_status === 'paid' &&
                                             order.remaining_revisions > 0 && (
-                                                <Button
-                                                    size="sm"
+                                                <ActionIconButton
+                                                    label="Revision"
                                                     variant="outline"
                                                     onClick={() =>
                                                         setRevisionTarget(order)
                                                     }
                                                 >
-                                                    Revision
-                                                </Button>
+                                                    <RefreshCcw className="size-4" />
+                                                </ActionIconButton>
                                             )}
                                         {order.status === 'completed' &&
                                             !order.review && (
-                                                <Button
-                                                    size="sm"
+                                                <ActionIconButton
+                                                    label="Review"
                                                     variant="outline"
                                                     onClick={() =>
                                                         setReviewTarget(order)
                                                     }
                                                 >
-                                                    Review
-                                                </Button>
+                                                    <Star className="size-4" />
+                                                </ActionIconButton>
                                             )}
                                     </div>
                                 </div>

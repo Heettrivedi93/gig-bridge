@@ -613,8 +613,8 @@ export default function AdminDashboard({
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-3">
-                            <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col items-end gap-3">
+                            <div className="flex flex-wrap justify-end gap-2">
                                 {filters.options.map((option) => (
                                     <Button
                                         key={option.value}
@@ -629,7 +629,7 @@ export default function AdminDashboard({
                                 ))}
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap justify-end gap-2">
                                 <Button asChild size="sm" variant="outline">
                                     <Link href={admin.categories.index.url()} prefetch>
                                         <FolderTree className="mr-1.5 size-4" />
@@ -642,7 +642,7 @@ export default function AdminDashboard({
                                         Plans
                                     </Link>
                                 </Button>
-                                <Button asChild size="sm">
+                                <Button asChild size="sm" variant="outline">
                                     <Link href="/admin/users" prefetch>
                                         <Users className="mr-1.5 size-4" />
                                         Users
