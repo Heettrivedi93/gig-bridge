@@ -6,48 +6,303 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Plan;
+use App\Models\Review;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 class AdminDashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $paidOrders = Order::query()->whereIn('payment_status', ['paid', 'released']);
+        [$range, $startDate, $previousStartDate, $previousEndDate, $bucketUnit, $bucketFormat] = $this->resolveRange(
+            $request->string('range')->value()
+        );
+        [$selectedRevenueMonth, $revenueMonthOptions] = $this->resolveRevenueMonth(
+            $request->string('month')->value()
+        );
+
+        $paidStatuses = ['paid', 'released'];
+        $paidOrders = Order::query()->whereIn('payment_status', $paidStatuses);
         $paidPlanPayments = SubscriptionPayment::query()->where('status', 'completed');
-        $commissionRevenue = (float) (clone $paidOrders)->sum('platform_fee_amount');
-        $paidPlanRevenue = (float) (clone $paidPlanPayments)->sum('amount');
+
+        $currentPaidOrders = (clone $paidOrders)->where('created_at', '>=', $startDate);
+        $previousPaidOrders = (clone $paidOrders)
+            ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
+        $currentPlanPayments = (clone $paidPlanPayments)->where('created_at', '>=', $startDate);
+        $previousPlanPayments = (clone $paidPlanPayments)
+            ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
+
+        $commissionRevenue = (float) (clone $currentPaidOrders)->sum('platform_fee_amount');
+        $paidPlanRevenue = (float) (clone $currentPlanPayments)->sum('amount');
         $totalPlatformRevenue = $commissionRevenue + $paidPlanRevenue;
-        $grossSales = (float) (clone $paidOrders)->sum('gross_amount');
+        $grossSales = (float) (clone $currentPaidOrders)->sum('gross_amount');
+        $newUsers = User::query()->where('created_at', '>=', $startDate)->count();
+        $completedOrders = Order::query()
+            ->where('created_at', '>=', $startDate)
+            ->where('status', 'completed')
+            ->count();
+
+        $previousCommissionRevenue = (float) (clone $previousPaidOrders)->sum('platform_fee_amount');
+        $previousPaidPlanRevenue = (float) (clone $previousPlanPayments)->sum('amount');
+        $previousGrossSales = (float) (clone $previousPaidOrders)->sum('gross_amount');
+        $previousNewUsers = User::query()
+            ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
+            ->count();
+        $previousCompletedOrders = Order::query()
+            ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
+            ->where('status', 'completed')
+            ->count();
 
         $stats = [
             [
-                'label' => 'Paid Plan Revenue',
-                'value' => number_format($paidPlanRevenue, 2, '.', ''),
-                'delta' => sprintf('%d completed plan payments', (clone $paidPlanPayments)->count()),
-                'key' => 'paid_plan_revenue',
-            ],
-            [
-                'label' => 'Commission Revenue',
-                'value' => number_format($commissionRevenue, 2, '.', ''),
-                'delta' => sprintf('From %d paid seller orders', (clone $paidOrders)->count()),
-                'key' => 'commission_revenue',
-            ],
-            [
-                'label' => 'Total Platform Revenue',
+                'label' => 'Platform Revenue',
                 'value' => number_format($totalPlatformRevenue, 2, '.', ''),
-                'delta' => sprintf('Gross seller sales USD %s', number_format($grossSales, 2, '.', '')),
-                'key' => 'total_platform_revenue',
+                'delta' => $this->formatDelta(
+                    $totalPlatformRevenue,
+                    $previousCommissionRevenue + $previousPaidPlanRevenue,
+                    'vs previous period'
+                ),
+                'meta' => sprintf(
+                    'Commission USD %s + plan revenue USD %s',
+                    number_format($commissionRevenue, 2, '.', ''),
+                    number_format($paidPlanRevenue, 2, '.', '')
+                ),
+                'key' => 'platform_revenue',
             ],
             [
-                'label' => 'Gross Seller Sales',
+                'label' => 'Gross Marketplace Sales',
                 'value' => number_format($grossSales, 2, '.', ''),
-                'delta' => sprintf('%d paid seller orders', (clone $paidOrders)->count()),
-                'key' => 'gross_seller_sales',
+                'delta' => $this->formatDelta($grossSales, $previousGrossSales, 'vs previous period'),
+                'meta' => sprintf('%d paid seller orders in range', (clone $currentPaidOrders)->count()),
+                'key' => 'gross_sales',
+            ],
+            [
+                'label' => 'New Users',
+                'value' => (string) $newUsers,
+                'delta' => $this->formatDelta($newUsers, $previousNewUsers, 'vs previous period'),
+                'meta' => sprintf(
+                    '%d sellers and %d buyers joined',
+                    User::role('seller')->where('created_at', '>=', $startDate)->count(),
+                    User::role('buyer')->where('created_at', '>=', $startDate)->count()
+                ),
+                'key' => 'new_users',
+            ],
+            [
+                'label' => 'Completed Orders',
+                'value' => (string) $completedOrders,
+                'delta' => $this->formatDelta($completedOrders, $previousCompletedOrders, 'vs previous period'),
+                'meta' => sprintf(
+                    '%s completion rate',
+                    $this->formatPercentage(
+                        Order::query()->where('created_at', '>=', $startDate)->count() > 0
+                            ? ($completedOrders / max(Order::query()->where('created_at', '>=', $startDate)->count(), 1)) * 100
+                            : 0
+                    )
+                ),
+                'key' => 'completed_orders',
             ],
         ];
+
+        $trendStartDate = $selectedRevenueMonth
+            ? Carbon::createFromFormat('Y-m', $selectedRevenueMonth)->startOfMonth()
+            : $startDate->copy();
+        $trendEndDate = $selectedRevenueMonth
+            ? Carbon::createFromFormat('Y-m', $selectedRevenueMonth)->endOfMonth()
+            : now();
+        $trendBucketUnit = $selectedRevenueMonth ? 'day' : $bucketUnit;
+        $trendBucketFormat = $selectedRevenueMonth ? 'Y-m-d' : $bucketFormat;
+        $trendPaidOrders = Order::query()
+            ->whereIn('payment_status', $paidStatuses)
+            ->whereBetween('created_at', [$trendStartDate, $trendEndDate]);
+        $trendPlanPayments = SubscriptionPayment::query()
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$trendStartDate, $trendEndDate]);
+
+        $trendRows = (clone $trendPaidOrders)
+            ->get(['created_at', 'gross_amount', 'platform_fee_amount']);
+        $planTrendRows = (clone $trendPlanPayments)
+            ->get(['created_at', 'amount']);
+
+        $orderTrends = $trendRows->groupBy(fn (Order $order) => $order->created_at?->format($trendBucketFormat) ?? '');
+        $planTrends = $planTrendRows->groupBy(fn (SubscriptionPayment $payment) => $payment->created_at?->format($trendBucketFormat) ?? '');
+
+        $revenueTrend = collect($this->buildTrendPeriod($trendStartDate, $trendEndDate, $trendBucketUnit))->map(function (Carbon $date) use (
+            $trendBucketFormat,
+            $trendBucketUnit,
+            $orderTrends,
+            $planTrends
+        ) {
+            $bucket = $date->format($trendBucketFormat);
+            $orderItems = $orderTrends->get($bucket, collect());
+            $planItems = $planTrends->get($bucket, collect());
+            $commission = (float) $orderItems->sum('platform_fee_amount');
+            $gross = (float) $orderItems->sum('gross_amount');
+            $plans = (float) $planItems->sum('amount');
+
+            return [
+                'label' => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
+                'gross_sales' => round($gross, 2),
+                'commission_revenue' => round($commission, 2),
+                'plan_revenue' => round($plans, 2),
+                'platform_revenue' => round($commission + $plans, 2),
+            ];
+        })->values();
+
+        $ordersInRange = Order::query()->where('created_at', '>=', $startDate);
+        $ordersCountInRange = (clone $ordersInRange)->count();
+        $statusOrder = [
+            'pending' => 'Pending',
+            'active' => 'Active',
+            'delivered' => 'Delivered',
+            'completed' => 'Completed',
+            'cancelled' => 'Cancelled',
+        ];
+
+        $orderFunnel = collect($statusOrder)->map(function (string $label, string $status) use ($ordersInRange, $ordersCountInRange) {
+            $count = (clone $ordersInRange)->where('status', $status)->count();
+
+            return [
+                'key' => $status,
+                'label' => $label,
+                'count' => $count,
+                'share' => $ordersCountInRange > 0 ? round(($count / $ordersCountInRange) * 100, 1) : 0,
+            ];
+        })->values();
+
+        $paymentBreakdown = collect([
+            'pending' => 'Pending',
+            'paid' => 'Paid',
+            'released' => 'Released',
+            'refunded' => 'Refunded',
+        ])->map(function (string $label, string $status) use ($startDate, $ordersCountInRange) {
+            $count = Order::query()
+                ->where('created_at', '>=', $startDate)
+                ->where('payment_status', $status)
+                ->count();
+
+            return [
+                'key' => $status,
+                'label' => $label,
+                'count' => $count,
+                'share' => $ordersCountInRange > 0 ? round(($count / $ordersCountInRange) * 100, 1) : 0,
+            ];
+        })->values();
+
+        $topSellerRows = Order::query()
+            ->with('seller:id,name')
+            ->selectRaw('seller_id, COUNT(*) as orders_count, SUM(gross_amount) as gross_sales, SUM(platform_fee_amount) as platform_revenue')
+            ->whereIn('payment_status', $paidStatuses)
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('seller_id')
+            ->orderByDesc('gross_sales')
+            ->take(5)
+            ->get();
+        $sellerRatings = Review::query()
+            ->selectRaw('seller_id, AVG(rating) as average_rating')
+            ->whereIn('seller_id', $topSellerRows->pluck('seller_id'))
+            ->groupBy('seller_id')
+            ->pluck('average_rating', 'seller_id');
+        $topSellers = $topSellerRows->map(fn ($row) => [
+            'name' => $row->seller?->name ?? 'Seller',
+            'gross_sales' => round((float) $row->gross_sales, 2),
+            'platform_revenue' => round((float) $row->platform_revenue, 2),
+            'orders_count' => (int) $row->orders_count,
+            'average_rating' => round((float) ($sellerRatings[$row->seller_id] ?? 0), 1),
+        ])->values();
+
+        $topCategories = Order::query()
+            ->join('gigs', 'orders.gig_id', '=', 'gigs.id')
+            ->leftJoin('categories', 'gigs.category_id', '=', 'categories.id')
+            ->selectRaw('categories.name as category_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as gross_sales')
+            ->whereIn('orders.payment_status', $paidStatuses)
+            ->where('orders.created_at', '>=', $startDate)
+            ->groupBy('categories.name')
+            ->orderByDesc('gross_sales')
+            ->take(5)
+            ->get()
+            ->map(fn ($row) => [
+                'name' => $row->category_name ?: 'Uncategorized',
+                'orders_count' => (int) $row->orders_count,
+                'gross_sales' => round((float) $row->gross_sales, 2),
+            ])
+            ->values();
+
+        $refundCount = Order::query()
+            ->where('created_at', '>=', $startDate)
+            ->where('payment_status', 'refunded')
+            ->count();
+        $cancelledCount = Order::query()
+            ->where('created_at', '>=', $startDate)
+            ->where('status', 'cancelled')
+            ->count();
+        $activeSellers = Order::query()
+            ->whereIn('payment_status', $paidStatuses)
+            ->where('created_at', '>=', $startDate)
+            ->distinct('seller_id')
+            ->count('seller_id');
+        $averageOrderValue = (float) (clone $currentPaidOrders)->avg('gross_amount');
+        $averageRating = (float) Review::query()
+            ->where('created_at', '>=', $startDate)
+            ->avg('rating');
+
+        $platformHealth = [
+            [
+                'label' => 'Cancellation Rate',
+                'value' => $this->formatPercentage($ordersCountInRange > 0 ? ($cancelledCount / $ordersCountInRange) * 100 : 0),
+                'detail' => sprintf('%d cancelled orders in the selected window', $cancelledCount),
+                'tone' => $cancelledCount > 0 ? 'warning' : 'positive',
+            ],
+            [
+                'label' => 'Refund Rate',
+                'value' => $this->formatPercentage($ordersCountInRange > 0 ? ($refundCount / $ordersCountInRange) * 100 : 0),
+                'detail' => sprintf('%d refunded payments in the selected window', $refundCount),
+                'tone' => $refundCount > 0 ? 'warning' : 'positive',
+            ],
+            [
+                'label' => 'Average Order Value',
+                'value' => sprintf('USD %s', number_format($averageOrderValue, 2, '.', '')),
+                'detail' => 'Based on paid and released seller orders',
+                'tone' => 'neutral',
+            ],
+            [
+                'label' => 'Average Rating',
+                'value' => number_format($averageRating, 1, '.', ''),
+                'detail' => sprintf('%d active sellers converted at least one paid order', $activeSellers),
+                'tone' => $averageRating >= 4 ? 'positive' : 'neutral',
+            ],
+        ];
+
+        $insights = array_values(array_filter([
+            $revenueTrend->sum('platform_revenue') > 0
+                ? sprintf(
+                    '%s generated the most platform revenue in this window.',
+                    $revenueTrend->sortByDesc('platform_revenue')->first()['label'] ?? 'This period'
+                )
+                : null,
+            $topSellers->isNotEmpty()
+                ? sprintf(
+                    '%s is the top seller by GMV with USD %s in paid sales.',
+                    $topSellers->first()['name'],
+                    number_format($topSellers->first()['gross_sales'], 2, '.', '')
+                )
+                : null,
+            $topCategories->isNotEmpty()
+                ? sprintf(
+                    '%s leads category sales with %d paid orders.',
+                    $topCategories->first()['name'],
+                    $topCategories->first()['orders_count']
+                )
+                : null,
+            $refundCount > 0
+                ? sprintf('Refund activity needs attention: %d refunded orders landed in the selected range.', $refundCount)
+                : 'No refunds were recorded in the selected range.',
+        ]));
 
         $recentUserItems = User::query()
             ->latest('created_at')
@@ -85,7 +340,27 @@ class AdminDashboardController extends Controller
             ->values();
 
         return Inertia::render('admin/dashboard', [
+            'filters' => [
+                'range' => $range,
+                'options' => [
+                    ['value' => '7d', 'label' => '7D'],
+                    ['value' => '30d', 'label' => '30D'],
+                    ['value' => '90d', 'label' => '90D'],
+                    ['value' => '12m', 'label' => '12M'],
+                ],
+                'revenue_month' => [
+                    'value' => $selectedRevenueMonth ?? 'all',
+                    'options' => $revenueMonthOptions,
+                ],
+            ],
             'stats' => $stats,
+            'revenueTrend' => $revenueTrend,
+            'orderFunnel' => $orderFunnel,
+            'paymentBreakdown' => $paymentBreakdown,
+            'topSellers' => $topSellers,
+            'topCategories' => $topCategories,
+            'platformHealth' => $platformHealth,
+            'insights' => $insights,
             'recentActivity' => $recentActivity,
             'businessStats' => [
                 [
@@ -110,5 +385,100 @@ class AdminDashboardController extends Controller
                 ],
             ],
         ]);
+    }
+
+    private function resolveRange(?string $requestedRange): array
+    {
+        $range = in_array($requestedRange, ['7d', '30d', '90d', '12m'], true)
+            ? $requestedRange
+            : '7d';
+
+        $now = now();
+
+        return match ($range) {
+            '7d' => [
+                $range,
+                $now->copy()->subDays(6)->startOfDay(),
+                $now->copy()->subDays(13)->startOfDay(),
+                $now->copy()->subDays(7)->endOfDay(),
+                'day',
+                'Y-m-d',
+            ],
+            '90d' => [
+                $range,
+                $now->copy()->subDays(89)->startOfDay(),
+                $now->copy()->subDays(179)->startOfDay(),
+                $now->copy()->subDays(90)->endOfDay(),
+                'day',
+                'Y-m-d',
+            ],
+            '12m' => [
+                $range,
+                $now->copy()->subMonths(11)->startOfMonth(),
+                $now->copy()->subMonths(23)->startOfMonth(),
+                $now->copy()->subMonths(12)->endOfMonth(),
+                'month',
+                'Y-m',
+            ],
+            default => [
+                $range,
+                $now->copy()->subDays(29)->startOfDay(),
+                $now->copy()->subDays(59)->startOfDay(),
+                $now->copy()->subDays(30)->endOfDay(),
+                'day',
+                'Y-m-d',
+            ],
+        };
+    }
+
+    private function buildTrendPeriod(CarbonInterface $startDate, CarbonInterface $endDate, string $bucketUnit): array
+    {
+        $interval = $bucketUnit === 'month' ? '1 month' : '1 day';
+
+        return iterator_to_array(CarbonPeriod::create($startDate, $interval, $endDate));
+    }
+
+    private function resolveRevenueMonth(?string $requestedMonth): array
+    {
+        $options = collect(range(0, 11))
+            ->map(fn (int $offset) => now()->copy()->startOfMonth()->subMonths($offset))
+            ->map(fn (CarbonInterface $month) => [
+                'value' => $month->format('Y-m'),
+                'label' => $month->format('F Y'),
+            ])
+            ->values();
+
+        $selectedMonth = $options->contains(fn (array $option) => $option['value'] === $requestedMonth)
+            ? $requestedMonth
+            : null;
+
+        return [
+            $selectedMonth,
+            $options->prepend([
+                'value' => 'all',
+                'label' => 'All months',
+            ])->values()->all(),
+        ];
+    }
+
+    private function formatDelta(float|int $current, float|int $previous, string $suffix): string
+    {
+        if ((float) $previous === 0.0) {
+            if ((float) $current === 0.0) {
+                return sprintf('0.0%% %s', $suffix);
+            }
+
+            return sprintf('+100.0%% %s', $suffix);
+        }
+
+        $change = (($current - $previous) / $previous) * 100;
+        $prefix = $change > 0 ? '+' : '';
+
+        return sprintf('%s%s%% %s', $prefix, number_format($change, 1, '.', ''), $suffix);
+    }
+
+    private function formatPercentage(float $value): string
+    {
+        return sprintf('%s%%', number_format($value, 1, '.', ''));
     }
 }
