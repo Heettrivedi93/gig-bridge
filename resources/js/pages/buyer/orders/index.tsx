@@ -22,6 +22,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Tooltip,
     TooltipContent,
@@ -148,6 +156,10 @@ function shortDate(value: string | null) {
     return new Date(value).toLocaleDateString();
 }
 
+function normalizeSearch(value: string | null | undefined) {
+    return value?.toLowerCase().trim() ?? '';
+}
+
 function ActionIconButton({
     label,
     children,
@@ -254,7 +266,39 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
         rating: '5',
         comment: '',
     });
-    const paginatedOrders = useClientPagination(orders);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [paymentFilter, setPaymentFilter] = useState('all');
+    const filteredOrders = useMemo(() => {
+        const searchTerm = normalizeSearch(search);
+
+        return orders.filter((order) => {
+            const matchesSearch =
+                searchTerm.length === 0 ||
+                [
+                    order.id.toString(),
+                    order.gig_title,
+                    order.package?.title,
+                    order.package?.tier,
+                    order.seller?.name,
+                    order.seller?.email,
+                ].some((value) => normalizeSearch(value).includes(searchTerm));
+            const matchesStatus =
+                statusFilter === 'all' || order.status === statusFilter;
+            const matchesPayment =
+                paymentFilter === 'all' ||
+                order.payment_status === paymentFilter;
+
+            return matchesSearch && matchesStatus && matchesPayment;
+        });
+    }, [orders, paymentFilter, search, statusFilter]);
+    const paginatedOrders = useClientPagination(filteredOrders);
+    const statusOptions = Array.from(
+        new Set(orders.map((order) => order.status)),
+    );
+    const paymentOptions = Array.from(
+        new Set(orders.map((order) => order.payment_status)),
+    );
 
     useEffect(() => {
         if (
@@ -505,6 +549,91 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                     description="A simpler view of your purchases, payments, and deliveries."
                 />
 
+                <section className="rounded-2xl border border-border/70 bg-card p-4">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.7fr)_minmax(180px,0.7fr)_auto]">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Search orders
+                            </label>
+                            <Input
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                placeholder="Search by order ID, seller, or gig"
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Status
+                            </label>
+                            <Select
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                    <SelectItem value="all">
+                                        All statuses
+                                    </SelectItem>
+                                    {statusOptions.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {status}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Payment
+                            </label>
+                            <Select
+                                value={paymentFilter}
+                                onValueChange={setPaymentFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                    <SelectItem value="all">
+                                        All payments
+                                    </SelectItem>
+                                    {paymentOptions.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {status}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setSearch('');
+                                    setStatusFilter('all');
+                                    setPaymentFilter('all');
+                                }}
+                                className="w-full lg:w-auto"
+                            >
+                                Clear
+                            </Button>
+                        </div>
+                    </div>
+
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        {filteredOrders.length} matching order
+                        {filteredOrders.length === 1 ? '' : 's'} found.
+                    </p>
+                </section>
+
                 {orders.length === 0 ? (
                     <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
                         <h2 className="text-lg font-semibold">No orders yet</h2>
@@ -517,6 +646,16 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                 <Link href="/buyer/gigs">Explore gigs</Link>
                             </Button>
                         </div>
+                    </section>
+                ) : filteredOrders.length === 0 ? (
+                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
+                        <h2 className="text-lg font-semibold">
+                            No matching orders
+                        </h2>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Try changing your search term or clearing one of the
+                            filters.
+                        </p>
                     </section>
                 ) : (
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
