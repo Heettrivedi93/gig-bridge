@@ -27,7 +27,7 @@ class AdminDashboardController extends Controller
             $request->string('month')->value()
         );
 
-        $paidStatuses = ['paid', 'released'];
+        $paidStatuses = ['paid', 'released', 'refunded'];
         $paidOrders = Order::query()->whereIn('payment_status', $paidStatuses);
         $paidPlanPayments = SubscriptionPayment::query()->where('status', 'completed');
 
@@ -38,19 +38,33 @@ class AdminDashboardController extends Controller
         $previousPlanPayments = (clone $paidPlanPayments)
             ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
 
-        $commissionRevenue = (float) (clone $currentPaidOrders)->sum('platform_fee_amount');
+        $currentOrderRows = (clone $currentPaidOrders)->get(['gross_amount', 'refunded_amount', 'platform_fee_percentage']);
+        $previousOrderRows = (clone $previousPaidOrders)->get(['gross_amount', 'refunded_amount', 'platform_fee_percentage']);
+
+        $grossSales        = $currentOrderRows->sum(fn (Order $o) => (float) $o->gross_amount);
+        $totalRefunds      = $currentOrderRows->sum(fn (Order $o) => (float) ($o->refunded_amount ?? 0));
+        $netSales          = $grossSales - $totalRefunds;
+        $commissionRevenue = $currentOrderRows->reduce(function (float $c, Order $o) {
+            $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+            return $c + round($net * ((float) $o->platform_fee_percentage / 100), 2);
+        }, 0.0);
+
+        $previousGrossSales        = $previousOrderRows->sum(fn (Order $o) => (float) $o->gross_amount);
+        $previousTotalRefunds      = $previousOrderRows->sum(fn (Order $o) => (float) ($o->refunded_amount ?? 0));
+        $previousNetSales          = $previousGrossSales - $previousTotalRefunds;
+        $previousCommissionRevenue = $previousOrderRows->reduce(function (float $c, Order $o) {
+            $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+            return $c + round($net * ((float) $o->platform_fee_percentage / 100), 2);
+        }, 0.0);
+
         $paidPlanRevenue = (float) (clone $currentPlanPayments)->sum('amount');
+        $previousPaidPlanRevenue = (float) (clone $previousPlanPayments)->sum('amount');
         $totalPlatformRevenue = $commissionRevenue + $paidPlanRevenue;
-        $grossSales = (float) (clone $currentPaidOrders)->sum('gross_amount');
         $newUsers = User::query()->where('created_at', '>=', $startDate)->count();
         $completedOrders = Order::query()
             ->where('created_at', '>=', $startDate)
             ->where('status', 'completed')
             ->count();
-
-        $previousCommissionRevenue = (float) (clone $previousPaidOrders)->sum('platform_fee_amount');
-        $previousPaidPlanRevenue = (float) (clone $previousPlanPayments)->sum('amount');
-        $previousGrossSales = (float) (clone $previousPaidOrders)->sum('gross_amount');
         $previousNewUsers = User::query()
             ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
             ->count();
@@ -79,7 +93,7 @@ class AdminDashboardController extends Controller
                 'label' => 'Gross Marketplace Sales',
                 'value' => number_format($grossSales, 2, '.', ''),
                 'delta' => $this->formatDelta($grossSales, $previousGrossSales, 'vs previous period'),
-                'meta' => sprintf('%d paid seller orders in range', (clone $currentPaidOrders)->count()),
+                'meta' => sprintf('Refunds USD %s · Net sales USD %s', number_format($totalRefunds, 2, '.', ''), number_format($netSales, 2, '.', '')),
                 'key' => 'gross_sales',
             ],
             [
@@ -125,7 +139,7 @@ class AdminDashboardController extends Controller
             ->whereBetween('created_at', [$trendStartDate, $trendEndDate]);
 
         $trendRows = (clone $trendPaidOrders)
-            ->get(['created_at', 'gross_amount', 'platform_fee_amount']);
+            ->get(['created_at', 'gross_amount', 'refunded_amount', 'platform_fee_percentage']);
         $planTrendRows = (clone $trendPlanPayments)
             ->get(['created_at', 'amount']);
 
@@ -141,16 +155,22 @@ class AdminDashboardController extends Controller
             $bucket = $date->format($trendBucketFormat);
             $orderItems = $orderTrends->get($bucket, collect());
             $planItems = $planTrends->get($bucket, collect());
-            $commission = (float) $orderItems->sum('platform_fee_amount');
-            $gross = (float) $orderItems->sum('gross_amount');
+            $gross      = $orderItems->sum(fn (Order $o) => (float) $o->gross_amount);
+            $refunds    = $orderItems->sum(fn (Order $o) => (float) ($o->refunded_amount ?? 0));
+            $commission = $orderItems->reduce(function (float $c, Order $o) {
+                $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                return $c + round($net * ((float) $o->platform_fee_percentage / 100), 2);
+            }, 0.0);
             $plans = (float) $planItems->sum('amount');
 
             return [
-                'label' => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
-                'gross_sales' => round($gross, 2),
+                'label'              => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
+                'gross_sales'        => round($gross, 2),
+                'total_refunds'      => round($refunds, 2),
+                'net_sales'          => round($gross - $refunds, 2),
                 'commission_revenue' => round($commission, 2),
-                'plan_revenue' => round($plans, 2),
-                'platform_revenue' => round($commission + $plans, 2),
+                'plan_revenue'       => round($plans, 2),
+                'platform_revenue'   => round($commission + $plans, 2),
             ];
         })->values();
 
@@ -196,7 +216,7 @@ class AdminDashboardController extends Controller
 
         $topSellerRows = Order::query()
             ->with('seller:id,name')
-            ->selectRaw('seller_id, COUNT(*) as orders_count, SUM(gross_amount) as gross_sales, SUM(platform_fee_amount) as platform_revenue')
+            ->selectRaw('seller_id, COUNT(*) as orders_count, SUM(gross_amount) as gross_sales, SUM(COALESCE(refunded_amount,0)) as total_refunds, SUM((gross_amount - COALESCE(refunded_amount,0)) * platform_fee_percentage / 100) as platform_revenue')
             ->whereIn('payment_status', $paidStatuses)
             ->where('created_at', '>=', $startDate)
             ->groupBy('seller_id')
@@ -209,17 +229,19 @@ class AdminDashboardController extends Controller
             ->groupBy('seller_id')
             ->pluck('average_rating', 'seller_id');
         $topSellers = $topSellerRows->map(fn ($row) => [
-            'name' => $row->seller?->name ?? 'Seller',
-            'gross_sales' => round((float) $row->gross_sales, 2),
+            'name'             => $row->seller?->name ?? 'Seller',
+            'gross_sales'      => round((float) $row->gross_sales, 2),
+            'total_refunds'    => round((float) $row->total_refunds, 2),
+            'net_sales'        => round((float) $row->gross_sales - (float) $row->total_refunds, 2),
             'platform_revenue' => round((float) $row->platform_revenue, 2),
-            'orders_count' => (int) $row->orders_count,
-            'average_rating' => round((float) ($sellerRatings[$row->seller_id] ?? 0), 1),
+            'orders_count'     => (int) $row->orders_count,
+            'average_rating'   => round((float) ($sellerRatings[$row->seller_id] ?? 0), 1),
         ])->values();
 
         $topCategories = Order::query()
             ->join('gigs', 'orders.gig_id', '=', 'gigs.id')
             ->leftJoin('categories', 'gigs.category_id', '=', 'categories.id')
-            ->selectRaw('categories.name as category_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as gross_sales')
+            ->selectRaw('categories.name as category_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as gross_sales, SUM(COALESCE(orders.refunded_amount,0)) as total_refunds')
             ->whereIn('orders.payment_status', $paidStatuses)
             ->where('orders.created_at', '>=', $startDate)
             ->groupBy('categories.name')
@@ -227,9 +249,11 @@ class AdminDashboardController extends Controller
             ->take(5)
             ->get()
             ->map(fn ($row) => [
-                'name' => $row->category_name ?: 'Uncategorized',
-                'orders_count' => (int) $row->orders_count,
-                'gross_sales' => round((float) $row->gross_sales, 2),
+                'name'          => $row->category_name ?: 'Uncategorized',
+                'orders_count'  => (int) $row->orders_count,
+                'gross_sales'   => round((float) $row->gross_sales, 2),
+                'total_refunds' => round((float) $row->total_refunds, 2),
+                'net_sales'     => round((float) $row->gross_sales - (float) $row->total_refunds, 2),
             ])
             ->values();
 

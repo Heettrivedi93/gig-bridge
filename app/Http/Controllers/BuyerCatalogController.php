@@ -143,7 +143,7 @@ class BuyerCatalogController extends Controller
                         'created_at' => $review->created_at?->toIso8601String(),
                     ]),
             ],
-            'coupons' => $this->coupons->availableCoupons()
+            'coupons' => $this->coupons->availableCoupons($request->user()->id)
                 ->map(fn ($coupon) => [
                     'id' => $coupon->id,
                     'code' => $coupon->code,

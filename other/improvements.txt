@@ -1,0 +1,70 @@
+so now all check this project and give me suggestion to improve in that area where we need to improve.
+
+
+Context
+I will scan the entire codebase for a full review.
+
+I will scan the entire code for the following files/folders:
+
+I've completed a full scan of the entire codebase. Since there were more than 30 findings, you'll need to use the Code Issues Panel to see all the details and fixes.
+
+That said, based on everything I've built and reviewed throughout this project, here are my broader architectural and quality suggestions grouped by area:
+
+🔐 Security
+Rate limiting — Add throttle middleware on login, register, PayPal capture, and dispute message endpoints. Currently none of these are rate-limited.
+
+File upload validation — Delivery files, dispute attachments, and brief files only check max:8192 but don't restrict MIME types. A malicious file could be uploaded. Add mimes:pdf,jpg,jpeg,png,zip,doc,docx.
+
+Authorization gaps — Some admin routes only check EnsureSuperAdmin middleware but individual resource ownership isn't always verified (e.g. admin can release funds on any order without checking it belongs to the platform).
+
+Mass assignment — Several models have broad $fillable arrays. Consider using $guarded = [] carefully or tightening fillable lists.
+
+⚡ Performance
+N+1 queries — The dashboard controller runs many separate count() queries in loops. These should be batched with withCount() or a single grouped query.
+
+No pagination — Orders, gigs, messages, and wallet transactions all load the full collection with ->get(). On a real platform with thousands of records this will be slow. Add paginate(20) or cursor pagination.
+
+No caching — Settings like payment_platform_fee_percentage are fetched from DB on every request. These should be cached with Cache::remember() since they rarely change.
+
+Missing database indexes — orders.buyer_id, orders.seller_id, orders.payment_status, disputes.status, coupon_user.user_id should all have indexes for query performance.
+
+🏗️ Architecture
+Fat controllers — BuyerOrderController and DashboardController are very large. Business logic like order completion, fund release decisions, and dashboard metric calculations should move into dedicated Service classes.
+
+No queue usage for notifications — SystemNotificationService sends emails synchronously during the request cycle. This blocks the response. All notifications should be dispatched as queued jobs.
+
+No events/listeners — The README mentions events but they aren't implemented. Order state transitions (placed, delivered, completed, cancelled) should fire events that listeners handle — notifications, wallet updates, Trello cards — instead of calling services directly in controllers.
+
+Dispute resolution doesn't update order status atomically — The DisputeService updates wallet and order in a transaction but the order status update happens after wallet operations. If something fails mid-way the order could be in an inconsistent state.
+
+🧪 Testing
+Several test files exist but coverage is incomplete for the dispute system, coupon per-user tracking, and wallet clawback scenarios. These are the most financially sensitive areas and need thorough test coverage.
+
+🎨 Frontend
+No loading states — Most forms show processing on the submit button but table data has no skeleton loaders. On slow connections the page appears blank briefly.
+
+No error boundaries — A single React component crash takes down the whole page. Add ErrorBoundary wrappers around major sections.
+
+window.location.href for navigation — Several dispute buttons use window.location.href instead of Inertia's router.visit() or <Link>. This causes a full page reload losing Inertia state.
+
+Inline styles and magic numbers — Some components have hardcoded pixel values like max-h-[480px]. These should use design tokens or Tailwind config values.
+
+💼 Business Logic
+No auto-release scheduler — The README mentions auto_release_days but the scheduler/cron job that auto-completes orders after delivery timeout is not implemented.
+
+Withdrawal balance check — When a dispute clawback happens on a seller wallet, there's no check whether the seller has already requested a withdrawal of those funds. This could result in negative balances.
+
+Coupon expiry on order creation — Coupon is validated at order creation but PayPal capture can happen minutes/hours later. The coupon could expire between order creation and payment capture. The capture should re-validate the coupon.
+
+No refund via PayPal API — Cancellations and dispute refunds mark payment_status = refunded in the DB but don't actually call the PayPal Refunds API. The buyer never gets their money back in reality.
+
+📋 Top 5 priorities I'd fix first
+PayPal refund API integration — most critical, real money is involved
+
+Pagination on all list endpoints — scalability blocker
+
+Queue notifications — user experience and server performance
+
+Auto-release scheduler — core business feature mentioned in README
+
+window.location.href → router.visit() — quick frontend fix

@@ -30,6 +30,8 @@ type Props = {
     };
     revenue: {
         gross_sales: string;
+        total_refunds: string;
+        net_sales: string;
         platform_fees: string;
         net_revenue: string;
         pending_release: string;
@@ -161,52 +163,36 @@ export default function SellerWalletIndex({
                         </p>
                     </div>
 
-                    <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-4 px-6 py-5 md:grid-cols-2 xl:grid-cols-3">
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">
-                                Gross sales
-                            </p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {wallet.currency} {revenue.gross_sales}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                Total paid order value before commission.
-                            </p>
+                            <p className="text-sm text-muted-foreground">Gross sales</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.gross_sales}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Total paid order value before any refunds.</p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">
-                                Platform fees
-                            </p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {wallet.currency} {revenue.platform_fees}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                Marketplace commission deducted from paid sales.
-                            </p>
+                            <p className="text-sm text-muted-foreground">Total refunds</p>
+                            <p className="mt-2 text-2xl font-semibold text-amber-600">−{wallet.currency} {revenue.total_refunds}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Returned to buyers via disputes or cancellations.</p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">
-                                Net revenue
-                            </p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {wallet.currency} {revenue.net_revenue}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                Your earnings from completed and paid service
-                                orders.
-                            </p>
+                            <p className="text-sm text-muted-foreground">Net sales</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.net_sales}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Gross sales minus refunds.</p>
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                            <p className="text-sm text-muted-foreground">
-                                Pending release
-                            </p>
-                            <p className="mt-2 text-2xl font-semibold">
-                                {wallet.currency} {revenue.pending_release}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                Paid orders still waiting to move into your
-                                wallet.
-                            </p>
+                            <p className="text-sm text-muted-foreground">Platform fees</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.platform_fees}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Marketplace commission on net sales.</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+                            <p className="text-sm text-muted-foreground">Net revenue</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.net_revenue}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Your earnings after commission.</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+                            <p className="text-sm text-muted-foreground">Pending release</p>
+                            <p className="mt-2 text-2xl font-semibold">{wallet.currency} {revenue.pending_release}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Paid orders still waiting to move into your wallet.</p>
                         </div>
                     </div>
                 </section>

@@ -13,22 +13,8 @@ class AdminGigModerationController extends Controller
 {
     public function index(Request $request): Response
     {
-        $status = $request->string('status')->toString();
-        $search = trim((string) $request->string('q'));
-
-        $allowedStatuses = ['pending', 'approved', 'rejected'];
-        $selectedStatus = in_array($status, $allowedStatuses, true) ? $status : 'pending';
-
         $gigs = Gig::query()
             ->with(['seller:id,name,email', 'category:id,name', 'subcategory:id,name', 'packages:id,gig_id,tier,price'])
-            ->when($selectedStatus !== 'all', fn ($query) => $query->where('approval_status', $selectedStatus))
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner
-                        ->where('title', 'like', "%{$search}%")
-                        ->orWhereHas('seller', fn ($seller) => $seller->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
-                });
-            })
             ->latest('updated_at')
             ->latest('id')
             ->get()
@@ -57,10 +43,6 @@ class AdminGigModerationController extends Controller
             ->values();
 
         return Inertia::render('admin/gigs/index', [
-            'filters' => [
-                'status' => $selectedStatus,
-                'q' => $search,
-            ],
             'stats' => [
                 'pending' => Gig::query()->where('approval_status', 'pending')->count(),
                 'approved' => Gig::query()->where('approval_status', 'approved')->count(),

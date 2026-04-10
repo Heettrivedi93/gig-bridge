@@ -11,6 +11,7 @@ import {
     Palette,
     ShoppingCart,
     Star,
+    X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
@@ -19,6 +20,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import type { BreadcrumbItem } from '@/types';
 
 type GigPackage = {
@@ -84,20 +92,6 @@ type OrderFormData = {
     billing_name: string;
     billing_email: string;
 };
-
-function formatCouponDiscount(coupon: CouponOption) {
-    return coupon.discount_type === 'percentage'
-        ? `${coupon.discount_value}% off`
-        : `USD ${coupon.discount_value} off`;
-}
-
-function formatCouponWindow(coupon: CouponOption) {
-    if (!coupon.expires_at) {
-        return 'No expiry';
-    }
-
-    return `Expires ${new Date(coupon.expires_at).toLocaleDateString()}`;
-}
 
 export default function BuyerGigShow({ gig, coupons }: Props) {
     const { auth } = usePage<{
@@ -521,126 +515,89 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="grid gap-3 md:col-span-2">
                                         <div className="flex items-center justify-between">
-                                            <Label>Available coupons</Label>
+                                            <Label htmlFor="coupon_select">
+                                                <BadgePercent className="inline size-4 mr-1.5 text-muted-foreground" />
+                                                Coupon
+                                            </Label>
                                             {form.data.coupon_code && (
-                                                <Button
+                                                <button
                                                     type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        form.setData(
-                                                            'coupon_code',
-                                                            '',
-                                                        )
-                                                    }
+                                                    onClick={() => form.setData('coupon_code', '')}
+                                                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                                                 >
-                                                    Clear coupon
-                                                </Button>
+                                                    <X className="size-3" />
+                                                    Remove
+                                                </button>
                                             )}
                                         </div>
-                                        {couponOptions.length === 0 ? (
-                                            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                                                No active coupons are available right now.
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {couponOptions.map((coupon) => {
-                                                    const active =
-                                                        form.data
-                                                            .coupon_code ===
-                                                        coupon.code;
 
-                                                    return (
-                                                        <button
+                                        {couponOptions.length === 0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                No coupons available for your account.
+                                            </p>
+                                        ) : (
+                                            <Select
+                                                value={form.data.coupon_code || '__none__'}
+                                                onValueChange={(v) =>
+                                                    form.setData('coupon_code', v === '__none__' ? '' : v)
+                                                }
+                                            >
+                                                <SelectTrigger id="coupon_select" className="w-full">
+                                                    <SelectValue placeholder="Select a coupon..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="__none__">
+                                                        No coupon
+                                                    </SelectItem>
+                                                    {couponOptions.map((coupon) => (
+                                                        <SelectItem
                                                             key={coupon.id}
-                                                            type="button"
-                                                            onClick={() =>
-                                                                form.setData(
-                                                                    'coupon_code',
-                                                                    coupon.code,
-                                                                )
-                                                            }
-                                                            className={`w-full cursor-pointer rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
-                                                                active
-                                                                    ? 'border-primary bg-primary/5 shadow-sm'
-                                                                    : 'border-border/70 bg-background hover:border-primary/50 hover:bg-muted/30'
-                                                            }`}
+                                                            value={coupon.code}
+                                                            disabled={!coupon.isEligible}
                                                         >
-                                                            <div className="flex flex-wrap items-start justify-between gap-3">
-                                                                <div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <BadgePercent className="size-4 text-muted-foreground" />
-                                                                        <p className="font-semibold">
-                                                                            {coupon.code}
-                                                                        </p>
-                                                                        {active && (
-                                                                            <Badge>
-                                                                                Selected
-                                                                            </Badge>
-                                                                        )}
-                                                                    </div>
-                                                                    <p className="mt-2 text-sm text-muted-foreground">
-                                                                        {coupon.description ||
-                                                                            formatCouponDiscount(
-                                                                                coupon,
-                                                                            )}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="font-semibold">
-                                                                        {formatCouponDiscount(
-                                                                            coupon,
-                                                                        )}
-                                                                    </p>
-                                                                    <p className="mt-1 text-xs text-emerald-600">
-                                                                        Est. save USD{' '}
-                                                                        {
-                                                                            coupon.estimatedDiscount
-                                                                        }
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                                                <span className="rounded-full bg-muted px-2.5 py-1">
-                                                                    {formatCouponWindow(
-                                                                        coupon,
-                                                                    )}
+                                                            <span className="flex items-center gap-2">
+                                                                <span className="font-medium">{coupon.code}</span>
+                                                                <span className="text-muted-foreground">—</span>
+                                                                <span className="text-emerald-600">
+                                                                    {coupon.discount_type === 'percentage'
+                                                                        ? `${coupon.discount_value}% off`
+                                                                        : `USD ${coupon.discount_value} off`}
                                                                 </span>
-                                                                <span className="rounded-full bg-muted px-2.5 py-1">
-                                                                    Min order:{' '}
-                                                                    {coupon.minimumOrderAmount >
-                                                                    0
-                                                                        ? `USD ${coupon.minimumOrderAmount.toFixed(
-                                                                              2,
-                                                                          )}`
-                                                                        : 'None'}
-                                                                </span>
-                                                                <span className="rounded-full bg-muted px-2.5 py-1">
-                                                                    Uses:{' '}
-                                                                    {coupon.used_count}
-                                                                    {coupon.usage_limit !==
-                                                                    null
-                                                                        ? ` / ${coupon.usage_limit}`
-                                                                        : '+'}
-                                                                </span>
-                                                            </div>
-                                                            {!coupon.isEligible && (
-                                                                <p className="mt-3 text-xs text-amber-700">
-                                                                    Increase your subtotal to at least USD{' '}
-                                                                    {coupon.minimumOrderAmount.toFixed(
-                                                                        2,
-                                                                    )}{' '}
-                                                                    to use this coupon.
-                                                                </p>
-                                                            )}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
+                                                                {!coupon.isEligible && (
+                                                                    <span className="text-xs text-amber-600">
+                                                                        (min USD {coupon.minimumOrderAmount.toFixed(2)})
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         )}
-                                        <InputError
-                                            message={form.errors.coupon_code}
-                                        />
+
+                                        {/* Selected coupon detail pill */}
+                                        {form.data.coupon_code && (() => {
+                                            const c = couponOptions.find((o) => o.code === form.data.coupon_code);
+                                            if (!c) return null;
+                                            return (
+                                                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                                    <BadgePercent className="size-3.5" />
+                                                    <span className="font-medium">{c.code}</span>
+                                                    {c.description && <span>— {c.description}</span>}
+                                                    <span className="ml-auto font-semibold">
+                                                        Est. save USD {c.estimatedDiscount}
+                                                    </span>
+                                                    {c.expires_at && (
+                                                        <span className="flex items-center gap-1 text-emerald-700">
+                                                            <CalendarClock className="size-3" />
+                                                            Expires {new Date(c.expires_at).toLocaleDateString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        <InputError message={form.errors.coupon_code} />
                                     </div>
 
                                     <div className="grid gap-2">
@@ -743,9 +700,9 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                             <div className="flex items-center gap-2">
                                                 <CalendarClock className="size-3.5" />
                                                 <span>
-                                                    {formatCouponWindow(
-                                                        selectedCoupon,
-                                                    )}
+                                                    {selectedCoupon.expires_at
+                                                        ? `Expires ${new Date(selectedCoupon.expires_at).toLocaleDateString()}`
+                                                        : 'No expiry'}
                                                 </span>
                                             </div>
                                             <p className="mt-2">
@@ -780,9 +737,7 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
 
 BuyerGigShow.layout = {
     breadcrumbs: [
-        {
-            title: 'Explore Gigs',
-            href: '/buyer/gigs',
-        },
+        { title: 'Explore Gigs', href: '/buyer/gigs' },
+        { title: 'Gig Details', href: '#' },
     ] satisfies BreadcrumbItem[],
 };

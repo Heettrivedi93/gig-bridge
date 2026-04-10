@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Clock3, Search, ShieldX, Store } from 'lucide-react';
+import { CheckCircle2, Clock3, ShieldX, Store } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import admin from '@/routes/admin';
 import type { BreadcrumbItem } from '@/types';
 
 type ModerationGig = {
@@ -37,10 +38,6 @@ type ModerationGig = {
 };
 
 type Props = {
-    filters: {
-        status: 'pending' | 'approved' | 'rejected' | 'all';
-        q: string;
-    };
     stats: {
         pending: number;
         approved: number;
@@ -49,47 +46,49 @@ type Props = {
     gigs: ModerationGig[];
 };
 
-const STATUS_OPTIONS: Array<{ value: 'pending' | 'approved' | 'rejected' | 'all'; label: string }> = [
+type StatusFilter = 'pending' | 'approved' | 'rejected';
+
+const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
     { value: 'pending', label: 'Pending' },
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
-    { value: 'all', label: 'All' },
 ];
 
 function formatDate(value: string | null) {
-    if (!value) {
-        return 'N/A';
-    }
-
+    if (!value) return 'N/A';
     return new Date(value).toLocaleString();
 }
 
-export default function AdminGigModerationIndex({ filters, stats, gigs }: Props) {
-    const [search, setSearch] = useState(filters.q);
+export default function AdminGigModerationIndex({ stats, gigs }: Props) {
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
+    const [search, setSearch] = useState('');
     const [rejectTarget, setRejectTarget] = useState<ModerationGig | null>(null);
+
     const rejectForm = useForm<{ rejection_reason: string }>({
         rejection_reason: '',
     });
 
-    const total = useMemo(() => stats.pending + stats.approved + stats.rejected, [stats]);
+    const total = stats.pending + stats.approved + stats.rejected;
 
-    const updateFilters = (payload: Partial<Props['filters']>) => {
-        router.get(
-            '/admin/gigs',
-            {
-                status: payload.status ?? filters.status,
-                q: payload.q ?? search,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
-    };
+    const filtered = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        return gigs.filter((gig) => {
+            if (gig.approval_status !== statusFilter) return false;
+            if (!q) return true;
+            return (
+                gig.title.toLowerCase().includes(q) ||
+                (gig.seller.name ?? '').toLowerCase().includes(q) ||
+                (gig.seller.email ?? '').toLowerCase().includes(q)
+            );
+        });
+    }, [gigs, statusFilter, search]);
 
     const approveGig = (gig: ModerationGig) => {
-        router.post(`/admin/gigs/${gig.id}/approve`, {}, { preserveScroll: true });
+        router.post(
+            `/admin/gigs/${gig.id}/approve`,
+            {},
+            { preserveScroll: true, preserveState: true },
+        );
     };
 
     const openRejectDialog = (gig: ModerationGig) => {
@@ -100,13 +99,10 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
 
     const submitReject = (event: React.FormEvent) => {
         event.preventDefault();
-
-        if (!rejectTarget) {
-            return;
-        }
-
+        if (!rejectTarget) return;
         rejectForm.post(`/admin/gigs/${rejectTarget.id}/reject`, {
             preserveScroll: true,
+            preserveState: true,
             onSuccess: () => {
                 setRejectTarget(null);
                 rejectForm.reset();
@@ -162,8 +158,8 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
                                 <Button
                                     key={option.value}
                                     size="sm"
-                                    variant={filters.status === option.value ? 'default' : 'outline'}
-                                    onClick={() => updateFilters({ status: option.value })}
+                                    variant={statusFilter === option.value ? 'default' : 'outline'}
+                                    onClick={() => setStatusFilter(option.value)}
                                 >
                                     {option.label}
                                 </Button>
@@ -173,30 +169,34 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
                         <div className="flex w-full max-w-md items-center gap-2">
                             <Input
                                 value={search}
-                                onChange={(event) => setSearch(event.target.value)}
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search gig title, seller name, or email"
                             />
-                            <Button size="sm" variant="outline" onClick={() => updateFilters({ q: search })}>
-                                <Search className="size-4" />
-                                Search
-                            </Button>
                         </div>
                     </div>
                 </section>
 
                 <section className="rounded-2xl border border-border/70 bg-card">
                     <div className="border-b border-border/70 px-5 py-4">
-                        <h2 className="font-semibold">Moderation Queue</h2>
+                        <h2 className="font-semibold">
+                            Moderation Queue
+                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                ({filtered.length} {statusFilter})
+                            </span>
+                        </h2>
                     </div>
 
-                    {gigs.length === 0 ? (
+                    {filtered.length === 0 ? (
                         <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                            No gigs found for the selected filter.
+                            No gigs found.
                         </div>
                     ) : (
                         <div className="divide-y divide-border/70">
-                            {gigs.map((gig) => (
-                                <div key={gig.id} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-start lg:justify-between">
+                            {filtered.map((gig) => (
+                                <div
+                                    key={gig.id}
+                                    className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-start lg:justify-between"
+                                >
                                     <div className="space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <p className="font-medium">{gig.title}</p>
@@ -224,11 +224,11 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
                                         <p className="text-sm text-muted-foreground">
                                             Starting at USD {gig.starting_price} • Updated {formatDate(gig.updated_at)}
                                         </p>
-                                        {gig.rejection_reason ? (
+                                        {gig.rejection_reason && (
                                             <p className="text-sm text-destructive">
                                                 Rejection reason: {gig.rejection_reason}
                                             </p>
-                                        ) : null}
+                                        )}
                                     </div>
 
                                     <div className="flex flex-wrap gap-2">
@@ -244,6 +244,7 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
                                             size="sm"
                                             variant="outline"
                                             onClick={() => openRejectDialog(gig)}
+                                            disabled={gig.approval_status === 'rejected'}
                                         >
                                             Reject
                                         </Button>
@@ -278,9 +279,9 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
                             <textarea
                                 id="rejection-reason"
                                 value={rejectForm.data.rejection_reason}
-                                onChange={(event) => rejectForm.setData('rejection_reason', event.target.value)}
+                                onChange={(e) => rejectForm.setData('rejection_reason', e.target.value)}
                                 rows={5}
-                                className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                 placeholder="Explain what must be improved before approval."
                             />
                             <InputError message={rejectForm.errors.rejection_reason} />
@@ -303,9 +304,7 @@ export default function AdminGigModerationIndex({ filters, stats, gigs }: Props)
 
 AdminGigModerationIndex.layout = {
     breadcrumbs: [
-        {
-            title: 'Gigs',
-            href: '/admin/gigs',
-        },
+        { title: 'Dashboard', href: admin.dashboard.url() },
+        { title: 'Gigs', href: '/admin/gigs' },
     ] satisfies BreadcrumbItem[],
 };

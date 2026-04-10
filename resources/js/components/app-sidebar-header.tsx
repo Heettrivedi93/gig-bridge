@@ -73,6 +73,21 @@ function fallbackBreadcrumbs(
         ];
     }
 
+    if (path === '/disputes') {
+        return [
+            { title: 'Dashboard', href: dashboardHref },
+            { title: 'My Disputes', href: '/disputes' },
+        ];
+    }
+
+    if (path.startsWith('/disputes/')) {
+        return [
+            { title: 'Dashboard', href: dashboardHref },
+            { title: 'My Disputes', href: '/disputes' },
+            { title: 'Dispute Detail', href: path },
+        ];
+    }
+
     if (path.startsWith('/buyer/orders')) {
         return [
             { title: 'Dashboard', href: dashboardHref },

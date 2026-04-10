@@ -170,25 +170,39 @@ class SellerPlanController extends Controller
                 'escrow_balance' => (string) $wallet->escrow_balance,
                 'currency' => $wallet->currency,
             ],
-            'revenue' => [
-                'gross_sales' => number_format((float) Order::query()
+            'revenue' => (function () use ($seller) {
+                $orders = Order::query()
                     ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
-                    ->sum('gross_amount'), 2, '.', ''),
-                'platform_fees' => number_format((float) Order::query()
-                    ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
-                    ->sum('platform_fee_amount'), 2, '.', ''),
-                'net_revenue' => number_format((float) Order::query()
-                    ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
-                    ->sum('seller_net_amount'), 2, '.', ''),
-                'pending_release' => number_format((float) Order::query()
-                    ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
+                    ->whereIn('payment_status', ['paid', 'released', 'refunded'])
+                    ->get(['gross_amount', 'refunded_amount', 'platform_fee_percentage', 'fund_status']);
+
+                $grossSales    = $orders->reduce(fn (float $c, Order $o) => $c + (float) $o->gross_amount, 0.0);
+                $totalRefunds  = $orders->reduce(fn (float $c, Order $o) => $c + (float) ($o->refunded_amount ?? 0), 0.0);
+                $netSales      = $grossSales - $totalRefunds;
+                $platformFees  = $orders->reduce(function (float $c, Order $o) {
+                    $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                    return $c + round($net * ((float) $o->platform_fee_percentage / 100), 2);
+                }, 0.0);
+                $netRevenue    = $orders->reduce(function (float $c, Order $o) {
+                    $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                    return $c + round($net * (1 - (float) $o->platform_fee_percentage / 100), 2);
+                }, 0.0);
+                $pendingRelease = $orders
                     ->whereIn('fund_status', ['escrow', 'releasable'])
-                    ->sum('seller_net_amount'), 2, '.', ''),
-            ],
+                    ->reduce(function (float $c, Order $o) {
+                        $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                        return $c + round($net * (1 - (float) $o->platform_fee_percentage / 100), 2);
+                    }, 0.0);
+
+                return [
+                    'gross_sales'    => number_format($grossSales, 2, '.', ''),
+                    'total_refunds'  => number_format($totalRefunds, 2, '.', ''),
+                    'net_sales'      => number_format($netSales, 2, '.', ''),
+                    'platform_fees'  => number_format($platformFees, 2, '.', ''),
+                    'net_revenue'    => number_format($netRevenue, 2, '.', ''),
+                    'pending_release' => number_format($pendingRelease, 2, '.', ''),
+                ];
+            })(),
             'withdrawals' => $this->mapWithdrawals($seller),
         ]);
     }

@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import {
+    AlertTriangle,
     Ban,
     Clock3,
     Download,
@@ -78,6 +79,7 @@ type SellerOrder = {
         reason: string;
         created_at: string | null;
     }[];
+    open_dispute_id: number | null;
 };
 
 type Props = {
@@ -154,6 +156,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
         null,
     );
     const [cancelTarget, setCancelTarget] = useState<SellerOrder | null>(null);
+    const [disputeTarget, setDisputeTarget] = useState<SellerOrder | null>(null);
 
     const deliveryForm = useForm<{
         delivery_file: File | null;
@@ -167,6 +170,10 @@ export default function SellerOrdersIndex({ orders }: Props) {
         cancellation_reason: string;
     }>({
         cancellation_reason: '',
+    });
+
+    const disputeForm = useForm<{ reason: string }>({
+        reason: '',
     });
 
     const activeOrders = useMemo(
@@ -207,6 +214,18 @@ export default function SellerOrdersIndex({ orders }: Props) {
             onSuccess: () => {
                 setCancelTarget(null);
                 cancelForm.reset();
+            },
+        });
+    };
+
+    const submitDispute = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!disputeTarget) return;
+        disputeForm.post(`/orders/${disputeTarget.id}/disputes`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setDisputeTarget(null);
+                disputeForm.reset();
             },
         });
     };
@@ -488,6 +507,26 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                     >
                                                         <Ban className="size-4" />
                                                     </ActionIconButton>
+                                                    {['delivered', 'completed'].includes(order.status) &&
+                                                        order.payment_status === 'paid' &&
+                                                        !order.open_dispute_id && (
+                                                            <ActionIconButton
+                                                                label="Raise Dispute"
+                                                                variant="outline"
+                                                                onClick={() => setDisputeTarget(order)}
+                                                            >
+                                                                <AlertTriangle className="size-4" />
+                                                            </ActionIconButton>
+                                                        )}
+                                                    {order.open_dispute_id && (
+                                                        <ActionIconButton
+                                                            label="View Dispute"
+                                                            variant="outline"
+                                                            onClick={() => window.location.href = `/disputes/${order.open_dispute_id}`}
+                                                        >
+                                                            <AlertTriangle className="size-4 text-amber-500" />
+                                                        </ActionIconButton>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -595,6 +634,26 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         >
                                             <Ban className="size-4" />
                                         </ActionIconButton>
+                                        {['delivered', 'completed'].includes(order.status) &&
+                                            order.payment_status === 'paid' &&
+                                            !order.open_dispute_id && (
+                                                <ActionIconButton
+                                                    label="Raise Dispute"
+                                                    variant="outline"
+                                                    onClick={() => setDisputeTarget(order)}
+                                                >
+                                                    <AlertTriangle className="size-4" />
+                                                </ActionIconButton>
+                                            )}
+                                        {order.open_dispute_id && (
+                                            <ActionIconButton
+                                                label="View Dispute"
+                                                variant="outline"
+                                                onClick={() => window.location.href = `/disputes/${order.open_dispute_id}`}
+                                            >
+                                                <AlertTriangle className="size-4 text-amber-500" />
+                                            </ActionIconButton>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -925,6 +984,41 @@ export default function SellerOrdersIndex({ orders }: Props) {
                             {cancelForm.processing
                                 ? 'Cancelling...'
                                 : 'Confirm cancellation'}
+                        </Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(disputeTarget)}
+                onOpenChange={(open) => !open && setDisputeTarget(null)}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Raise a Dispute</DialogTitle>
+                        <DialogDescription>
+                            Describe the issue clearly. Admin will review and make a decision.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={submitDispute} className="space-y-4">
+                        <div className="grid gap-2">
+                            <label htmlFor="dispute_reason" className="text-sm font-medium">
+                                Reason
+                            </label>
+                            <textarea
+                                id="dispute_reason"
+                                rows={5}
+                                value={disputeForm.data.reason}
+                                onChange={(e) => disputeForm.setData('reason', e.target.value)}
+                                className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
+                                placeholder="Explain the problem with this order..."
+                                required
+                            />
+                            <InputError message={disputeForm.errors.reason} />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={disputeForm.processing}>
+                            {disputeForm.processing ? 'Submitting...' : 'Submit Dispute'}
                         </Button>
                     </form>
                 </DialogContent>

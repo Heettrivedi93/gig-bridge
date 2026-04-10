@@ -44,6 +44,7 @@ class BuyerOrderController extends Controller
                     'revisions.requester:id,name',
                     'cancellations',
                     'review',
+                    'disputes',
                 ])
                 ->where('buyer_id', $buyer->id)
                 ->latest('updated_at')
@@ -111,6 +112,7 @@ class BuyerOrderController extends Controller
                             'comment' => $order->review->comment,
                             'created_at' => $order->review->created_at?->toIso8601String(),
                         ] : null,
+                        'open_dispute_id' => $order->disputes->where('status', 'open')->first()?->id,
                     ];
                 }),
             'paypal' => $this->paypal->publicConfig(),
@@ -121,46 +123,54 @@ class BuyerOrderController extends Controller
     {
         $buyer = $this->ensureBuyer($request);
 
+        $orders = Order::query()
+            ->with(['gig:id,title', 'package:id,gig_id,tier,title,delivery_days,revision_count', 'seller:id,name,email'])
+            ->where('buyer_id', $buyer->id)
+            ->whereNotNull('paypal_order_id')
+            ->whereIn('payment_status', ['paid', 'released', 'refunded'])
+            ->latest('updated_at')
+            ->latest('id')
+            ->get();
+
+        $totalSpent = number_format(
+            $orders->sum(fn (Order $o) => max(0, (float) $o->price - (float) ($o->refunded_amount ?? 0))),
+            2, '.', ''
+        );
+
         return Inertia::render('buyer/payments/index', [
-            'payments' => Order::query()
-                ->with(['gig:id,title', 'package:id,gig_id,tier,title,delivery_days,revision_count', 'seller:id,name,email'])
-                ->where('buyer_id', $buyer->id)
-                ->whereNotNull('paypal_order_id')
-                ->latest('updated_at')
-                ->latest('id')
-                ->get()
-                ->map(fn (Order $order) => [
-                    'id' => $order->id,
-                    'invoice_number' => 'INV-ORDER-'.$order->id,
-                    'provider' => 'PAYPAL',
-                    'provider_order_id' => $order->paypal_order_id,
-                    'provider_reference' => $order->paypal_payer_id,
-                    'amount' => (string) $order->price,
-                    'subtotal_amount' => (string) $order->subtotal_amount,
-                    'discount_amount' => (string) $order->discount_amount,
-                    'coupon_code' => $order->coupon_code,
-                    'currency' => 'USD',
-                    'status' => $order->payment_status,
-                    'created_at' => $order->created_at?->toIso8601String(),
-                    'paid_at' => $order->updated_at?->toIso8601String(),
-                    'gig' => [
-                        'title' => $order->gig?->title,
-                    ],
-                    'package' => $order->package ? [
-                        'title' => $order->package->title,
-                        'tier' => $order->package->tier,
-                        'delivery_days' => $order->package->delivery_days,
-                        'revision_count' => $order->package->revision_count,
-                    ] : null,
-                    'seller' => $order->seller ? [
-                        'name' => $order->seller->name,
-                        'email' => $order->seller->email,
-                    ] : null,
-                    'billing' => [
-                        'name' => $order->billing_name,
-                        'email' => $order->billing_email,
-                    ],
-                ]),
+            'total_spent' => $totalSpent,
+            'payments' => $orders->map(fn (Order $order) => [
+                'id' => $order->id,
+                'invoice_number' => 'INV-ORDER-'.$order->id,
+                'provider' => 'PAYPAL',
+                'provider_order_id' => $order->paypal_order_id,
+                'provider_reference' => $order->paypal_payer_id,
+                'amount' => number_format((float) $order->price, 2, '.', ''),
+                'refunded_amount' => number_format((float) ($order->refunded_amount ?? 0), 2, '.', ''),
+                'net_amount' => number_format(max(0, (float) $order->price - (float) ($order->refunded_amount ?? 0)), 2, '.', ''),
+                'subtotal_amount' => number_format((float) $order->subtotal_amount, 2, '.', ''),
+                'discount_amount' => number_format((float) $order->discount_amount, 2, '.', ''),
+                'coupon_code' => $order->coupon_code,
+                'currency' => 'USD',
+                'status' => $order->payment_status,
+                'created_at' => $order->created_at?->toIso8601String(),
+                'paid_at' => $order->updated_at?->toIso8601String(),
+                'gig' => ['title' => $order->gig?->title],
+                'package' => $order->package ? [
+                    'title' => $order->package->title,
+                    'tier' => $order->package->tier,
+                    'delivery_days' => $order->package->delivery_days,
+                    'revision_count' => $order->package->revision_count,
+                ] : null,
+                'seller' => $order->seller ? [
+                    'name' => $order->seller->name,
+                    'email' => $order->seller->email,
+                ] : null,
+                'billing' => [
+                    'name' => $order->billing_name,
+                    'email' => $order->billing_email,
+                ],
+            ]),
             'buyer' => [
                 'name' => $buyer->name,
                 'email' => $buyer->email,
@@ -215,7 +225,7 @@ class BuyerOrderController extends Controller
         $quantity = (int) $data['quantity'];
         $unitPrice = (float) $package->price;
         $subtotal = round($unitPrice * $quantity, 2);
-        $coupon = $this->coupons->validateForSubtotal($data['coupon_code'] ?? null, $subtotal);
+        $coupon = $this->coupons->validateForSubtotal($data['coupon_code'] ?? null, $subtotal, $buyer->id);
         $discountAmount = (float) $coupon['discount_amount'];
         $finalPrice = round(max(0, $subtotal - $discountAmount), 2);
 
@@ -364,7 +374,7 @@ class BuyerOrderController extends Controller
             'paypal_payer_id' => data_get($capture, 'payer.payer_id'),
         ]);
 
-        $this->coupons->markUsed($order->coupon);
+        $this->coupons->markUsed($order->coupon, $buyer->id, $order->fresh());
 
         $this->notifications->orderPlaced($order->fresh());
         $this->funds->holdEscrow($order->fresh());

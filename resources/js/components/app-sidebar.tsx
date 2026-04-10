@@ -5,6 +5,7 @@ import {
     LayoutGrid,
     ReceiptText,
     Search,
+    ShieldAlert,
     ShoppingBag,
     Store,
     Wallet2,
@@ -76,6 +77,15 @@ export function AppSidebar() {
                   } satisfies NavItem,
               ]
             : []),
+        ...(isSeller && canAccess('seller.orders.access')
+            ? [
+                  {
+                      title: 'My Disputes',
+                      href: '/disputes',
+                      icon: ShieldAlert,
+                  } satisfies NavItem,
+              ]
+            : []),
         ...(isSeller && canAccess('seller.wallet.access')
             ? [
                   {
@@ -109,6 +119,15 @@ export function AppSidebar() {
                       title: 'Orders',
                       href: '/buyer/orders',
                       icon: ShoppingBag,
+                  } satisfies NavItem,
+              ]
+            : []),
+        ...(isBuyer && canAccess('buyer.orders.access')
+            ? [
+                  {
+                      title: 'My Disputes',
+                      href: '/disputes',
+                      icon: ShieldAlert,
                   } satisfies NavItem,
               ]
             : []),

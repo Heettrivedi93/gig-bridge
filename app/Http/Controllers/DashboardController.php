@@ -54,10 +54,12 @@ class DashboardController extends Controller
             $releasableCount = (clone $sellerOrders)->where('fund_status', 'releasable')->count();
             $revenueOrders = Order::query()
                 ->where('seller_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released']);
-            $grossSales = (float) (clone $revenueOrders)->sum('gross_amount');
-            $platformFees = (float) (clone $revenueOrders)->sum('platform_fee_amount');
-            $netRevenue = (float) (clone $revenueOrders)->sum('seller_net_amount');
+                ->whereIn('payment_status', ['paid', 'released', 'refunded']);
+            $grossSales    = (float) (clone $revenueOrders)->sum('gross_amount');
+            $totalRefunds  = (float) (clone $revenueOrders)->sum('refunded_amount');
+            $netSales      = $grossSales - $totalRefunds;
+            $platformFees  = (float) (clone $revenueOrders)->selectRaw('SUM((gross_amount - COALESCE(refunded_amount, 0)) * platform_fee_percentage / 100) as fees')->value('fees');
+            $netRevenue    = (float) (clone $revenueOrders)->selectRaw('SUM((gross_amount - COALESCE(refunded_amount, 0)) * (1 - platform_fee_percentage / 100)) as net')->value('net');
             $pendingRelease = (float) (clone $revenueOrders)
                 ->whereIn('fund_status', ['escrow', 'releasable'])
                 ->sum('seller_net_amount');
@@ -74,16 +76,16 @@ class DashboardController extends Controller
                 ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
             $currentRevenueOrders = Order::query()
                 ->where('seller_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released'])
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->where('created_at', '>=', $startDate);
             $previousRevenueOrders = Order::query()
                 ->where('seller_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released'])
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
 
-            $currentNetRevenue = (float) (clone $currentRevenueOrders)->sum('seller_net_amount');
-            $previousNetRevenue = (float) (clone $previousRevenueOrders)->sum('seller_net_amount');
-            $currentGrossSales = (float) (clone $currentRevenueOrders)->sum('gross_amount');
+            $currentNetRevenue  = (float) (clone $currentRevenueOrders)->selectRaw('SUM((gross_amount - COALESCE(refunded_amount, 0)) * (1 - platform_fee_percentage / 100)) as net')->value('net');
+            $previousNetRevenue = (float) (clone $previousRevenueOrders)->selectRaw('SUM((gross_amount - COALESCE(refunded_amount, 0)) * (1 - platform_fee_percentage / 100)) as net')->value('net');
+            $currentGrossSales  = (float) (clone $currentRevenueOrders)->sum('gross_amount');
             $previousGrossSales = (float) (clone $previousRevenueOrders)->sum('gross_amount');
             $currentOpenOrders = (clone $currentOrders)->whereIn('status', ['active', 'delivered'])->count();
             $previousOpenOrders = (clone $previousOrders)->whereIn('status', ['active', 'delivered'])->count();
@@ -132,10 +134,12 @@ class DashboardController extends Controller
             ];
 
             $revenueSummary = [
-                'currency' => $wallet->currency,
-                'gross_sales' => number_format($grossSales, 2, '.', ''),
-                'platform_fees' => number_format($platformFees, 2, '.', ''),
-                'net_revenue' => number_format($netRevenue, 2, '.', ''),
+                'currency'       => $wallet->currency,
+                'gross_sales'    => number_format($grossSales, 2, '.', ''),
+                'total_refunds'  => number_format($totalRefunds, 2, '.', ''),
+                'net_sales'      => number_format($netSales, 2, '.', ''),
+                'platform_fees'  => number_format($platformFees, 2, '.', ''),
+                'net_revenue'    => number_format($netRevenue, 2, '.', ''),
                 'pending_release' => number_format($pendingRelease, 2, '.', ''),
                 'withdrawn_total' => number_format($withdrawnTotal, 2, '.', ''),
             ];
@@ -187,10 +191,10 @@ class DashboardController extends Controller
             $trendBucketFormat = $selectedRevenueMonth ? 'Y-m-d' : $bucketFormat;
             $trendRevenueOrders = Order::query()
                 ->where('seller_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released'])
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->whereBetween('created_at', [$trendStartDate, $trendEndDate]);
             $trendOrderRows = (clone $trendRevenueOrders)
-                ->get(['created_at', 'gross_amount', 'seller_net_amount', 'platform_fee_amount']);
+                ->get(['created_at', 'gross_amount', 'refunded_amount', 'seller_net_amount', 'platform_fee_amount', 'platform_fee_percentage']);
             $trendGroups = $trendOrderRows->groupBy(fn (Order $order) => $order->created_at?->format($trendBucketFormat) ?? '');
             $revenueTrend = collect($this->buildTrendPeriod($trendStartDate, $trendEndDate, $trendBucketUnit))
                 ->map(function (CarbonInterface $date) use ($trendBucketFormat, $trendBucketUnit, $trendGroups) {
@@ -198,10 +202,17 @@ class DashboardController extends Controller
                     $orders = $trendGroups->get($bucket, collect());
 
                     return [
-                        'label' => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
-                        'gross_sales' => round((float) $orders->sum('gross_amount'), 2),
-                        'net_revenue' => round((float) $orders->sum('seller_net_amount'), 2),
-                        'platform_fees' => round((float) $orders->sum('platform_fee_amount'), 2),
+                        'label'         => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
+                        'gross_sales'   => round((float) $orders->sum('gross_amount'), 2),
+                        'total_refunds' => round((float) $orders->sum('refunded_amount'), 2),
+                        'net_revenue'   => round($orders->reduce(function (float $carry, Order $o) {
+                            $netGross = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                            return $carry + round($netGross * (1 - (float) $o->platform_fee_percentage / 100), 2);
+                        }, 0.0), 2),
+                        'platform_fees' => round($orders->reduce(function (float $carry, Order $o) {
+                            $netGross = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                            return $carry + round($netGross * ((float) $o->platform_fee_percentage / 100), 2);
+                        }, 0.0), 2),
                     ];
                 })
                 ->values();
@@ -255,19 +266,21 @@ class DashboardController extends Controller
 
             $topGigs = Order::query()
                 ->join('gigs', 'orders.gig_id', '=', 'gigs.id')
-                ->selectRaw('gigs.title as gig_title, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as gross_sales, SUM(orders.seller_net_amount) as net_revenue')
+                ->selectRaw('gigs.title as gig_title, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as gross_sales, SUM(COALESCE(orders.refunded_amount,0)) as total_refunds, SUM(orders.seller_net_amount) as net_revenue')
                 ->where('orders.seller_id', $user->id)
-                ->whereIn('orders.payment_status', ['paid', 'released'])
+                ->whereIn('orders.payment_status', ['paid', 'released', 'refunded'])
                 ->where('orders.created_at', '>=', $startDate)
                 ->groupBy('gigs.title')
                 ->orderByDesc('gross_sales')
                 ->take(5)
                 ->get()
                 ->map(fn ($row) => [
-                    'title' => $row->gig_title ?: 'Untitled gig',
-                    'orders_count' => (int) $row->orders_count,
-                    'gross_sales' => round((float) $row->gross_sales, 2),
-                    'net_revenue' => round((float) $row->net_revenue, 2),
+                    'title'         => $row->gig_title ?: 'Untitled gig',
+                    'orders_count'  => (int) $row->orders_count,
+                    'gross_sales'   => round((float) $row->gross_sales, 2),
+                    'total_refunds' => round((float) $row->total_refunds, 2),
+                    'net_sales'     => round((float) $row->gross_sales - (float) $row->total_refunds, 2),
+                    'net_revenue'   => round((float) $row->net_revenue, 2),
                 ])
                 ->values();
 
@@ -376,15 +389,15 @@ class DashboardController extends Controller
                 ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
             $currentPaidOrders = Order::query()
                 ->where('buyer_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released'])
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->where('created_at', '>=', $startDate);
             $previousPaidOrders = Order::query()
                 ->where('buyer_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released'])
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->whereBetween('created_at', [$previousStartDate, $previousEndDate]);
 
-            $currentSpend = (float) (clone $currentPaidOrders)->sum('gross_amount');
-            $previousSpend = (float) (clone $previousPaidOrders)->sum('gross_amount');
+            $currentSpend = (float) (clone $currentPaidOrders)->selectRaw('SUM(gross_amount - COALESCE(refunded_amount, 0)) as net_spend')->value('net_spend');
+            $previousSpend = (float) (clone $previousPaidOrders)->selectRaw('SUM(gross_amount - COALESCE(refunded_amount, 0)) as net_spend')->value('net_spend');
             $currentCompleted = (clone $currentOrders)->where('status', 'completed')->count();
             $previousCompleted = (clone $previousOrders)->where('status', 'completed')->count();
             $currentPendingActions = (clone $currentOrders)
@@ -464,10 +477,10 @@ class DashboardController extends Controller
             $trendBucketFormat = $selectedRevenueMonth ? 'Y-m-d' : $bucketFormat;
             $trendPaidOrders = Order::query()
                 ->where('buyer_id', $user->id)
-                ->whereIn('payment_status', ['paid', 'released'])
+                ->whereIn('payment_status', ['paid', 'released', 'refunded'])
                 ->whereBetween('created_at', [$trendStartDate, $trendEndDate]);
             $trendRows = (clone $trendPaidOrders)
-                ->get(['created_at', 'gross_amount', 'discount_amount']);
+                ->get(['created_at', 'gross_amount', 'refunded_amount', 'discount_amount']);
             $trendGroups = $trendRows->groupBy(fn (Order $order) => $order->created_at?->format($trendBucketFormat) ?? '');
             $spendTrend = collect($this->buildTrendPeriod($trendStartDate, $trendEndDate, $trendBucketUnit))
                 ->map(function (CarbonInterface $date) use ($trendBucketFormat, $trendBucketUnit, $trendGroups) {
@@ -475,10 +488,12 @@ class DashboardController extends Controller
                     $orders = $trendGroups->get($bucket, collect());
 
                     return [
-                        'label' => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
-                        'spend' => round((float) $orders->sum('gross_amount'), 2),
+                        'label'     => $trendBucketUnit === 'month' ? $date->format('M Y') : $date->format('M d'),
+                        'spend'     => round((float) $orders->sum(fn (Order $o) => max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0))), 2),
+                        'gross'     => round((float) $orders->sum('gross_amount'), 2),
+                        'refunds'   => round((float) $orders->sum('refunded_amount'), 2),
                         'discounts' => round((float) $orders->sum('discount_amount'), 2),
-                        'orders' => (int) $orders->count(),
+                        'orders'    => (int) $orders->count(),
                     ];
                 })
                 ->values();
@@ -505,9 +520,9 @@ class DashboardController extends Controller
 
             $favoriteSellers = Order::query()
                 ->join('users', 'orders.seller_id', '=', 'users.id')
-                ->selectRaw('users.name as seller_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as spend')
+                ->selectRaw('users.name as seller_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount - COALESCE(orders.refunded_amount, 0)) as spend')
                 ->where('orders.buyer_id', $user->id)
-                ->whereIn('orders.payment_status', ['paid', 'released'])
+                ->whereIn('orders.payment_status', ['paid', 'released', 'refunded'])
                 ->where('orders.created_at', '>=', $startDate)
                 ->groupBy('users.name')
                 ->orderByDesc('spend')
@@ -523,9 +538,9 @@ class DashboardController extends Controller
             $topCategories = Order::query()
                 ->join('gigs', 'orders.gig_id', '=', 'gigs.id')
                 ->leftJoin('categories', 'gigs.category_id', '=', 'categories.id')
-                ->selectRaw('categories.name as category_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount) as spend')
+                ->selectRaw('categories.name as category_name, COUNT(orders.id) as orders_count, SUM(orders.gross_amount - COALESCE(orders.refunded_amount, 0)) as spend')
                 ->where('orders.buyer_id', $user->id)
-                ->whereIn('orders.payment_status', ['paid', 'released'])
+                ->whereIn('orders.payment_status', ['paid', 'released', 'refunded'])
                 ->where('orders.created_at', '>=', $startDate)
                 ->groupBy('categories.name')
                 ->orderByDesc('spend')

@@ -6,7 +6,7 @@ import {
     ReceiptText,
     ShieldCheck,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ type Payment = {
     provider_order_id: string | null;
     provider_reference: string | null;
     amount: string;
+    refunded_amount: string;
+    net_amount: string;
     currency: string;
     status: string;
     created_at: string | null;
@@ -51,6 +53,7 @@ type Payment = {
 
 type Props = {
     payments: Payment[];
+    total_spent: string;
     buyer: {
         name: string;
         email: string;
@@ -69,23 +72,12 @@ function formatMoney(currency: string, amount: string) {
     return `${currency} ${amount}`;
 }
 
-export default function BuyerPaymentsIndex({ payments, buyer }: Props) {
-    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(
-        null,
-    );
+export default function BuyerPaymentsIndex({ payments, total_spent, buyer }: Props) {
+    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
-    const completedPayments = useMemo(
-        () => payments.filter((payment) => payment.status === 'paid'),
-        [payments],
-    );
-    const totalSpent = useMemo(
-        () =>
-            completedPayments.reduce(
-                (sum, payment) => sum + Number(payment.amount),
-                0,
-            ),
-        [completedPayments],
-    );
+    const paidCount = payments.filter((p) =>
+        ['paid', 'released', 'refunded'].includes(p.status),
+    ).length;
 
     return (
         <>
@@ -117,7 +109,7 @@ export default function BuyerPaymentsIndex({ payments, buyer }: Props) {
                             Paid
                         </div>
                         <p className="mt-3 text-2xl font-semibold">
-                            {completedPayments.length}
+                            {paidCount}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                             Successfully captured order payments.
@@ -130,15 +122,10 @@ export default function BuyerPaymentsIndex({ payments, buyer }: Props) {
                             Total spent
                         </div>
                         <p className="mt-3 text-2xl font-semibold">
-                            {payments[0]
-                                ? formatMoney(
-                                      payments[0].currency,
-                                      totalSpent.toFixed(2),
-                                  )
-                                : 'USD 0.00'}
+                            USD {total_spent}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Based on completed buyer order payments.
+                            Paid minus any refunds from disputes or cancellations.
                         </p>
                     </div>
                 </div>
@@ -187,6 +174,11 @@ export default function BuyerPaymentsIndex({ payments, buyer }: Props) {
                                             {formatMoney(
                                                 payment.currency,
                                                 payment.amount,
+                                            )}
+                                            {parseFloat(payment.refunded_amount) > 0 && (
+                                                <span className="ml-2 text-amber-600">
+                                                    (−{formatMoney(payment.currency, payment.refunded_amount)} refunded · net {formatMoney(payment.currency, payment.net_amount)})
+                                                </span>
                                             )}
                                         </p>
                                         <p className="text-xs text-muted-foreground">

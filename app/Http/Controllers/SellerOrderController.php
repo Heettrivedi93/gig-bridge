@@ -169,6 +169,7 @@ class SellerOrderController extends Controller
                 'deliveries.user:id,name',
                 'revisions.requester:id,name',
                 'cancellations',
+                'disputes',
             ])
             ->where('seller_id', $sellerId)
             ->whereIn('payment_status', ['paid', 'released', 'refunded']);
@@ -223,6 +224,7 @@ class SellerOrderController extends Controller
                 'reason' => $cancellation->reason,
                 'created_at' => $cancellation->created_at?->toIso8601String(),
             ])->values(),
+            'open_dispute_id' => $order->disputes->where('status', 'open')->first()?->id,
         ];
     }
 }

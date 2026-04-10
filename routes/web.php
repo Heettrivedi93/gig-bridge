@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminCategoryController;
 use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminDisputeController;
 use App\Http\Controllers\Admin\AdminGigModerationController;
 use App\Http\Controllers\Admin\AdminOrderController;
 use App\Http\Controllers\Admin\AdminPlanController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\BuyerCatalogController;
 use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SellerGigController;
@@ -33,6 +35,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+
+    // Disputes (buyer + seller)
+    Route::get('disputes', [DisputeController::class, 'index'])->name('disputes.index');
+    Route::post('orders/{order}/disputes', [DisputeController::class, 'store'])->name('disputes.store');
+    Route::get('disputes/{dispute}', [DisputeController::class, 'show'])->name('disputes.show');
+    Route::post('disputes/{dispute}/messages', [DisputeController::class, 'sendMessage'])->name('disputes.messages.store');
 
     Route::prefix('seller')->name('seller.')->group(function () {
         Route::middleware('can:seller.gigs.access')->group(function () {
@@ -139,6 +147,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureSuperAdmin::cl
     // System settings
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
     Route::put('settings', [AdminSettingController::class, 'update'])->name('settings.update');
+
+    // Disputes
+    Route::get('disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
+    Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
+    Route::post('disputes/{dispute}/messages', [AdminDisputeController::class, 'sendMessage'])->name('disputes.messages.store');
+    Route::post('disputes/{dispute}/resolve', [AdminDisputeController::class, 'resolve'])->name('disputes.resolve');
 });
 
 require __DIR__.'/settings.php';
