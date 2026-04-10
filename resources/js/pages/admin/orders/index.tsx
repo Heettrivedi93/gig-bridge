@@ -3,6 +3,7 @@ import { Pencil } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import admin from '@/routes/admin';
 import type { BreadcrumbItem } from '@/types';
 
@@ -174,6 +176,7 @@ export default function AdminOrdersIndex({
             })),
         [stats],
     );
+    const paginatedOrders = useClientPagination(orders);
 
     const openEdit = (order: OrderRow) => {
         setEditTarget(order);
@@ -240,197 +243,223 @@ export default function AdminOrdersIndex({
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Order
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Buyer
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Seller
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Payment
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Funds
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Revenue
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Updated Timestamps
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {orders.map((order) => (
-                                <tr
-                                    key={order.id}
-                                    className="bg-background align-top transition-colors hover:bg-muted/20"
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium text-foreground">
-                                            {order.gig_title ?? 'Order'}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            #{order.id} •{' '}
-                                            {order.package?.title ?? 'Package'}{' '}
-                                            • {order.package?.tier ?? 'Tier'}
-                                        </div>
-                                        <p className="mt-2 text-xs text-muted-foreground">
-                                            {summarizeText(order.requirements)}
-                                        </p>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium">
-                                            {order.buyer?.name ?? 'Buyer'}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {order.buyer?.email ?? 'No email'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium">
-                                            {order.seller?.name ?? 'Seller'}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {order.seller?.email ?? 'No email'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex flex-col gap-2">
-                                            <Badge
-                                                variant={
-                                                    order.status === 'completed'
-                                                        ? 'default'
-                                                        : 'secondary'
-                                                }
-                                            >
-                                                {order.status}
-                                            </Badge>
-                                            <span className="text-xs text-muted-foreground">
-                                                Escrow{' '}
-                                                {order.escrow_held
-                                                    ? 'held'
-                                                    : 'released'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant={
-                                                order.payment_status ===
-                                                    'paid' ||
-                                                order.payment_status ===
-                                                    'released'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                        >
-                                            {order.payment_status}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex flex-col gap-2">
-                                            <Badge
-                                                variant={
-                                                    order.fund_status ===
-                                                    'released'
-                                                        ? 'default'
-                                                        : 'secondary'
-                                                }
-                                            >
-                                                {order.fund_status}
-                                            </Badge>
-                                            <span className="text-xs text-muted-foreground">
-                                                Released:{' '}
-                                                {shortDate(
-                                                    order.funds_released_at,
-                                                )}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium">
-                                            USD {order.price}
-                                        </div>
-                                        {Number(order.discount_amount) > 0 && (
-                                            <div className="text-xs text-emerald-600">
-                                                Discount: USD {order.discount_amount}
-                                            </div>
-                                        )}
-                                        <div className="text-xs text-muted-foreground">
-                                            Fee {platformFeePercentage}%: USD{' '}
-                                            {order.platform_fee}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            Seller net: USD {order.seller_net}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                                        <div>
-                                            Created:{' '}
-                                            {shortDate(order.created_at)}
-                                        </div>
-                                        <div>
-                                            Delivered:{' '}
-                                            {shortDate(order.delivered_at)}
-                                        </div>
-                                        <div>
-                                            Completed:{' '}
-                                            {shortDate(order.completed_at)}
-                                        </div>
-                                        <div>
-                                            Cancelled:{' '}
-                                            {shortDate(order.cancelled_at)}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1">
-                                            {order.status === 'completed' &&
-                                                order.payment_status ===
-                                                    'paid' &&
-                                                order.fund_status ===
-                                                    'releasable' && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            router.post(
-                                                                `/admin/orders/${order.id}/release-funds`,
-                                                                {},
-                                                                {
-                                                                    preserveScroll: true,
-                                                                },
-                                                            )
-                                                        }
-                                                    >
-                                                        Release
-                                                    </Button>
-                                                )}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => openEdit(order)}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                        </div>
-                                    </td>
+                    <div className="max-w-full overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Order
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Buyer
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Seller
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Payment
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Funds
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Revenue
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Updated Timestamps
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {paginatedOrders.paginatedItems.map((order) => (
+                                    <tr
+                                        key={order.id}
+                                        className="bg-background align-top transition-colors hover:bg-muted/20"
+                                    >
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium text-foreground">
+                                                {order.gig_title ?? 'Order'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                #{order.id} •{' '}
+                                                {order.package?.title ??
+                                                    'Package'}{' '}
+                                                •{' '}
+                                                {order.package?.tier ?? 'Tier'}
+                                            </div>
+                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                {summarizeText(
+                                                    order.requirements,
+                                                )}
+                                            </p>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium">
+                                                {order.buyer?.name ?? 'Buyer'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {order.buyer?.email ??
+                                                    'No email'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium">
+                                                {order.seller?.name ?? 'Seller'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {order.seller?.email ??
+                                                    'No email'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex flex-col gap-2">
+                                                <Badge
+                                                    variant={
+                                                        order.status ===
+                                                        'completed'
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                >
+                                                    {order.status}
+                                                </Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Escrow{' '}
+                                                    {order.escrow_held
+                                                        ? 'held'
+                                                        : 'released'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge
+                                                variant={
+                                                    order.payment_status ===
+                                                        'paid' ||
+                                                    order.payment_status ===
+                                                        'released'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
+                                                {order.payment_status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex flex-col gap-2">
+                                                <Badge
+                                                    variant={
+                                                        order.fund_status ===
+                                                        'released'
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                >
+                                                    {order.fund_status}
+                                                </Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Released:{' '}
+                                                    {shortDate(
+                                                        order.funds_released_at,
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium">
+                                                USD {order.price}
+                                            </div>
+                                            {Number(order.discount_amount) >
+                                                0 && (
+                                                <div className="text-xs text-emerald-600">
+                                                    Discount: USD{' '}
+                                                    {order.discount_amount}
+                                                </div>
+                                            )}
+                                            <div className="text-xs text-muted-foreground">
+                                                Fee {platformFeePercentage}%:
+                                                USD {order.platform_fee}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Seller net: USD{' '}
+                                                {order.seller_net}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                                            <div>
+                                                Created:{' '}
+                                                {shortDate(order.created_at)}
+                                            </div>
+                                            <div>
+                                                Delivered:{' '}
+                                                {shortDate(order.delivered_at)}
+                                            </div>
+                                            <div>
+                                                Completed:{' '}
+                                                {shortDate(order.completed_at)}
+                                            </div>
+                                            <div>
+                                                Cancelled:{' '}
+                                                {shortDate(order.cancelled_at)}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                {order.status === 'completed' &&
+                                                    order.payment_status ===
+                                                        'paid' &&
+                                                    order.fund_status ===
+                                                        'releasable' && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                router.post(
+                                                                    `/admin/orders/${order.id}/release-funds`,
+                                                                    {},
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            Release
+                                                        </Button>
+                                                    )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openEdit(order)
+                                                    }
+                                                >
+                                                    <Pencil className="size-3.5" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <TablePagination
+                        page={paginatedOrders.page}
+                        pageSize={paginatedOrders.pageSize}
+                        totalItems={paginatedOrders.totalItems}
+                        totalPages={paginatedOrders.totalPages}
+                        startItem={paginatedOrders.startItem}
+                        endItem={paginatedOrders.endItem}
+                        hasPreviousPage={paginatedOrders.hasPreviousPage}
+                        hasNextPage={paginatedOrders.hasNextPage}
+                        onPageChange={paginatedOrders.setPage}
+                        onPageSizeChange={paginatedOrders.setPageSize}
+                    />
                 </div>
             </div>
 
@@ -487,7 +516,10 @@ export default function AdminOrdersIndex({
                                     </p>
                                     {Number(editTarget.discount_amount) > 0 && (
                                         <p className="text-sm text-emerald-600">
-                                            Subtotal USD {editTarget.subtotal_amount} • Discount USD {editTarget.discount_amount}
+                                            Subtotal USD{' '}
+                                            {editTarget.subtotal_amount} •
+                                            Discount USD{' '}
+                                            {editTarget.discount_amount}
                                         </p>
                                     )}
                                     <p className="text-sm text-muted-foreground">
@@ -695,9 +727,11 @@ export default function AdminOrdersIndex({
                                                 Coupon: {editTarget.coupon_code}
                                             </span>
                                         )}
-                                        {Number(editTarget.discount_amount) > 0 && (
+                                        {Number(editTarget.discount_amount) >
+                                            0 && (
                                             <span>
-                                                Discount: USD {editTarget.discount_amount}
+                                                Discount: USD{' '}
+                                                {editTarget.discount_amount}
                                             </span>
                                         )}
                                     </div>

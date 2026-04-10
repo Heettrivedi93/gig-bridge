@@ -3,6 +3,7 @@ import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import { useConfirm } from '@/hooks/use-confirm';
 import admin from '@/routes/admin';
 
@@ -194,6 +196,7 @@ export default function AdminPlansIndex({ plans }: Props) {
         features_text: '',
         status: 'active',
     });
+    const paginatedPlans = useClientPagination(plans);
 
     const openEdit = (plan: Plan) => {
         setEditTarget(plan);
@@ -266,89 +269,105 @@ export default function AdminPlansIndex({ plans }: Props) {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Name
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Price
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Duration
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Gig Limit
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Features
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {plans.map((plan) => (
-                                <tr
-                                    key={plan.id}
-                                    className="bg-background transition-colors hover:bg-muted/30"
-                                >
-                                    <td className="px-4 py-3 font-medium text-foreground">
-                                        {plan.name}
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        ${plan.price}
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {plan.duration_days} days
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {plan.gig_limit}
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {plan.features.length}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant={
-                                                plan.status === 'active'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                        >
-                                            {plan.status}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => openEdit(plan)}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    handleDelete(plan)
-                                                }
-                                                className="text-destructive hover:text-destructive"
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
-                                    </td>
+                    <div className="max-w-full overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Name
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Price
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Duration
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Gig Limit
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Features
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {paginatedPlans.paginatedItems.map((plan) => (
+                                    <tr
+                                        key={plan.id}
+                                        className="bg-background transition-colors hover:bg-muted/30"
+                                    >
+                                        <td className="px-4 py-3 font-medium text-foreground">
+                                            {plan.name}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            ${plan.price}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {plan.duration_days} days
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {plan.gig_limit}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {plan.features.length}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge
+                                                variant={
+                                                    plan.status === 'active'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
+                                                {plan.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openEdit(plan)
+                                                    }
+                                                >
+                                                    <Pencil className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        handleDelete(plan)
+                                                    }
+                                                    className="text-destructive hover:text-destructive"
+                                                >
+                                                    <Trash2 className="size-3.5" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <TablePagination
+                        page={paginatedPlans.page}
+                        pageSize={paginatedPlans.pageSize}
+                        totalItems={paginatedPlans.totalItems}
+                        totalPages={paginatedPlans.totalPages}
+                        startItem={paginatedPlans.startItem}
+                        endItem={paginatedPlans.endItem}
+                        hasPreviousPage={paginatedPlans.hasPreviousPage}
+                        hasNextPage={paginatedPlans.hasNextPage}
+                        onPageChange={paginatedPlans.setPage}
+                        onPageSizeChange={paginatedPlans.setPageSize}
+                    />
                 </div>
             </div>
 

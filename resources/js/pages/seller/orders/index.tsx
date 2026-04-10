@@ -16,6 +16,7 @@ import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import OrderChatModal from '@/components/order-chat-modal';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +31,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import type { BreadcrumbItem } from '@/types';
 
 type SellerOrder = {
@@ -156,7 +158,9 @@ export default function SellerOrdersIndex({ orders }: Props) {
         null,
     );
     const [cancelTarget, setCancelTarget] = useState<SellerOrder | null>(null);
-    const [disputeTarget, setDisputeTarget] = useState<SellerOrder | null>(null);
+    const [disputeTarget, setDisputeTarget] = useState<SellerOrder | null>(
+        null,
+    );
 
     const deliveryForm = useForm<{
         delivery_file: File | null;
@@ -184,6 +188,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
         () => orders.filter((order) => order.status === 'delivered'),
         [orders],
     );
+    const paginatedOrders = useClientPagination(orders);
 
     const submitDelivery = (event: React.FormEvent) => {
         event.preventDefault();
@@ -220,7 +225,11 @@ export default function SellerOrdersIndex({ orders }: Props) {
 
     const submitDispute = (event: React.FormEvent) => {
         event.preventDefault();
-        if (!disputeTarget) return;
+
+        if (!disputeTarget) {
+            return;
+        }
+
         disputeForm.post(`/orders/${disputeTarget.id}/disputes`, {
             preserveScroll: true,
             onSuccess: () => {
@@ -300,7 +309,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                     </section>
                 ) : (
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-                        <div className="hidden overflow-x-auto lg:block">
+                        <div className="hidden max-w-full overflow-x-auto lg:block">
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/30 text-left text-xs tracking-[0.16em] text-muted-foreground uppercase">
                                     <tr>
@@ -328,215 +337,238 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {orders.map((order) => (
-                                        <tr
-                                            key={order.id}
-                                            className="border-t border-border/70 align-top"
-                                        >
-                                            <td className="px-4 py-4">
-                                                <p className="font-medium">
-                                                    {order.gig_title ?? 'Order'}
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    #{order.id} •{' '}
-                                                    {order.package?.title ??
-                                                        'Package'}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    <Badge variant="outline">
-                                                        {order.package?.tier ??
-                                                            'package'}
-                                                    </Badge>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p className="font-medium">
-                                                    {order.buyer?.name ??
-                                                        'Buyer'}
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    {order.buyer?.email ??
-                                                        'No email'}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p className="text-foreground">
-                                                    {summarizeText(
-                                                        order.requirements,
-                                                        90,
-                                                    )}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                                    {order.reference_link && (
-                                                        <a
-                                                            href={
-                                                                order.reference_link
-                                                            }
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-primary underline underline-offset-4"
-                                                        >
-                                                            Reference
-                                                        </a>
-                                                    )}
-                                                    {order.brief_file_url && (
-                                                        <a
-                                                            href={
-                                                                order.brief_file_url
-                                                            }
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
-                                                        >
-                                                            <FileText className="size-3.5" />
-                                                            File
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p>
-                                                    {order.package
-                                                        ?.delivery_days ??
-                                                        0}{' '}
-                                                    days
-                                                </p>
-                                                <p className="text-muted-foreground">
-                                                    {order.package
-                                                        ?.revision_count ??
-                                                        0}{' '}
-                                                    revisions
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    Delivered:{' '}
-                                                    {shortDate(
-                                                        order.delivered_at,
-                                                    )}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-2">
-                                                    <Badge
-                                                        variant={
-                                                            order.status ===
-                                                            'active'
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                    >
-                                                        {order.status}
-                                                    </Badge>
-                                                    <Badge
-                                                        variant={
-                                                            order.payment_status ===
-                                                            'paid'
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                    >
-                                                        {order.payment_status}
-                                                    </Badge>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 font-medium">
-                                                USD {order.price}
-                                                {Number(order.discount_amount) > 0 && (
-                                                    <p className="mt-1 text-xs font-normal text-emerald-600">
-                                                        Buyer saved USD {order.discount_amount}
+                                    {paginatedOrders.paginatedItems.map(
+                                        (order) => (
+                                            <tr
+                                                key={order.id}
+                                                className="border-t border-border/70 align-top"
+                                            >
+                                                <td className="px-4 py-4">
+                                                    <p className="font-medium">
+                                                        {order.gig_title ??
+                                                            'Order'}
                                                     </p>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-wrap gap-2">
-                                                    <ActionIconButton
-                                                        label="View"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            setSelectedOrder(
-                                                                order,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Eye className="size-4" />
-                                                    </ActionIconButton>
-                                                    {order.buyer && (
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        #{order.id} •{' '}
+                                                        {order.package?.title ??
+                                                            'Package'}
+                                                    </p>
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        <Badge variant="outline">
+                                                            {order.package
+                                                                ?.tier ??
+                                                                'package'}
+                                                        </Badge>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p className="font-medium">
+                                                        {order.buyer?.name ??
+                                                            'Buyer'}
+                                                    </p>
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        {order.buyer?.email ??
+                                                            'No email'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p className="text-foreground">
+                                                        {summarizeText(
+                                                            order.requirements,
+                                                            90,
+                                                        )}
+                                                    </p>
+                                                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                        {order.reference_link && (
+                                                            <a
+                                                                href={
+                                                                    order.reference_link
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-primary underline underline-offset-4"
+                                                            >
+                                                                Reference
+                                                            </a>
+                                                        )}
+                                                        {order.brief_file_url && (
+                                                            <a
+                                                                href={
+                                                                    order.brief_file_url
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                            >
+                                                                <FileText className="size-3.5" />
+                                                                File
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p>
+                                                        {order.package
+                                                            ?.delivery_days ??
+                                                            0}{' '}
+                                                        days
+                                                    </p>
+                                                    <p className="text-muted-foreground">
+                                                        {order.package
+                                                            ?.revision_count ??
+                                                            0}{' '}
+                                                        revisions
+                                                    </p>
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        Delivered:{' '}
+                                                        {shortDate(
+                                                            order.delivered_at,
+                                                        )}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <Badge
+                                                            variant={
+                                                                order.status ===
+                                                                'active'
+                                                                    ? 'default'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            {order.status}
+                                                        </Badge>
+                                                        <Badge
+                                                            variant={
+                                                                order.payment_status ===
+                                                                'paid'
+                                                                    ? 'default'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            {
+                                                                order.payment_status
+                                                            }
+                                                        </Badge>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 font-medium">
+                                                    USD {order.price}
+                                                    {Number(
+                                                        order.discount_amount,
+                                                    ) > 0 && (
+                                                        <p className="mt-1 text-xs font-normal text-emerald-600">
+                                                            Buyer saved USD{' '}
+                                                            {
+                                                                order.discount_amount
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-wrap gap-2">
                                                         <ActionIconButton
-                                                            label="Message"
+                                                            label="View"
                                                             variant="outline"
                                                             onClick={() =>
-                                                                setMessageOrder(
+                                                                setSelectedOrder(
                                                                     order,
                                                                 )
                                                             }
                                                         >
-                                                            <MessageCircle className="size-4" />
+                                                            <Eye className="size-4" />
                                                         </ActionIconButton>
-                                                    )}
-                                                    <ActionIconButton
-                                                        label="Deliver"
-                                                        onClick={() =>
-                                                            setDeliveryTarget(
-                                                                order,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            order.status !==
-                                                                'active' ||
-                                                            order.payment_status !==
-                                                                'paid'
-                                                        }
-                                                    >
-                                                        <Truck className="size-4" />
-                                                    </ActionIconButton>
-                                                    <ActionIconButton
-                                                        label="Cancel"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            setCancelTarget(
-                                                                order,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            ![
-                                                                'active',
-                                                                'delivered',
-                                                            ].includes(
-                                                                order.status,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Ban className="size-4" />
-                                                    </ActionIconButton>
-                                                    {['delivered', 'completed'].includes(order.status) &&
-                                                        order.payment_status === 'paid' &&
-                                                        !order.open_dispute_id && (
+                                                        {order.buyer && (
                                                             <ActionIconButton
-                                                                label="Raise Dispute"
+                                                                label="Message"
                                                                 variant="outline"
-                                                                onClick={() => setDisputeTarget(order)}
+                                                                onClick={() =>
+                                                                    setMessageOrder(
+                                                                        order,
+                                                                    )
+                                                                }
                                                             >
-                                                                <AlertTriangle className="size-4" />
+                                                                <MessageCircle className="size-4" />
                                                             </ActionIconButton>
                                                         )}
-                                                    {order.open_dispute_id && (
                                                         <ActionIconButton
-                                                            label="View Dispute"
-                                                            variant="outline"
-                                                            onClick={() => window.location.href = `/disputes/${order.open_dispute_id}`}
+                                                            label="Deliver"
+                                                            onClick={() =>
+                                                                setDeliveryTarget(
+                                                                    order,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                order.status !==
+                                                                    'active' ||
+                                                                order.payment_status !==
+                                                                    'paid'
+                                                            }
                                                         >
-                                                            <AlertTriangle className="size-4 text-amber-500" />
+                                                            <Truck className="size-4" />
                                                         </ActionIconButton>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                        <ActionIconButton
+                                                            label="Cancel"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setCancelTarget(
+                                                                    order,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                ![
+                                                                    'active',
+                                                                    'delivered',
+                                                                ].includes(
+                                                                    order.status,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Ban className="size-4" />
+                                                        </ActionIconButton>
+                                                        {[
+                                                            'delivered',
+                                                            'completed',
+                                                        ].includes(
+                                                            order.status,
+                                                        ) &&
+                                                            order.payment_status ===
+                                                                'paid' &&
+                                                            !order.open_dispute_id && (
+                                                                <ActionIconButton
+                                                                    label="Raise Dispute"
+                                                                    variant="outline"
+                                                                    onClick={() =>
+                                                                        setDisputeTarget(
+                                                                            order,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <AlertTriangle className="size-4" />
+                                                                </ActionIconButton>
+                                                            )}
+                                                        {order.open_dispute_id && (
+                                                            <ActionIconButton
+                                                                label="View Dispute"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    (window.location.href = `/disputes/${order.open_dispute_id}`)
+                                                                }
+                                                            >
+                                                                <AlertTriangle className="size-4 text-amber-500" />
+                                                            </ActionIconButton>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
                         <div className="space-y-3 p-4 lg:hidden">
-                            {orders.map((order) => (
+                            {paginatedOrders.paginatedItems.map((order) => (
                                 <div
                                     key={order.id}
                                     className="rounded-xl border border-border/70 p-4"
@@ -557,7 +589,8 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                     </div>
                                     {Number(order.discount_amount) > 0 && (
                                         <p className="mt-2 text-xs text-emerald-600">
-                                            Buyer saved USD {order.discount_amount}
+                                            Buyer saved USD{' '}
+                                            {order.discount_amount}
                                         </p>
                                     )}
                                     <div className="mt-3 flex flex-wrap gap-2">
@@ -634,13 +667,17 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         >
                                             <Ban className="size-4" />
                                         </ActionIconButton>
-                                        {['delivered', 'completed'].includes(order.status) &&
+                                        {['delivered', 'completed'].includes(
+                                            order.status,
+                                        ) &&
                                             order.payment_status === 'paid' &&
                                             !order.open_dispute_id && (
                                                 <ActionIconButton
                                                     label="Raise Dispute"
                                                     variant="outline"
-                                                    onClick={() => setDisputeTarget(order)}
+                                                    onClick={() =>
+                                                        setDisputeTarget(order)
+                                                    }
                                                 >
                                                     <AlertTriangle className="size-4" />
                                                 </ActionIconButton>
@@ -649,7 +686,9 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                             <ActionIconButton
                                                 label="View Dispute"
                                                 variant="outline"
-                                                onClick={() => window.location.href = `/disputes/${order.open_dispute_id}`}
+                                                onClick={() =>
+                                                    (window.location.href = `/disputes/${order.open_dispute_id}`)
+                                                }
                                             >
                                                 <AlertTriangle className="size-4 text-amber-500" />
                                             </ActionIconButton>
@@ -658,6 +697,18 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                 </div>
                             ))}
                         </div>
+                        <TablePagination
+                            page={paginatedOrders.page}
+                            pageSize={paginatedOrders.pageSize}
+                            totalItems={paginatedOrders.totalItems}
+                            totalPages={paginatedOrders.totalPages}
+                            startItem={paginatedOrders.startItem}
+                            endItem={paginatedOrders.endItem}
+                            hasPreviousPage={paginatedOrders.hasPreviousPage}
+                            hasNextPage={paginatedOrders.hasNextPage}
+                            onPageChange={paginatedOrders.setPage}
+                            onPageSizeChange={paginatedOrders.setPageSize}
+                        />
                     </section>
                 )}
             </div>
@@ -687,22 +738,25 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                             {selectedOrder.gig_title}
                                         </p>
                                     </div>
-                                <div className="flex gap-2">
-                                    <Badge variant="outline">
-                                        {selectedOrder.package?.tier}
-                                    </Badge>
-                                    <Badge>{selectedOrder.status}</Badge>
+                                    <div className="flex gap-2">
+                                        <Badge variant="outline">
+                                            {selectedOrder.package?.tier}
+                                        </Badge>
+                                        <Badge>{selectedOrder.status}</Badge>
+                                    </div>
                                 </div>
+                                {Number(selectedOrder.discount_amount) > 0 && (
+                                    <p className="mt-4 text-sm text-emerald-600">
+                                        Subtotal USD{' '}
+                                        {selectedOrder.subtotal_amount} •
+                                        Discount USD{' '}
+                                        {selectedOrder.discount_amount}
+                                        {selectedOrder.coupon_code
+                                            ? ` • Coupon ${selectedOrder.coupon_code}`
+                                            : ''}
+                                    </p>
+                                )}
                             </div>
-                            {Number(selectedOrder.discount_amount) > 0 && (
-                                <p className="mt-4 text-sm text-emerald-600">
-                                    Subtotal USD {selectedOrder.subtotal_amount} • Discount USD {selectedOrder.discount_amount}
-                                    {selectedOrder.coupon_code
-                                        ? ` • Coupon ${selectedOrder.coupon_code}`
-                                        : ''}
-                                </p>
-                            )}
-                        </div>
 
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="rounded-3xl border border-border/70 bg-card p-6">
@@ -997,28 +1051,43 @@ export default function SellerOrdersIndex({ orders }: Props) {
                     <DialogHeader>
                         <DialogTitle>Raise a Dispute</DialogTitle>
                         <DialogDescription>
-                            Describe the issue clearly. Admin will review and make a decision.
+                            Describe the issue clearly. Admin will review and
+                            make a decision.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitDispute} className="space-y-4">
                         <div className="grid gap-2">
-                            <label htmlFor="dispute_reason" className="text-sm font-medium">
+                            <label
+                                htmlFor="dispute_reason"
+                                className="text-sm font-medium"
+                            >
                                 Reason
                             </label>
                             <textarea
                                 id="dispute_reason"
                                 rows={5}
                                 value={disputeForm.data.reason}
-                                onChange={(e) => disputeForm.setData('reason', e.target.value)}
+                                onChange={(e) =>
+                                    disputeForm.setData(
+                                        'reason',
+                                        e.target.value,
+                                    )
+                                }
                                 className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 placeholder="Explain the problem with this order..."
                                 required
                             />
                             <InputError message={disputeForm.errors.reason} />
                         </div>
-                        <Button type="submit" className="w-full" disabled={disputeForm.processing}>
-                            {disputeForm.processing ? 'Submitting...' : 'Submit Dispute'}
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={disputeForm.processing}
+                        >
+                            {disputeForm.processing
+                                ? 'Submitting...'
+                                : 'Submit Dispute'}
                         </Button>
                     </form>
                 </DialogContent>

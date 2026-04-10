@@ -9,6 +9,7 @@ import {
 import { Fragment, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +28,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import { useConfirm } from '@/hooks/use-confirm';
 import admin from '@/routes/admin';
 import categories from '@/routes/admin/categories';
@@ -159,6 +161,7 @@ export default function CategoriesIndex({ categories: cats }: Props) {
         status: 'active',
         parent_id: '',
     });
+    const paginatedCategories = useClientPagination(cats);
 
     const confirm = useConfirm();
 
@@ -244,124 +247,74 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Name
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Slug
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Subcategories
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {cats.map((cat) => (
-                                <Fragment key={cat.id}>
-                                    <tr className="bg-background transition-colors hover:bg-muted/30">
-                                        <td className="px-4 py-3 font-medium text-foreground">
-                                            <button
-                                                onClick={() =>
-                                                    toggleExpand(cat.id)
-                                                }
-                                                className="flex items-center gap-1.5 transition-colors hover:text-primary"
-                                            >
-                                                {expandedIds.has(cat.id) ? (
-                                                    <ChevronDown className="size-3.5 text-muted-foreground" />
-                                                ) : (
-                                                    <ChevronRight className="size-3.5 text-muted-foreground" />
-                                                )}
-                                                {cat.name}
-                                            </button>
-                                        </td>
-                                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                                            {cat.slug}
-                                        </td>
-                                        <td className="px-4 py-3 text-muted-foreground">
-                                            {cat.subcategories.length}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <Badge
-                                                variant={
-                                                    cat.status === 'active'
-                                                        ? 'default'
-                                                        : 'secondary'
-                                                }
-                                            >
-                                                {cat.status}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                        openEdit(cat)
-                                                    }
-                                                >
-                                                    <Pencil className="size-3.5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                        handleDelete(cat)
-                                                    }
-                                                    className="text-destructive hover:text-destructive"
-                                                >
-                                                    <Trash2 className="size-3.5" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-
-                                    {expandedIds.has(cat.id) &&
-                                        cat.subcategories.map((sub) => (
-                                            <tr
-                                                key={sub.id}
-                                                className="bg-muted/20 transition-colors hover:bg-muted/40"
-                                            >
-                                                <td className="flex items-center gap-1.5 px-4 py-2.5 pl-10 text-muted-foreground">
-                                                    <span className="text-muted-foreground/50">
-                                                        ↳
-                                                    </span>
-                                                    {sub.name}
+                    <div className="max-w-full overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Name
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Slug
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Subcategories
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {paginatedCategories.paginatedItems.map(
+                                    (cat) => (
+                                        <Fragment key={cat.id}>
+                                            <tr className="bg-background transition-colors hover:bg-muted/30">
+                                                <td className="px-4 py-3 font-medium text-foreground">
+                                                    <button
+                                                        onClick={() =>
+                                                            toggleExpand(cat.id)
+                                                        }
+                                                        className="flex items-center gap-1.5 transition-colors hover:text-primary"
+                                                    >
+                                                        {expandedIds.has(
+                                                            cat.id,
+                                                        ) ? (
+                                                            <ChevronDown className="size-3.5 text-muted-foreground" />
+                                                        ) : (
+                                                            <ChevronRight className="size-3.5 text-muted-foreground" />
+                                                        )}
+                                                        {cat.name}
+                                                    </button>
                                                 </td>
-                                                <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                                                    {sub.slug}
+                                                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                                                    {cat.slug}
                                                 </td>
-                                                <td className="px-4 py-2.5 text-muted-foreground">
-                                                    —
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {cat.subcategories.length}
                                                 </td>
-                                                <td className="px-4 py-2.5">
+                                                <td className="px-4 py-3">
                                                     <Badge
                                                         variant={
-                                                            sub.status ===
+                                                            cat.status ===
                                                             'active'
                                                                 ? 'default'
                                                                 : 'secondary'
                                                         }
                                                     >
-                                                        {sub.status}
+                                                        {cat.status}
                                                     </Badge>
                                                 </td>
-                                                <td className="px-4 py-2.5">
+                                                <td className="px-4 py-3">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() =>
-                                                                openEdit(sub)
+                                                                openEdit(cat)
                                                             }
                                                         >
                                                             <Pencil className="size-3.5" />
@@ -371,7 +324,7 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                                                             size="icon"
                                                             onClick={() =>
                                                                 handleDelete(
-                                                                    sub,
+                                                                    cat,
                                                                 )
                                                             }
                                                             className="text-destructive hover:text-destructive"
@@ -381,11 +334,84 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))}
-                                </Fragment>
-                            ))}
-                        </tbody>
-                    </table>
+
+                                            {expandedIds.has(cat.id) &&
+                                                cat.subcategories.map((sub) => (
+                                                    <tr
+                                                        key={sub.id}
+                                                        className="bg-muted/20 transition-colors hover:bg-muted/40"
+                                                    >
+                                                        <td className="flex items-center gap-1.5 px-4 py-2.5 pl-10 text-muted-foreground">
+                                                            <span className="text-muted-foreground/50">
+                                                                ↳
+                                                            </span>
+                                                            {sub.name}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                                                            {sub.slug}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-muted-foreground">
+                                                            —
+                                                        </td>
+                                                        <td className="px-4 py-2.5">
+                                                            <Badge
+                                                                variant={
+                                                                    sub.status ===
+                                                                    'active'
+                                                                        ? 'default'
+                                                                        : 'secondary'
+                                                                }
+                                                            >
+                                                                {sub.status}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-2.5">
+                                                            <div className="flex items-center justify-end gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() =>
+                                                                        openEdit(
+                                                                            sub,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Pencil className="size-3.5" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            sub,
+                                                                        )
+                                                                    }
+                                                                    className="text-destructive hover:text-destructive"
+                                                                >
+                                                                    <Trash2 className="size-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                        </Fragment>
+                                    ),
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <TablePagination
+                        page={paginatedCategories.page}
+                        pageSize={paginatedCategories.pageSize}
+                        totalItems={paginatedCategories.totalItems}
+                        totalPages={paginatedCategories.totalPages}
+                        startItem={paginatedCategories.startItem}
+                        endItem={paginatedCategories.endItem}
+                        hasPreviousPage={paginatedCategories.hasPreviousPage}
+                        hasNextPage={paginatedCategories.hasNextPage}
+                        onPageChange={paginatedCategories.setPage}
+                        onPageSizeChange={paginatedCategories.setPageSize}
+                    />
                 </div>
             </div>
 

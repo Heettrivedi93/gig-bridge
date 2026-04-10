@@ -12,6 +12,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import * as RechartsPrimitive from 'recharts';
 import Heading from '@/components/heading';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +30,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import { dashboard } from '@/routes';
 
 type DashboardStat = {
@@ -324,7 +326,9 @@ function AnimatedNumber({
 
     return (
         <span ref={ref} className={className}>
-            {formatter ? formatter(displayValue) : Math.round(displayValue).toString()}
+            {formatter
+                ? formatter(displayValue)
+                : Math.round(displayValue).toString()}
         </span>
     );
 }
@@ -410,7 +414,10 @@ function AnimatedMeter({
     }, [inView]);
 
     return (
-        <div ref={ref} className="h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/8">
+        <div
+            ref={ref}
+            className="h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/8"
+        >
             <div
                 className={className}
                 style={{
@@ -425,35 +432,67 @@ function AnimatedMeter({
     );
 }
 
-function SellerTrendChart({
-    data,
-}: {
-    data: SellerAnalytics['revenueTrend'];
-}) {
+function SellerTrendChart({ data }: { data: SellerAnalytics['revenueTrend'] }) {
     return (
         <ChartContainer
             config={sellerChartConfig}
             className="h-[340px] w-full rounded-[28px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.08))] p-4 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))]"
         >
-            <RechartsPrimitive.AreaChart data={data} margin={{ top: 18, right: 14, left: 4, bottom: 8 }}>
+            <RechartsPrimitive.AreaChart
+                data={data}
+                margin={{ top: 18, right: 14, left: 4, bottom: 8 }}
+            >
                 <defs>
                     {sellerSeries.map((series) => (
-                        <linearGradient key={series.key} id={`seller-fill-${series.key}`} x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient
+                            key={series.key}
+                            id={`seller-fill-${series.key}`}
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                        >
                             <stop
                                 offset="5%"
                                 stopColor={series.color}
-                                stopOpacity={series.key === 'net_revenue' ? 0.24 : 0.14}
+                                stopOpacity={
+                                    series.key === 'net_revenue' ? 0.24 : 0.14
+                                }
                             />
-                            <stop offset="95%" stopColor={series.color} stopOpacity={0.015} />
+                            <stop
+                                offset="95%"
+                                stopColor={series.color}
+                                stopOpacity={0.015}
+                            />
                         </linearGradient>
                     ))}
                 </defs>
-                <RechartsPrimitive.CartesianGrid vertical={false} strokeDasharray="3 6" />
-                <RechartsPrimitive.XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} tickMargin={10} />
-                <RechartsPrimitive.YAxis tickLine={false} axisLine={false} width={72} tickMargin={10} tickFormatter={(value) => `$${Number(value).toFixed(0)}`} />
+                <RechartsPrimitive.CartesianGrid
+                    vertical={false}
+                    strokeDasharray="3 6"
+                />
+                <RechartsPrimitive.XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={24}
+                    tickMargin={10}
+                />
+                <RechartsPrimitive.YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={72}
+                    tickMargin={10}
+                    tickFormatter={(value) => `$${Number(value).toFixed(0)}`}
+                />
                 <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent indicator="line" formatter={(value) => formatCurrency(Number(value))} />}
+                    content={
+                        <ChartTooltipContent
+                            indicator="line"
+                            formatter={(value) => formatCurrency(Number(value))}
+                        />
+                    }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
                 {sellerSeries.map((series) => (
@@ -467,7 +506,13 @@ function SellerTrendChart({
                         fillOpacity={1}
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        animationBegin={series.key === 'net_revenue' ? 0 : series.key === 'gross_sales' ? 180 : 320}
+                        animationBegin={
+                            series.key === 'net_revenue'
+                                ? 0
+                                : series.key === 'gross_sales'
+                                  ? 180
+                                  : 320
+                        }
                         animationDuration={1100}
                         animationEasing="ease-in-out"
                         activeDot={{
@@ -484,31 +529,67 @@ function SellerTrendChart({
     );
 }
 
-function BuyerTrendChart({
-    data,
-}: {
-    data: BuyerAnalytics['spendTrend'];
-}) {
+function BuyerTrendChart({ data }: { data: BuyerAnalytics['spendTrend'] }) {
     return (
         <ChartContainer
             config={buyerChartConfig}
             className="h-[340px] w-full rounded-[28px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.08))] p-4 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))]"
         >
-            <RechartsPrimitive.AreaChart data={data} margin={{ top: 18, right: 14, left: 4, bottom: 8 }}>
+            <RechartsPrimitive.AreaChart
+                data={data}
+                margin={{ top: 18, right: 14, left: 4, bottom: 8 }}
+            >
                 <defs>
                     {buyerSeries.map((series) => (
-                        <linearGradient key={series.key} id={`buyer-fill-${series.key}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={series.color} stopOpacity={series.key === 'spend' ? 0.22 : 0.12} />
-                            <stop offset="95%" stopColor={series.color} stopOpacity={0.015} />
+                        <linearGradient
+                            key={series.key}
+                            id={`buyer-fill-${series.key}`}
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                        >
+                            <stop
+                                offset="5%"
+                                stopColor={series.color}
+                                stopOpacity={
+                                    series.key === 'spend' ? 0.22 : 0.12
+                                }
+                            />
+                            <stop
+                                offset="95%"
+                                stopColor={series.color}
+                                stopOpacity={0.015}
+                            />
                         </linearGradient>
                     ))}
                 </defs>
-                <RechartsPrimitive.CartesianGrid vertical={false} strokeDasharray="3 6" />
-                <RechartsPrimitive.XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} tickMargin={10} />
-                <RechartsPrimitive.YAxis tickLine={false} axisLine={false} width={72} tickMargin={10} tickFormatter={(value) => `$${Number(value).toFixed(0)}`} />
+                <RechartsPrimitive.CartesianGrid
+                    vertical={false}
+                    strokeDasharray="3 6"
+                />
+                <RechartsPrimitive.XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={24}
+                    tickMargin={10}
+                />
+                <RechartsPrimitive.YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={72}
+                    tickMargin={10}
+                    tickFormatter={(value) => `$${Number(value).toFixed(0)}`}
+                />
                 <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent indicator="line" formatter={(value) => formatCurrency(Number(value))} />}
+                    content={
+                        <ChartTooltipContent
+                            indicator="line"
+                            formatter={(value) => formatCurrency(Number(value))}
+                        />
+                    }
                 />
                 <ChartLegend content={<ChartLegendContent />} />
                 {buyerSeries.map((series) => (
@@ -554,7 +635,9 @@ function BreakdownCard({
         <section className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
             <div className="mb-4">
                 <h3 className="font-semibold">{title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    {description}
+                </p>
             </div>
             <div className="space-y-3">
                 {items.map((item, index) => (
@@ -564,10 +647,18 @@ function BreakdownCard({
                     >
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <p className="text-sm font-medium">{item.label}</p>
-                                <p className="mt-1 text-xs text-muted-foreground">{item.share}% of orders</p>
+                                <p className="text-sm font-medium">
+                                    {item.label}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {item.share}% of orders
+                                </p>
                             </div>
-                            <AnimatedMetricValue value={item.count} kind="number" className="text-base font-semibold" />
+                            <AnimatedMetricValue
+                                value={item.count}
+                                kind="number"
+                                className="text-base font-semibold"
+                            />
                         </div>
                         <div className="mt-3">
                             <AnimatedMeter
@@ -591,6 +682,7 @@ function LegacyDashboard({
     recentTransactions,
 }: Omit<PageProps, 'filters' | 'sellerAnalytics'>) {
     const ordersHref = role === 'buyer' ? '/buyer/orders' : '/seller/orders';
+    const paginatedRecentOrders = useClientPagination(recentOrders, 5);
     const headingDescription =
         role === 'seller'
             ? 'Track released funds, orders waiting on buyers, and recent wallet movement from one place.'
@@ -604,9 +696,16 @@ function LegacyDashboard({
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {stats.map((item) => (
-                    <div key={item.label} className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
-                        <p className="text-sm text-muted-foreground">{item.label}</p>
-                        <p className="mt-3 text-2xl font-semibold">{item.value}</p>
+                    <div
+                        key={item.label}
+                        className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border"
+                    >
+                        <p className="text-sm text-muted-foreground">
+                            {item.label}
+                        </p>
+                        <p className="mt-3 text-2xl font-semibold">
+                            {item.value}
+                        </p>
                     </div>
                 ))}
             </div>
@@ -621,10 +720,12 @@ function LegacyDashboard({
                                     Seller wallet
                                 </div>
                                 <p className="mt-2 text-3xl font-semibold">
-                                    {walletSummary.currency} {walletSummary.available_balance}
+                                    {walletSummary.currency}{' '}
+                                    {walletSummary.available_balance}
                                 </p>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    Released funds currently available for withdrawal requests.
+                                    Released funds currently available for
+                                    withdrawal requests.
                                 </p>
                             </div>
                             <div className="flex gap-2">
@@ -643,45 +744,76 @@ function LegacyDashboard({
 
                         <div className="mt-5 grid gap-3 md:grid-cols-3">
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Pending withdrawals</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Pending withdrawals
+                                </p>
                                 <p className="mt-2 text-xl font-semibold">
-                                    {walletSummary.currency} {walletSummary.pending_balance}
+                                    {walletSummary.currency}{' '}
+                                    {walletSummary.pending_balance}
                                 </p>
                             </div>
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Releasable orders</p>
-                                <p className="mt-2 text-xl font-semibold">{walletSummary.releasable_orders}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Releasable orders
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {walletSummary.releasable_orders}
+                                </p>
                             </div>
                             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">Delivered awaiting buyer</p>
-                                <p className="mt-2 text-xl font-semibold">{walletSummary.delivered_orders}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Delivered awaiting buyer
+                                </p>
+                                <p className="mt-2 text-xl font-semibold">
+                                    {walletSummary.delivered_orders}
+                                </p>
                             </div>
                         </div>
                     </div>
 
                     <div className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="font-semibold">Recent Wallet Activity</h3>
+                            <h3 className="font-semibold">
+                                Recent Wallet Activity
+                            </h3>
                             <Badge variant="outline">Live</Badge>
                         </div>
 
                         {recentTransactions.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                                Wallet activity will appear here once funds are released, refunded, or moved into payout review.
+                                Wallet activity will appear here once funds are
+                                released, refunded, or moved into payout review.
                             </p>
                         ) : (
                             <div className="space-y-3">
                                 {recentTransactions.map((item) => (
-                                    <div key={item.id} className="rounded-lg border border-border/70 px-3 py-3">
+                                    <div
+                                        key={item.id}
+                                        className="rounded-lg border border-border/70 px-3 py-3"
+                                    >
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <p className="font-medium">{item.description ?? item.type}</p>
+                                                <p className="font-medium">
+                                                    {item.description ??
+                                                        item.type}
+                                                </p>
                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                    {item.balance_bucket} · {formatDate(item.created_at)}
+                                                    {item.balance_bucket} ·{' '}
+                                                    {formatDate(
+                                                        item.created_at,
+                                                    )}
                                                 </p>
                                             </div>
-                                            <Badge variant={item.direction === 'credit' ? 'default' : 'outline'}>
-                                                {item.direction === 'credit' ? '+' : '-'}
+                                            <Badge
+                                                variant={
+                                                    item.direction === 'credit'
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                            >
+                                                {item.direction === 'credit'
+                                                    ? '+'
+                                                    : '-'}
                                                 {item.amount}
                                             </Badge>
                                         </div>
@@ -698,7 +830,9 @@ function LegacyDashboard({
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <h3 className="font-semibold">Revenue Snapshot</h3>
-                            <p className="text-sm text-muted-foreground">Revenue generated from your own sold services.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Revenue generated from your own sold services.
+                            </p>
                         </div>
                         <Badge variant="outline">Seller Revenue</Badge>
                     </div>
@@ -711,8 +845,13 @@ function LegacyDashboard({
                             ['Pending release', revenueSummary.pending_release],
                             ['Withdrawn', revenueSummary.withdrawn_total],
                         ].map(([label, value]) => (
-                            <div key={label} className="rounded-lg border border-border/70 bg-muted/20 p-4">
-                                <p className="text-sm text-muted-foreground">{label}</p>
+                            <div
+                                key={label}
+                                className="rounded-lg border border-border/70 bg-muted/20 p-4"
+                            >
+                                <p className="text-sm text-muted-foreground">
+                                    {label}
+                                </p>
                                 <p className="mt-2 text-xl font-semibold">
                                     {revenueSummary.currency} {value}
                                 </p>
@@ -725,7 +864,11 @@ function LegacyDashboard({
             <section className="rounded-xl border border-sidebar-border/70 bg-card dark:border-sidebar-border">
                 <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h3 className="font-semibold">{role === 'buyer' ? 'Recent Orders' : 'Order Pipeline'}</h3>
+                        <h3 className="font-semibold">
+                            {role === 'buyer'
+                                ? 'Recent Orders'
+                                : 'Order Pipeline'}
+                        </h3>
                         <p className="text-sm text-muted-foreground">
                             {role === 'buyer'
                                 ? 'Keep an eye on what still needs payment, review, or completion.'
@@ -741,71 +884,159 @@ function LegacyDashboard({
                 </div>
 
                 {recentOrders.length === 0 ? (
-                    <div className="px-5 py-10 text-sm text-muted-foreground">No orders yet.</div>
+                    <div className="px-5 py-10 text-sm text-muted-foreground">
+                        No orders yet.
+                    </div>
                 ) : (
                     <>
-                        <div className="hidden overflow-x-auto lg:block">
+                        <div className="hidden max-w-full overflow-x-auto lg:block">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border bg-muted/30 text-left text-xs tracking-wide text-muted-foreground uppercase">
-                                        <th className="px-5 py-3 font-medium">Order</th>
-                                        <th className="px-5 py-3 font-medium">{role === 'buyer' ? 'Seller' : 'Buyer'}</th>
-                                        <th className="px-5 py-3 font-medium">Status</th>
-                                        <th className="px-5 py-3 font-medium">Payment</th>
-                                        <th className="px-5 py-3 font-medium">Funds</th>
-                                        <th className="px-5 py-3 font-medium">Total</th>
-                                        <th className="px-5 py-3 font-medium">Updated</th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Order
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            {role === 'buyer'
+                                                ? 'Seller'
+                                                : 'Buyer'}
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Status
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Payment
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Funds
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Total
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Updated
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {recentOrders.map((order) => (
-                                        <tr key={order.id} className="bg-background">
-                                            <td className="px-5 py-4">
-                                                <p className="font-medium">{order.gig_title}</p>
-                                                <p className="text-xs text-muted-foreground">Order #{order.id}</p>
-                                            </td>
-                                            <td className="px-5 py-4">{order.counterparty_name}</td>
-                                            <td className="px-5 py-4">
-                                                <Badge variant={badgeVariant(order.status)}>{order.status}</Badge>
-                                            </td>
-                                            <td className="px-5 py-4">
-                                                <Badge variant={badgeVariant(order.payment_status)}>{order.payment_status}</Badge>
-                                            </td>
-                                            <td className="px-5 py-4">
-                                                <Badge variant="outline">{order.fund_status}</Badge>
-                                            </td>
-                                            <td className="px-5 py-4 font-medium">USD {order.total}</td>
-                                            <td className="px-5 py-4 text-xs text-muted-foreground">{formatDate(order.updated_at)}</td>
-                                        </tr>
-                                    ))}
+                                    {paginatedRecentOrders.paginatedItems.map(
+                                        (order) => (
+                                            <tr
+                                                key={order.id}
+                                                className="bg-background"
+                                            >
+                                                <td className="px-5 py-4">
+                                                    <p className="font-medium">
+                                                        {order.gig_title}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Order #{order.id}
+                                                    </p>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    {order.counterparty_name}
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <Badge
+                                                        variant={badgeVariant(
+                                                            order.status,
+                                                        )}
+                                                    >
+                                                        {order.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <Badge
+                                                        variant={badgeVariant(
+                                                            order.payment_status,
+                                                        )}
+                                                    >
+                                                        {order.payment_status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <Badge variant="outline">
+                                                        {order.fund_status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-5 py-4 font-medium">
+                                                    USD {order.total}
+                                                </td>
+                                                <td className="px-5 py-4 text-xs text-muted-foreground">
+                                                    {formatDate(
+                                                        order.updated_at,
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
                         <div className="grid gap-3 p-4 lg:hidden">
-                            {recentOrders.map((order) => (
-                                <div key={order.id} className="rounded-lg border border-border/70 p-4">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium">{order.gig_title}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Order #{order.id} · {order.counterparty_name}
-                                            </p>
+                            {paginatedRecentOrders.paginatedItems.map(
+                                (order) => (
+                                    <div
+                                        key={order.id}
+                                        className="rounded-lg border border-border/70 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="font-medium">
+                                                    {order.gig_title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Order #{order.id} ·{' '}
+                                                    {order.counterparty_name}
+                                                </p>
+                                            </div>
+                                            <span className="text-sm font-medium">
+                                                USD {order.total}
+                                            </span>
                                         </div>
-                                        <span className="text-sm font-medium">USD {order.total}</span>
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            <Badge
+                                                variant={badgeVariant(
+                                                    order.status,
+                                                )}
+                                            >
+                                                {order.status}
+                                            </Badge>
+                                            <Badge
+                                                variant={badgeVariant(
+                                                    order.payment_status,
+                                                )}
+                                            >
+                                                {order.payment_status}
+                                            </Badge>
+                                            <Badge variant="outline">
+                                                {order.fund_status}
+                                            </Badge>
+                                        </div>
+                                        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Clock3 className="size-3.5" />
+                                            {formatDate(order.updated_at)}
+                                        </div>
                                     </div>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        <Badge variant={badgeVariant(order.status)}>{order.status}</Badge>
-                                        <Badge variant={badgeVariant(order.payment_status)}>{order.payment_status}</Badge>
-                                        <Badge variant="outline">{order.fund_status}</Badge>
-                                    </div>
-                                    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Clock3 className="size-3.5" />
-                                        {formatDate(order.updated_at)}
-                                    </div>
-                                </div>
-                            ))}
+                                ),
+                            )}
                         </div>
+                        <TablePagination
+                            page={paginatedRecentOrders.page}
+                            pageSize={paginatedRecentOrders.pageSize}
+                            totalItems={paginatedRecentOrders.totalItems}
+                            totalPages={paginatedRecentOrders.totalPages}
+                            startItem={paginatedRecentOrders.startItem}
+                            endItem={paginatedRecentOrders.endItem}
+                            hasPreviousPage={
+                                paginatedRecentOrders.hasPreviousPage
+                            }
+                            hasNextPage={paginatedRecentOrders.hasNextPage}
+                            onPageChange={paginatedRecentOrders.setPage}
+                            onPageSizeChange={paginatedRecentOrders.setPageSize}
+                            pageSizeOptions={[5, 10, 15]}
+                        />
                     </>
                 )}
             </section>
@@ -817,7 +1048,8 @@ function LegacyDashboard({
                         No role-specific data yet
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
-                        Assign a buyer, seller, or super admin role to unlock the full operational dashboard for this account.
+                        Assign a buyer, seller, or super admin role to unlock
+                        the full operational dashboard for this account.
                     </p>
                 </section>
             )}
@@ -830,7 +1062,10 @@ function SellerDashboard({
     sellerAnalytics,
     recentOrders,
     recentTransactions,
-}: Pick<PageProps, 'filters' | 'sellerAnalytics' | 'recentOrders' | 'recentTransactions'>) {
+}: Pick<
+    PageProps,
+    'filters' | 'sellerAnalytics' | 'recentOrders' | 'recentTransactions'
+>) {
     if (!filters || !sellerAnalytics) {
         return null;
     }
@@ -880,9 +1115,12 @@ function SellerDashboard({
                         <Badge variant="outline" className="bg-background/70">
                             Seller Analytics
                         </Badge>
-                        <h2 className="text-2xl font-semibold tracking-tight">Revenue and delivery cockpit</h2>
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                            Revenue and delivery cockpit
+                        </h2>
                         <p className="max-w-3xl text-sm text-muted-foreground">
-                            Stay on top of sales, buyer response bottlenecks, payout readiness, and the gigs driving your store.
+                            Stay on top of sales, buyer response bottlenecks,
+                            payout readiness, and the gigs driving your store.
                         </p>
                     </div>
 
@@ -892,8 +1130,14 @@ function SellerDashboard({
                                 <Button
                                     key={option.value}
                                     size="sm"
-                                    variant={filters.range === option.value ? 'default' : 'outline'}
-                                    onClick={() => handleRangeChange(option.value)}
+                                    variant={
+                                        filters.range === option.value
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    onClick={() =>
+                                        handleRangeChange(option.value)
+                                    }
                                 >
                                     {option.label}
                                 </Button>
@@ -920,16 +1164,28 @@ function SellerDashboard({
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {sellerAnalytics.stats.map((item) => {
-                    const Icon = sellerStatIcons[item.key as keyof typeof sellerStatIcons] ?? Sparkles;
+                    const Icon =
+                        sellerStatIcons[
+                            item.key as keyof typeof sellerStatIcons
+                        ] ?? Sparkles;
 
                     return (
-                        <div key={item.key} className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                        <div
+                            key={item.key}
+                            className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border"
+                        >
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {item.label}
+                                    </p>
                                     <AnimatedMetricValue
                                         value={item.value}
-                                        kind={item.key === 'open_orders' ? 'number' : 'currency'}
+                                        kind={
+                                            item.key === 'open_orders'
+                                                ? 'number'
+                                                : 'currency'
+                                        }
                                         className="mt-3 block text-2xl font-semibold"
                                     />
                                 </div>
@@ -937,8 +1193,12 @@ function SellerDashboard({
                                     <Icon className="size-4 text-muted-foreground" />
                                 </div>
                             </div>
-                            <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{item.delta}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
+                            <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                {item.delta}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {item.meta}
+                            </p>
                         </div>
                     );
                 })}
@@ -949,19 +1209,33 @@ function SellerDashboard({
                     <div className="mb-5 flex items-center justify-between gap-3">
                         <div>
                             <h3 className="font-semibold">Revenue Trend</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">See how gross sales, net revenue, and fees move over time.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                See how gross sales, net revenue, and fees move
+                                over time.
+                            </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Select value={filters.revenue_month.value} onValueChange={handleRevenueMonthChange}>
-                                <SelectTrigger size="sm" className="min-w-36 bg-background/80">
+                            <Select
+                                value={filters.revenue_month.value}
+                                onValueChange={handleRevenueMonthChange}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="min-w-36 bg-background/80"
+                                >
                                     <SelectValue placeholder="Select month" />
                                 </SelectTrigger>
                                 <SelectContent align="end">
-                                    {filters.revenue_month.options.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
+                                    {filters.revenue_month.options.map(
+                                        (option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ),
+                                    )}
                                 </SelectContent>
                             </Select>
                             <Badge variant="outline">Seller revenue</Badge>
@@ -972,25 +1246,40 @@ function SellerDashboard({
 
                     <div className="mt-4 grid gap-3 md:grid-cols-3">
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                            <p className="text-sm text-muted-foreground">Net revenue total</p>
+                            <p className="text-sm text-muted-foreground">
+                                Net revenue total
+                            </p>
                             <AnimatedMetricValue
-                                value={sellerAnalytics.revenueTrend.reduce((sum, item) => sum + item.net_revenue, 0)}
+                                value={sellerAnalytics.revenueTrend.reduce(
+                                    (sum, item) => sum + item.net_revenue,
+                                    0,
+                                )}
                                 kind="currency"
                                 className="mt-2 block text-xl font-semibold"
                             />
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                            <p className="text-sm text-muted-foreground">Gross sales total</p>
+                            <p className="text-sm text-muted-foreground">
+                                Gross sales total
+                            </p>
                             <AnimatedMetricValue
-                                value={sellerAnalytics.revenueTrend.reduce((sum, item) => sum + item.gross_sales, 0)}
+                                value={sellerAnalytics.revenueTrend.reduce(
+                                    (sum, item) => sum + item.gross_sales,
+                                    0,
+                                )}
                                 kind="currency"
                                 className="mt-2 block text-xl font-semibold"
                             />
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                            <p className="text-sm text-muted-foreground">Platform fees total</p>
+                            <p className="text-sm text-muted-foreground">
+                                Platform fees total
+                            </p>
                             <AnimatedMetricValue
-                                value={sellerAnalytics.revenueTrend.reduce((sum, item) => sum + item.platform_fees, 0)}
+                                value={sellerAnalytics.revenueTrend.reduce(
+                                    (sum, item) => sum + item.platform_fees,
+                                    0,
+                                )}
                                 kind="currency"
                                 className="mt-2 block text-xl font-semibold"
                             />
@@ -1002,14 +1291,20 @@ function SellerDashboard({
                     <div className="mb-4 flex items-center justify-between gap-3">
                         <div>
                             <h3 className="font-semibold">Key Insights</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">A few quick signals to help you focus where it matters.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                A few quick signals to help you focus where it
+                                matters.
+                            </p>
                         </div>
                         <Sparkles className="size-4 text-muted-foreground" />
                     </div>
 
                     <div className="space-y-3">
                         {sellerAnalytics.insights.map((insight, index) => (
-                            <div key={`${insight}-${index}`} className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
+                            <div
+                                key={`${insight}-${index}`}
+                                className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm"
+                            >
                                 {insight}
                             </div>
                         ))}
@@ -1022,23 +1317,42 @@ function SellerDashboard({
                     title="Order Pipeline"
                     description="Track how your orders are moving from active work to buyer acceptance."
                     items={sellerAnalytics.orderBreakdown}
-                    colors={['bg-sky-600', 'bg-amber-500', 'bg-emerald-600', 'bg-rose-600']}
+                    colors={[
+                        'bg-sky-600',
+                        'bg-amber-500',
+                        'bg-emerald-600',
+                        'bg-rose-600',
+                    ]}
                 />
 
                 <section className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                     <div className="mb-4">
                         <h3 className="font-semibold">Payout Readiness</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Your wallet position and payout movement at a glance.</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Your wallet position and payout movement at a
+                            glance.
+                        </p>
                     </div>
                     <div className="space-y-3">
                         {sellerAnalytics.walletBreakdown.map((item) => (
-                            <div key={item.label} className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+                            <div
+                                key={item.label}
+                                className="rounded-2xl border border-border/60 bg-muted/20 p-4"
+                            >
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <p className="font-medium">{item.label}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                                        <p className="font-medium">
+                                            {item.label}
+                                        </p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {item.detail}
+                                        </p>
                                     </div>
-                                    <AnimatedMetricValue value={item.value} kind="currency" className="text-base font-semibold" />
+                                    <AnimatedMetricValue
+                                        value={item.value}
+                                        kind="currency"
+                                        className="text-base font-semibold"
+                                    />
                                 </div>
                             </div>
                         ))}
@@ -1051,7 +1365,9 @@ function SellerDashboard({
                     <div className="mb-4 flex items-center justify-between">
                         <div>
                             <h3 className="font-semibold">Top Gigs</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">See which services are actually driving revenue.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                See which services are actually driving revenue.
+                            </p>
                         </div>
                         <Badge variant="outline">Performance</Badge>
                     </div>
@@ -1059,26 +1375,46 @@ function SellerDashboard({
                     <div className="space-y-3">
                         {sellerAnalytics.topGigs.length === 0 && (
                             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                                Gig performance will appear here after paid orders start landing.
+                                Gig performance will appear here after paid
+                                orders start landing.
                             </div>
                         )}
 
                         {sellerAnalytics.topGigs.map((gig, index) => (
-                            <div key={`${gig.title}-${index}`} className="rounded-2xl border border-border/70 p-4">
+                            <div
+                                key={`${gig.title}-${index}`}
+                                className="rounded-2xl border border-border/70 p-4"
+                            >
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
-                                            <p className="font-medium">{gig.title}</p>
+                                            <span className="text-xs font-medium text-muted-foreground">
+                                                #{index + 1}
+                                            </span>
+                                            <p className="font-medium">
+                                                {gig.title}
+                                            </p>
                                         </div>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            <AnimatedMetricValue value={gig.orders_count} kind="number" /> paid orders
+                                            <AnimatedMetricValue
+                                                value={gig.orders_count}
+                                                kind="number"
+                                            />{' '}
+                                            paid orders
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <AnimatedMetricValue value={gig.gross_sales} kind="currency" className="block font-semibold" />
+                                        <AnimatedMetricValue
+                                            value={gig.gross_sales}
+                                            kind="currency"
+                                            className="block font-semibold"
+                                        />
                                         <p className="text-xs text-muted-foreground">
-                                            Net revenue <AnimatedMetricValue value={gig.net_revenue} kind="currency" />
+                                            Net revenue{' '}
+                                            <AnimatedMetricValue
+                                                value={gig.net_revenue}
+                                                kind="currency"
+                                            />
                                         </p>
                                     </div>
                                 </div>
@@ -1090,29 +1426,48 @@ function SellerDashboard({
                 <div className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                     <div className="mb-4 flex items-center justify-between">
                         <div>
-                            <h3 className="font-semibold">Recent Wallet Activity</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">Latest credits, releases, and payout movement.</p>
+                            <h3 className="font-semibold">
+                                Recent Wallet Activity
+                            </h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Latest credits, releases, and payout movement.
+                            </p>
                         </div>
                         <Badge variant="outline">Live</Badge>
                     </div>
 
                     {recentTransactions.length === 0 ? (
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                            Wallet activity will appear here once funds are released or moved into payout review.
+                            Wallet activity will appear here once funds are
+                            released or moved into payout review.
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {recentTransactions.map((item) => (
-                                <div key={item.id} className="rounded-2xl border border-border/70 px-4 py-3">
+                                <div
+                                    key={item.id}
+                                    className="rounded-2xl border border-border/70 px-4 py-3"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium">{item.description ?? item.type}</p>
+                                            <p className="font-medium">
+                                                {item.description ?? item.type}
+                                            </p>
                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                {item.balance_bucket} · {formatDate(item.created_at)}
+                                                {item.balance_bucket} ·{' '}
+                                                {formatDate(item.created_at)}
                                             </p>
                                         </div>
-                                        <Badge variant={item.direction === 'credit' ? 'default' : 'outline'}>
-                                            {item.direction === 'credit' ? '+' : '-'}
+                                        <Badge
+                                            variant={
+                                                item.direction === 'credit'
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                        >
+                                            {item.direction === 'credit'
+                                                ? '+'
+                                                : '-'}
                                             {item.amount}
                                         </Badge>
                                     </div>
@@ -1127,15 +1482,25 @@ function SellerDashboard({
                 <div className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                     <div className="mb-4">
                         <h3 className="font-semibold">Seller Health</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Quality and operating signals for your current selling window.</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Quality and operating signals for your current
+                            selling window.
+                        </p>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                         {sellerAnalytics.sellerHealth.map((item) => (
-                            <div key={item.label} className={`rounded-2xl border p-4 ${toneClasses(item.tone)}`}>
-                                <p className="text-sm opacity-80">{item.label}</p>
+                            <div
+                                key={item.label}
+                                className={`rounded-2xl border p-4 ${toneClasses(item.tone)}`}
+                            >
+                                <p className="text-sm opacity-80">
+                                    {item.label}
+                                </p>
                                 <AnimatedMetricValue
-                                    value={item.value.replace('USD ', '').replace('%', '')}
+                                    value={item.value
+                                        .replace('USD ', '')
+                                        .replace('%', '')}
                                     kind={
                                         item.value.startsWith('USD ')
                                             ? 'currency'
@@ -1147,7 +1512,9 @@ function SellerDashboard({
                                     }
                                     className="mt-2 block text-2xl font-semibold"
                                 />
-                                <p className="mt-1 text-xs opacity-80">{item.detail}</p>
+                                <p className="mt-1 text-xs opacity-80">
+                                    {item.detail}
+                                </p>
                             </div>
                         ))}
                     </div>
@@ -1157,7 +1524,10 @@ function SellerDashboard({
                     <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <h3 className="font-semibold">Recent Orders</h3>
-                            <p className="text-sm text-muted-foreground">The latest work that may need delivery, follow-up, or buyer action.</p>
+                            <p className="text-sm text-muted-foreground">
+                                The latest work that may need delivery,
+                                follow-up, or buyer action.
+                            </p>
                         </div>
                         <Button asChild variant="outline" size="sm">
                             <Link href="/seller/orders" prefetch>
@@ -1168,24 +1538,46 @@ function SellerDashboard({
                     </div>
 
                     {recentOrders.length === 0 ? (
-                        <div className="px-5 py-10 text-sm text-muted-foreground">No seller orders yet.</div>
+                        <div className="px-5 py-10 text-sm text-muted-foreground">
+                            No seller orders yet.
+                        </div>
                     ) : (
                         <div className="grid gap-3 p-4">
                             {recentOrders.map((order) => (
-                                <div key={order.id} className="rounded-2xl border border-border/70 p-4">
+                                <div
+                                    key={order.id}
+                                    className="rounded-2xl border border-border/70 p-4"
+                                >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium">{order.gig_title}</p>
+                                            <p className="font-medium">
+                                                {order.gig_title}
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
-                                                Order #{order.id} · {order.counterparty_name}
+                                                Order #{order.id} ·{' '}
+                                                {order.counterparty_name}
                                             </p>
                                         </div>
-                                        <span className="text-sm font-medium">USD {order.total}</span>
+                                        <span className="text-sm font-medium">
+                                            USD {order.total}
+                                        </span>
                                     </div>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Badge variant={badgeVariant(order.status)}>{order.status}</Badge>
-                                        <Badge variant={badgeVariant(order.payment_status)}>{order.payment_status}</Badge>
-                                        <Badge variant="outline">{order.fund_status}</Badge>
+                                        <Badge
+                                            variant={badgeVariant(order.status)}
+                                        >
+                                            {order.status}
+                                        </Badge>
+                                        <Badge
+                                            variant={badgeVariant(
+                                                order.payment_status,
+                                            )}
+                                        >
+                                            {order.payment_status}
+                                        </Badge>
+                                        <Badge variant="outline">
+                                            {order.fund_status}
+                                        </Badge>
                                     </div>
                                     <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                                         <Clock3 className="size-3.5" />
@@ -1255,9 +1647,12 @@ function BuyerDashboard({
                         <Badge variant="outline" className="bg-background/70">
                             Buyer Analytics
                         </Badge>
-                        <h2 className="text-2xl font-semibold tracking-tight">Purchase control center</h2>
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                            Purchase control center
+                        </h2>
                         <p className="max-w-3xl text-sm text-muted-foreground">
-                            Understand where your money is going, which sellers you rely on most, and what needs action next.
+                            Understand where your money is going, which sellers
+                            you rely on most, and what needs action next.
                         </p>
                     </div>
 
@@ -1267,8 +1662,14 @@ function BuyerDashboard({
                                 <Button
                                     key={option.value}
                                     size="sm"
-                                    variant={filters.range === option.value ? 'default' : 'outline'}
-                                    onClick={() => handleRangeChange(option.value)}
+                                    variant={
+                                        filters.range === option.value
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    onClick={() =>
+                                        handleRangeChange(option.value)
+                                    }
                                 >
                                     {option.label}
                                 </Button>
@@ -1295,16 +1696,28 @@ function BuyerDashboard({
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {buyerAnalytics.stats.map((item) => {
-                    const Icon = buyerStatIcons[item.key as keyof typeof buyerStatIcons] ?? Sparkles;
+                    const Icon =
+                        buyerStatIcons[
+                            item.key as keyof typeof buyerStatIcons
+                        ] ?? Sparkles;
 
                     return (
-                        <div key={item.key} className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                        <div
+                            key={item.key}
+                            className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border"
+                        >
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {item.label}
+                                    </p>
                                     <AnimatedMetricValue
                                         value={item.value}
-                                        kind={item.key === 'total_spend' ? 'currency' : 'number'}
+                                        kind={
+                                            item.key === 'total_spend'
+                                                ? 'currency'
+                                                : 'number'
+                                        }
                                         className="mt-3 block text-2xl font-semibold"
                                     />
                                 </div>
@@ -1312,8 +1725,12 @@ function BuyerDashboard({
                                     <Icon className="size-4 text-muted-foreground" />
                                 </div>
                             </div>
-                            <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">{item.delta}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.meta}</p>
+                            <p className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                {item.delta}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {item.meta}
+                            </p>
                         </div>
                     );
                 })}
@@ -1324,19 +1741,33 @@ function BuyerDashboard({
                     <div className="mb-5 flex items-center justify-between gap-3">
                         <div>
                             <h3 className="font-semibold">Spend Trend</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">Track paid order spending and discounts over time.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Track paid order spending and discounts over
+                                time.
+                            </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Select value={filters.revenue_month.value} onValueChange={handleMonthChange}>
-                                <SelectTrigger size="sm" className="min-w-36 bg-background/80">
+                            <Select
+                                value={filters.revenue_month.value}
+                                onValueChange={handleMonthChange}
+                            >
+                                <SelectTrigger
+                                    size="sm"
+                                    className="min-w-36 bg-background/80"
+                                >
                                     <SelectValue placeholder="Select month" />
                                 </SelectTrigger>
                                 <SelectContent align="end">
-                                    {filters.revenue_month.options.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
+                                    {filters.revenue_month.options.map(
+                                        (option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ),
+                                    )}
                                 </SelectContent>
                             </Select>
                             <Badge variant="outline">Buyer spend</Badge>
@@ -1347,25 +1778,40 @@ function BuyerDashboard({
 
                     <div className="mt-4 grid gap-3 md:grid-cols-3">
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                            <p className="text-sm text-muted-foreground">Spend total</p>
+                            <p className="text-sm text-muted-foreground">
+                                Spend total
+                            </p>
                             <AnimatedMetricValue
-                                value={buyerAnalytics.spendTrend.reduce((sum, item) => sum + item.spend, 0)}
+                                value={buyerAnalytics.spendTrend.reduce(
+                                    (sum, item) => sum + item.spend,
+                                    0,
+                                )}
                                 kind="currency"
                                 className="mt-2 block text-xl font-semibold"
                             />
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                            <p className="text-sm text-muted-foreground">Discounts total</p>
+                            <p className="text-sm text-muted-foreground">
+                                Discounts total
+                            </p>
                             <AnimatedMetricValue
-                                value={buyerAnalytics.spendTrend.reduce((sum, item) => sum + item.discounts, 0)}
+                                value={buyerAnalytics.spendTrend.reduce(
+                                    (sum, item) => sum + item.discounts,
+                                    0,
+                                )}
                                 kind="currency"
                                 className="mt-2 block text-xl font-semibold"
                             />
                         </div>
                         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
-                            <p className="text-sm text-muted-foreground">Paid orders total</p>
+                            <p className="text-sm text-muted-foreground">
+                                Paid orders total
+                            </p>
                             <AnimatedMetricValue
-                                value={buyerAnalytics.spendTrend.reduce((sum, item) => sum + item.orders, 0)}
+                                value={buyerAnalytics.spendTrend.reduce(
+                                    (sum, item) => sum + item.orders,
+                                    0,
+                                )}
                                 kind="number"
                                 className="mt-2 block text-xl font-semibold"
                             />
@@ -1377,14 +1823,20 @@ function BuyerDashboard({
                     <div className="mb-4 flex items-center justify-between gap-3">
                         <div>
                             <h3 className="font-semibold">Key Insights</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">A few quick cues to keep your buyer workflow moving.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                A few quick cues to keep your buyer workflow
+                                moving.
+                            </p>
                         </div>
                         <Sparkles className="size-4 text-muted-foreground" />
                     </div>
 
                     <div className="space-y-3">
                         {buyerAnalytics.insights.map((insight, index) => (
-                            <div key={`${insight}-${index}`} className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm">
+                            <div
+                                key={`${insight}-${index}`}
+                                className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm"
+                            >
                                 {insight}
                             </div>
                         ))}
@@ -1397,21 +1849,37 @@ function BuyerDashboard({
                     title="Order Status Mix"
                     description="See where your orders currently sit across payment, progress, and completion states."
                     items={buyerAnalytics.orderBreakdown}
-                    colors={['bg-slate-500', 'bg-sky-600', 'bg-amber-500', 'bg-emerald-600', 'bg-rose-600']}
+                    colors={[
+                        'bg-slate-500',
+                        'bg-sky-600',
+                        'bg-amber-500',
+                        'bg-emerald-600',
+                        'bg-rose-600',
+                    ]}
                 />
 
                 <section className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                     <div className="mb-4">
                         <h3 className="font-semibold">Buyer Health</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Signals that reflect your current purchasing and review activity.</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Signals that reflect your current purchasing and
+                            review activity.
+                        </p>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                         {buyerAnalytics.buyerHealth.map((item) => (
-                            <div key={item.label} className={`rounded-2xl border p-4 ${toneClasses(item.tone)}`}>
-                                <p className="text-sm opacity-80">{item.label}</p>
+                            <div
+                                key={item.label}
+                                className={`rounded-2xl border p-4 ${toneClasses(item.tone)}`}
+                            >
+                                <p className="text-sm opacity-80">
+                                    {item.label}
+                                </p>
                                 <AnimatedMetricValue
-                                    value={item.value.replace('USD ', '').replace('%', '')}
+                                    value={item.value
+                                        .replace('USD ', '')
+                                        .replace('%', '')}
                                     kind={
                                         item.value.startsWith('USD ')
                                             ? 'currency'
@@ -1423,7 +1891,9 @@ function BuyerDashboard({
                                     }
                                     className="mt-2 block text-2xl font-semibold"
                                 />
-                                <p className="mt-1 text-xs opacity-80">{item.detail}</p>
+                                <p className="mt-1 text-xs opacity-80">
+                                    {item.detail}
+                                </p>
                             </div>
                         ))}
                     </div>
@@ -1435,7 +1905,10 @@ function BuyerDashboard({
                     <div className="mb-4 flex items-center justify-between">
                         <div>
                             <h3 className="font-semibold">Favorite Sellers</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">Your most-purchased sellers during the selected period.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Your most-purchased sellers during the selected
+                                period.
+                            </p>
                         </div>
                         <Badge variant="outline">Relationships</Badge>
                     </div>
@@ -1443,23 +1916,39 @@ function BuyerDashboard({
                     <div className="space-y-3">
                         {buyerAnalytics.favoriteSellers.length === 0 && (
                             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                                Seller preference data will appear here after paid orders accumulate.
+                                Seller preference data will appear here after
+                                paid orders accumulate.
                             </div>
                         )}
 
                         {buyerAnalytics.favoriteSellers.map((seller, index) => (
-                            <div key={`${seller.name}-${index}`} className="rounded-2xl border border-border/70 p-4">
+                            <div
+                                key={`${seller.name}-${index}`}
+                                className="rounded-2xl border border-border/70 p-4"
+                            >
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
-                                            <p className="font-medium">{seller.name}</p>
+                                            <span className="text-xs font-medium text-muted-foreground">
+                                                #{index + 1}
+                                            </span>
+                                            <p className="font-medium">
+                                                {seller.name}
+                                            </p>
                                         </div>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            <AnimatedMetricValue value={seller.orders_count} kind="number" /> paid orders
+                                            <AnimatedMetricValue
+                                                value={seller.orders_count}
+                                                kind="number"
+                                            />{' '}
+                                            paid orders
                                         </p>
                                     </div>
-                                    <AnimatedMetricValue value={seller.spend} kind="currency" className="text-right font-semibold" />
+                                    <AnimatedMetricValue
+                                        value={seller.spend}
+                                        kind="currency"
+                                        className="text-right font-semibold"
+                                    />
                                 </div>
                             </div>
                         ))}
@@ -1469,26 +1958,43 @@ function BuyerDashboard({
                 <div className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
                     <div className="mb-4">
                         <h3 className="font-semibold">Top Categories</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">Where most of your paid buying activity is concentrated.</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Where most of your paid buying activity is
+                            concentrated.
+                        </p>
                     </div>
 
                     <div className="space-y-3">
                         {buyerAnalytics.topCategories.length === 0 && (
                             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                                Category spending will appear here after paid orders start landing.
+                                Category spending will appear here after paid
+                                orders start landing.
                             </div>
                         )}
 
                         {buyerAnalytics.topCategories.map((category) => (
-                            <div key={category.name} className="rounded-2xl border border-border/70 p-4">
+                            <div
+                                key={category.name}
+                                className="rounded-2xl border border-border/70 p-4"
+                            >
                                 <div className="flex items-center justify-between gap-3">
                                     <div>
-                                        <p className="font-medium">{category.name}</p>
+                                        <p className="font-medium">
+                                            {category.name}
+                                        </p>
                                         <p className="text-xs text-muted-foreground">
-                                            <AnimatedMetricValue value={category.orders_count} kind="number" /> paid orders
+                                            <AnimatedMetricValue
+                                                value={category.orders_count}
+                                                kind="number"
+                                            />{' '}
+                                            paid orders
                                         </p>
                                     </div>
-                                    <AnimatedMetricValue value={category.spend} kind="currency" className="text-sm font-semibold" />
+                                    <AnimatedMetricValue
+                                        value={category.spend}
+                                        kind="currency"
+                                        className="text-sm font-semibold"
+                                    />
                                 </div>
                             </div>
                         ))}
@@ -1500,7 +2006,10 @@ function BuyerDashboard({
                 <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h3 className="font-semibold">Recent Orders</h3>
-                        <p className="text-sm text-muted-foreground">The latest purchases that may need payment, review, or completion from you.</p>
+                        <p className="text-sm text-muted-foreground">
+                            The latest purchases that may need payment, review,
+                            or completion from you.
+                        </p>
                     </div>
                     <Button asChild variant="outline" size="sm">
                         <Link href="/buyer/orders" prefetch>
@@ -1511,24 +2020,44 @@ function BuyerDashboard({
                 </div>
 
                 {recentOrders.length === 0 ? (
-                    <div className="px-5 py-10 text-sm text-muted-foreground">No buyer orders yet.</div>
+                    <div className="px-5 py-10 text-sm text-muted-foreground">
+                        No buyer orders yet.
+                    </div>
                 ) : (
                     <div className="grid gap-3 p-4">
                         {recentOrders.map((order) => (
-                            <div key={order.id} className="rounded-2xl border border-border/70 p-4">
+                            <div
+                                key={order.id}
+                                className="rounded-2xl border border-border/70 p-4"
+                            >
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <p className="font-medium">{order.gig_title}</p>
+                                        <p className="font-medium">
+                                            {order.gig_title}
+                                        </p>
                                         <p className="text-xs text-muted-foreground">
-                                            Order #{order.id} · {order.counterparty_name}
+                                            Order #{order.id} ·{' '}
+                                            {order.counterparty_name}
                                         </p>
                                     </div>
-                                    <span className="text-sm font-medium">USD {order.total}</span>
+                                    <span className="text-sm font-medium">
+                                        USD {order.total}
+                                    </span>
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                    <Badge variant={badgeVariant(order.status)}>{order.status}</Badge>
-                                    <Badge variant={badgeVariant(order.payment_status)}>{order.payment_status}</Badge>
-                                    <Badge variant="outline">{order.fund_status}</Badge>
+                                    <Badge variant={badgeVariant(order.status)}>
+                                        {order.status}
+                                    </Badge>
+                                    <Badge
+                                        variant={badgeVariant(
+                                            order.payment_status,
+                                        )}
+                                    >
+                                        {order.payment_status}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                        {order.fund_status}
+                                    </Badge>
                                 </div>
                                 <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                                     <Clock3 className="size-3.5" />

@@ -3,6 +3,7 @@ import { CheckCircle2, CircleOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import admin from '@/routes/admin';
 import type { BreadcrumbItem } from '@/types';
 
@@ -89,6 +91,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
             })),
         [stats],
     );
+    const paginatedRequests = useClientPagination(requests);
 
     const openReview = (withdrawal: WithdrawalRow) => {
         setReviewTarget(withdrawal);
@@ -150,100 +153,123 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Seller
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Amount
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Method
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Requested
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Reviewed
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {requests.map((request) => (
-                                <tr
-                                    key={request.id}
-                                    className="bg-background transition-colors hover:bg-muted/20"
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium">
-                                            {request.seller?.name ?? 'Seller'}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {request.seller?.email ??
-                                                'No email'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 font-medium">
-                                        {request.wallet_currency}{' '}
-                                        {request.amount}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div>
-                                            {request.method ?? 'Method pending'}
-                                        </div>
-                                        {request.note && (
-                                            <div className="mt-1 text-xs text-muted-foreground">
-                                                {request.note}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant={
-                                                request.status === 'approved' ||
-                                                request.status === 'paid'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
+                    <div className="max-w-full overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Seller
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Amount
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Method
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Requested
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Reviewed
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {paginatedRequests.paginatedItems.map(
+                                    (request) => (
+                                        <tr
+                                            key={request.id}
+                                            className="bg-background transition-colors hover:bg-muted/20"
                                         >
-                                            {request.status}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                                        {formatDate(request.created_at)}
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                                        {request.reviewer?.name
-                                            ? `${request.reviewer.name} • ${formatDate(request.reviewed_at)}`
-                                            : 'Pending'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {request.status === 'pending' && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        openReview(request)
+                                            <td className="px-4 py-3">
+                                                <div className="font-medium">
+                                                    {request.seller?.name ??
+                                                        'Seller'}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {request.seller?.email ??
+                                                        'No email'}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 font-medium">
+                                                {request.wallet_currency}{' '}
+                                                {request.amount}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div>
+                                                    {request.method ??
+                                                        'Method pending'}
+                                                </div>
+                                                {request.note && (
+                                                    <div className="mt-1 text-xs text-muted-foreground">
+                                                        {request.note}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <Badge
+                                                    variant={
+                                                        request.status ===
+                                                            'approved' ||
+                                                        request.status ===
+                                                            'paid'
+                                                            ? 'default'
+                                                            : 'secondary'
                                                     }
                                                 >
-                                                    Review
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                                    {request.status}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-muted-foreground">
+                                                {formatDate(request.created_at)}
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-muted-foreground">
+                                                {request.reviewer?.name
+                                                    ? `${request.reviewer.name} • ${formatDate(request.reviewed_at)}`
+                                                    : 'Pending'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {request.status ===
+                                                        'pending' && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                openReview(
+                                                                    request,
+                                                                )
+                                                            }
+                                                        >
+                                                            Review
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ),
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <TablePagination
+                        page={paginatedRequests.page}
+                        pageSize={paginatedRequests.pageSize}
+                        totalItems={paginatedRequests.totalItems}
+                        totalPages={paginatedRequests.totalPages}
+                        startItem={paginatedRequests.startItem}
+                        endItem={paginatedRequests.endItem}
+                        hasPreviousPage={paginatedRequests.hasPreviousPage}
+                        hasNextPage={paginatedRequests.hasNextPage}
+                        onPageChange={paginatedRequests.setPage}
+                        onPageSizeChange={paginatedRequests.setPageSize}
+                    />
                 </div>
             </div>
 

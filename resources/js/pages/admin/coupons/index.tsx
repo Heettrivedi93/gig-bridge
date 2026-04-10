@@ -3,6 +3,7 @@ import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import { useConfirm } from '@/hooks/use-confirm';
 import admin from '@/routes/admin';
 
@@ -172,9 +174,7 @@ function CouponForm({
                             setData('discount_value', event.target.value)
                         }
                         placeholder={
-                            data.discount_type === 'percentage'
-                                ? '10'
-                                : '25.00'
+                            data.discount_type === 'percentage' ? '10' : '25.00'
                         }
                         required
                     />
@@ -274,6 +274,7 @@ export default function AdminCouponsIndex({ coupons }: Props) {
 
     const createForm = useForm<CouponFormData>(initialState);
     const editForm = useForm<CouponFormData>(initialState);
+    const paginatedCoupons = useClientPagination(coupons);
 
     const openEdit = (coupon: Coupon) => {
         setEditTarget(coupon);
@@ -355,11 +356,12 @@ export default function AdminCouponsIndex({ coupons }: Props) {
                                 No coupons yet
                             </h2>
                             <p className="mt-2 text-sm text-muted-foreground">
-                                Create your first coupon to offer buyer discounts.
+                                Create your first coupon to offer buyer
+                                discounts.
                             </p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <div className="max-w-full overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr>
@@ -384,79 +386,110 @@ export default function AdminCouponsIndex({ coupons }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {coupons.map((coupon) => (
-                                        <tr
-                                            key={coupon.id}
-                                            className="bg-background transition-colors hover:bg-muted/30"
-                                        >
-                                            <td className="px-4 py-3">
-                                                <p className="font-medium text-foreground">
-                                                    {coupon.code}
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    {coupon.description || 'No description'}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-3 text-muted-foreground">
-                                                {coupon.discount_type === 'percentage'
-                                                    ? `${coupon.discount_value}% off`
-                                                    : `USD ${coupon.discount_value} off`}
-                                            </td>
-                                            <td className="px-4 py-3 text-muted-foreground">
-                                                <p>
-                                                    Min order:{' '}
-                                                    {coupon.minimum_order_amount
-                                                        ? `USD ${coupon.minimum_order_amount}`
-                                                        : 'None'}
-                                                </p>
-                                                <p className="mt-1">
-                                                    Schedule:{' '}
-                                                    {coupon.starts_at || coupon.expires_at
-                                                        ? 'Timed'
-                                                        : 'Always on'}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-3 text-muted-foreground">
-                                                <p>Used {coupon.used_count} times</p>
-                                                <p className="mt-1">
-                                                    Limit: {coupon.usage_limit ?? 'Unlimited'}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <Badge
-                                                    variant={
-                                                        coupon.status === 'active'
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    }
-                                                >
-                                                    {coupon.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => openEdit(coupon)}
+                                    {paginatedCoupons.paginatedItems.map(
+                                        (coupon) => (
+                                            <tr
+                                                key={coupon.id}
+                                                className="bg-background transition-colors hover:bg-muted/30"
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <p className="font-medium text-foreground">
+                                                        {coupon.code}
+                                                    </p>
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        {coupon.description ||
+                                                            'No description'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {coupon.discount_type ===
+                                                    'percentage'
+                                                        ? `${coupon.discount_value}% off`
+                                                        : `USD ${coupon.discount_value} off`}
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    <p>
+                                                        Min order:{' '}
+                                                        {coupon.minimum_order_amount
+                                                            ? `USD ${coupon.minimum_order_amount}`
+                                                            : 'None'}
+                                                    </p>
+                                                    <p className="mt-1">
+                                                        Schedule:{' '}
+                                                        {coupon.starts_at ||
+                                                        coupon.expires_at
+                                                            ? 'Timed'
+                                                            : 'Always on'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    <p>
+                                                        Used {coupon.used_count}{' '}
+                                                        times
+                                                    </p>
+                                                    <p className="mt-1">
+                                                        Limit:{' '}
+                                                        {coupon.usage_limit ??
+                                                            'Unlimited'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Badge
+                                                        variant={
+                                                            coupon.status ===
+                                                            'active'
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
                                                     >
-                                                        <Pencil className="size-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => destroyCoupon(coupon)}
-                                                        className="text-destructive hover:text-destructive"
-                                                    >
-                                                        <Trash2 className="size-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                        {coupon.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                openEdit(coupon)
+                                                            }
+                                                        >
+                                                            <Pencil className="size-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                destroyCoupon(
+                                                                    coupon,
+                                                                )
+                                                            }
+                                                            className="text-destructive hover:text-destructive"
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )}
                                 </tbody>
                             </table>
                         </div>
+                    )}
+                    {coupons.length > 0 && (
+                        <TablePagination
+                            page={paginatedCoupons.page}
+                            pageSize={paginatedCoupons.pageSize}
+                            totalItems={paginatedCoupons.totalItems}
+                            totalPages={paginatedCoupons.totalPages}
+                            startItem={paginatedCoupons.startItem}
+                            endItem={paginatedCoupons.endItem}
+                            hasPreviousPage={paginatedCoupons.hasPreviousPage}
+                            hasNextPage={paginatedCoupons.hasNextPage}
+                            onPageChange={paginatedCoupons.setPage}
+                            onPageSizeChange={paginatedCoupons.setPageSize}
+                        />
                     )}
                 </div>
             </div>
