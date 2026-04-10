@@ -1,9 +1,18 @@
 import { Head, Link } from '@inertiajs/react';
 import { Eye, MessageCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useClientPagination } from '@/hooks/use-client-pagination';
 import type { BreadcrumbItem } from '@/types';
 
@@ -39,10 +48,42 @@ const decisionLabel: Record<string, string> = {
     release: 'Released to Seller',
 };
 
+function normalizeSearch(value?: string | null) {
+    return value?.toLowerCase().trim() ?? '';
+}
+
 export default function DisputesIndex({ disputes }: Props) {
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [decisionFilter, setDecisionFilter] = useState('all');
     const open = disputes.filter((d) => d.status === 'open').length;
     const resolved = disputes.filter((d) => d.status === 'resolved').length;
-    const paginatedDisputes = useClientPagination(disputes);
+    const decisionOptions = Array.from(
+        new Set(disputes.map((dispute) => dispute.decision).filter(Boolean)),
+    );
+    const filteredDisputes = useMemo(() => {
+        const searchTerm = normalizeSearch(search);
+
+        return disputes.filter((dispute) => {
+            const matchesSearch =
+                searchTerm.length === 0 ||
+                [
+                    dispute.id.toString(),
+                    dispute.order_id.toString(),
+                    dispute.order_gig_title,
+                    dispute.reason,
+                    dispute.raised_by,
+                    dispute.resolved_by,
+                ].some((value) => normalizeSearch(value).includes(searchTerm));
+            const matchesStatus =
+                statusFilter === 'all' || dispute.status === statusFilter;
+            const matchesDecision =
+                decisionFilter === 'all' || dispute.decision === decisionFilter;
+
+            return matchesSearch && matchesStatus && matchesDecision;
+        });
+    }, [decisionFilter, disputes, search, statusFilter]);
+    const paginatedDisputes = useClientPagination(filteredDisputes);
 
     return (
         <>
@@ -75,12 +116,110 @@ export default function DisputesIndex({ disputes }: Props) {
                     </div>
                 </div>
 
+                <section className="rounded-xl border border-border/70 bg-card p-4">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(180px,0.7fr)_minmax(200px,0.8fr)_auto]">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Search disputes
+                            </label>
+                            <Input
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                placeholder="Search by dispute ID, order, or reason"
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Status
+                            </label>
+                            <Select
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start" side="top">
+                                    <SelectItem value="all">
+                                        All statuses
+                                    </SelectItem>
+                                    <SelectItem value="open">Open</SelectItem>
+                                    <SelectItem value="resolved">
+                                        Resolved
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Decision
+                            </label>
+                            <Select
+                                value={decisionFilter}
+                                onValueChange={setDecisionFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start" side="top">
+                                    <SelectItem value="all">
+                                        All decisions
+                                    </SelectItem>
+                                    {decisionOptions.map((decision) => (
+                                        <SelectItem
+                                            key={decision}
+                                            value={decision}
+                                        >
+                                            {decisionLabel[decision] ??
+                                                decision}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full lg:w-auto"
+                                onClick={() => {
+                                    setSearch('');
+                                    setStatusFilter('all');
+                                    setDecisionFilter('all');
+                                }}
+                            >
+                                Clear
+                            </Button>
+                        </div>
+                    </div>
+
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        {filteredDisputes.length} matching dispute
+                        {filteredDisputes.length === 1 ? '' : 's'} found.
+                    </p>
+                </section>
+
                 {disputes.length === 0 ? (
                     <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
                         <p className="text-lg font-semibold">No disputes yet</p>
                         <p className="mt-2 text-sm text-muted-foreground">
                             Disputes you raise from your orders will appear
                             here.
+                        </p>
+                    </section>
+                ) : filteredDisputes.length === 0 ? (
+                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
+                        <p className="text-lg font-semibold">
+                            No matching disputes
+                        </p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Try changing the search term or clearing the current
+                            filters.
                         </p>
                     </section>
                 ) : (

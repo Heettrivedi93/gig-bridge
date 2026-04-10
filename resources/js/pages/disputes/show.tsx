@@ -38,7 +38,10 @@ type DisputeDetail = {
 type Props = { dispute: DisputeDetail };
 
 function formatDate(value: string | null) {
-    if (!value) return '';
+    if (!value) {
+        return '';
+    }
+
     return new Date(value).toLocaleString();
 }
 
@@ -91,54 +94,123 @@ export default function DisputeShow({ dispute }: Props) {
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* Info panel */}
                     <div className="space-y-4 lg:col-span-1">
-                        <div className="rounded-2xl border border-border/70 bg-card p-5 space-y-3 text-sm">
+                        <div className="rounded-2xl border border-border/70 bg-card p-5">
+                            <p className="font-medium">Dispute Timeline</p>
+                            <div className="mt-4 space-y-4">
+                                <div className="flex gap-3">
+                                    <div className="mt-1 size-2 rounded-full bg-primary" />
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            Dispute opened
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatDate(dispute.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <div
+                                        className={`mt-1 size-2 rounded-full ${dispute.status === 'resolved' ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`}
+                                    />
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            {dispute.status === 'resolved'
+                                                ? 'Resolved'
+                                                : 'Awaiting admin decision'}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {dispute.status === 'resolved'
+                                                ? formatDate(
+                                                      dispute.resolved_at,
+                                                  )
+                                                : 'Open dispute is still under review.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 rounded-2xl border border-border/70 bg-card p-5 text-sm">
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Status</span>
-                                <Badge variant={dispute.status === 'open' ? 'default' : 'secondary'}>
+                                <span className="text-muted-foreground">
+                                    Status
+                                </span>
+                                <Badge
+                                    variant={
+                                        dispute.status === 'open'
+                                            ? 'default'
+                                            : 'secondary'
+                                    }
+                                >
                                     {dispute.status}
                                 </Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Raised by</span>
-                                <span className="font-medium">{dispute.raised_by}</span>
+                                <span className="text-muted-foreground">
+                                    Raised by
+                                </span>
+                                <span className="font-medium">
+                                    {dispute.raised_by}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Buyer</span>
+                                <span className="text-muted-foreground">
+                                    Buyer
+                                </span>
                                 <span>{dispute.order_buyer?.name ?? '—'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Seller</span>
+                                <span className="text-muted-foreground">
+                                    Seller
+                                </span>
                                 <span>{dispute.order_seller?.name ?? '—'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Opened</span>
+                                <span className="text-muted-foreground">
+                                    Opened
+                                </span>
                                 <span>{formatDate(dispute.created_at)}</span>
                             </div>
                         </div>
 
                         <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm">
-                            <p className="font-medium mb-2">Reason</p>
-                            <p className="text-muted-foreground whitespace-pre-wrap">{dispute.reason}</p>
+                            <p className="mb-2 font-medium">Reason</p>
+                            <p className="whitespace-pre-wrap text-muted-foreground">
+                                {dispute.reason}
+                            </p>
                         </div>
 
                         {dispute.status === 'resolved' && (
-                            <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm space-y-2">
+                            <div className="space-y-2 rounded-2xl border border-border/70 bg-card p-5 text-sm">
                                 <p className="font-medium">Resolution</p>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Decision</span>
-                                    <Badge variant="outline">{decisionLabel[dispute.decision ?? ''] ?? dispute.decision}</Badge>
+                                    <span className="text-muted-foreground">
+                                        Decision
+                                    </span>
+                                    <Badge variant="outline">
+                                        {decisionLabel[
+                                            dispute.decision ?? ''
+                                        ] ?? dispute.decision}
+                                    </Badge>
                                 </div>
                                 {dispute.partial_amount && (
                                     <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">Refund amount</span>
-                                        <span>USD {dispute.partial_amount}</span>
+                                        <span className="text-muted-foreground">
+                                            Refund amount
+                                        </span>
+                                        <span>
+                                            {dispute.partial_amount}% to buyer
+                                        </span>
                                     </div>
                                 )}
                                 {dispute.admin_note && (
-                                    <p className="text-muted-foreground mt-2 whitespace-pre-wrap">{dispute.admin_note}</p>
+                                    <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                                        {dispute.admin_note}
+                                    </p>
                                 )}
                                 <p className="text-xs text-muted-foreground">
-                                    Resolved by {dispute.resolved_by} on {formatDate(dispute.resolved_at)}
+                                    Resolved by {dispute.resolved_by} on{' '}
+                                    {formatDate(dispute.resolved_at)}
                                 </p>
                             </div>
                         )}
@@ -147,12 +219,12 @@ export default function DisputeShow({ dispute }: Props) {
                     {/* Chat panel */}
                     <div className="flex flex-col rounded-2xl border border-border/70 bg-card lg:col-span-2">
                         <div className="border-b border-border/70 px-5 py-3">
-                            <p className="font-medium text-sm">Dispute Chat</p>
+                            <p className="text-sm font-medium">Dispute Chat</p>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-[300px] max-h-[480px]">
+                        <div className="max-h-[480px] min-h-[300px] flex-1 space-y-4 overflow-y-auto p-5">
                             {dispute.messages.length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-8">
+                                <p className="py-8 text-center text-sm text-muted-foreground">
                                     No messages yet. Start the conversation.
                                 </p>
                             )}
@@ -162,7 +234,8 @@ export default function DisputeShow({ dispute }: Props) {
                                     className={`flex flex-col gap-1 ${msg.is_mine ? 'items-end' : 'items-start'}`}
                                 >
                                     <p className="text-xs text-muted-foreground">
-                                        {msg.sender_name} · {formatDate(msg.created_at)}
+                                        {msg.sender_name} ·{' '}
+                                        {formatDate(msg.created_at)}
                                     </p>
                                     <div
                                         className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
@@ -171,13 +244,17 @@ export default function DisputeShow({ dispute }: Props) {
                                                 : 'bg-muted text-foreground'
                                         }`}
                                     >
-                                        {msg.body && <p className="whitespace-pre-wrap">{msg.body}</p>}
+                                        {msg.body && (
+                                            <p className="whitespace-pre-wrap">
+                                                {msg.body}
+                                            </p>
+                                        )}
                                         {msg.attachment_url && (
                                             <a
                                                 href={msg.attachment_url}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="mt-1 inline-flex items-center gap-1 underline underline-offset-4 text-xs"
+                                                className="mt-1 inline-flex items-center gap-1 text-xs underline underline-offset-4"
                                             >
                                                 <FileText className="size-3.5" />
                                                 Attachment
@@ -190,28 +267,44 @@ export default function DisputeShow({ dispute }: Props) {
                         </div>
 
                         {dispute.status === 'open' && (
-                            <form onSubmit={submit} className="border-t border-border/70 p-4 space-y-3">
+                            <form
+                                onSubmit={submit}
+                                className="space-y-3 border-t border-border/70 p-4"
+                            >
                                 <textarea
                                     rows={3}
                                     value={form.data.body}
-                                    onChange={(e) => form.setData('body', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData('body', e.target.value)
+                                    }
                                     placeholder="Write a message..."
-                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none resize-none"
+                                    className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 />
                                 <InputError message={form.errors.body} />
 
                                 <div className="flex items-center justify-between gap-3">
                                     <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                                         <Paperclip className="size-4" />
-                                        {form.data.attachment ? form.data.attachment.name : 'Attach proof'}
+                                        {form.data.attachment
+                                            ? form.data.attachment.name
+                                            : 'Attach proof'}
                                         <input
                                             type="file"
                                             className="sr-only"
-                                            onChange={(e) => form.setData('attachment', e.target.files?.[0] ?? null)}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'attachment',
+                                                    e.target.files?.[0] ?? null,
+                                                )
+                                            }
                                         />
                                     </label>
-                                    <Button type="submit" size="sm" disabled={form.processing}>
-                                        <Send className="size-4 mr-1" />
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        disabled={form.processing}
+                                    >
+                                        <Send className="mr-1 size-4" />
                                         Send
                                     </Button>
                                 </div>

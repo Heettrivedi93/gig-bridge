@@ -62,7 +62,10 @@ type DisputeDetail = {
 type Props = { dispute: DisputeDetail };
 
 function formatDate(value: string | null) {
-    if (!value) return '—';
+    if (!value) {
+        return '—';
+    }
+
     return new Date(value).toLocaleString();
 }
 
@@ -119,7 +122,10 @@ export default function AdminDisputeShow({ dispute }: Props) {
     };
 
     // Live split preview for partial_refund
-    const pct = Math.min(99, Math.max(1, parseFloat(resolveForm.data.partial_amount) || 0));
+    const pct = Math.min(
+        99,
+        Math.max(1, parseFloat(resolveForm.data.partial_amount) || 0),
+    );
     const buyerRefund = Math.round(gross * pct) / 100;
     const sellerKeeps = gross - buyerRefund;
     const sellerNet = Math.round(sellerKeeps * (1 - feeRate / 100) * 100) / 100;
@@ -147,67 +153,137 @@ export default function AdminDisputeShow({ dispute }: Props) {
                 <div className="grid gap-6 xl:grid-cols-3">
                     {/* Left: order context + resolution */}
                     <div className="space-y-4 xl:col-span-1">
+                        <div className="rounded-2xl border border-border/70 bg-card p-5">
+                            <p className="font-semibold">Dispute Timeline</p>
+                            <div className="mt-4 space-y-4">
+                                <div className="flex gap-3">
+                                    <div className="mt-1 size-2 rounded-full bg-primary" />
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            Dispute opened
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatDate(dispute.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <div
+                                        className={`mt-1 size-2 rounded-full ${dispute.status === 'resolved' ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`}
+                                    />
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            {dispute.status === 'resolved'
+                                                ? 'Dispute resolved'
+                                                : 'Resolution pending'}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {dispute.status === 'resolved'
+                                                ? `${decisionLabel[dispute.decision ?? ''] ?? dispute.decision} • ${formatDate(dispute.resolved_at)}`
+                                                : 'Admin can still review evidence and choose an outcome.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Order info */}
-                        <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm space-y-2">
-                            <p className="font-semibold mb-1">Order Details</p>
+                        <div className="space-y-2 rounded-2xl border border-border/70 bg-card p-5 text-sm">
+                            <p className="mb-1 font-semibold">Order Details</p>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Gig</span>
-                                <span className="font-medium">{dispute.order_gig_title ?? '—'}</span>
+                                <span className="text-muted-foreground">
+                                    Gig
+                                </span>
+                                <span className="font-medium">
+                                    {dispute.order_gig_title ?? '—'}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Order total</span>
-                                <span className="font-medium">{usd(gross)}</span>
+                                <span className="text-muted-foreground">
+                                    Order total
+                                </span>
+                                <span className="font-medium">
+                                    {usd(gross)}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Platform fee</span>
+                                <span className="text-muted-foreground">
+                                    Platform fee
+                                </span>
                                 <span>{feeRate}%</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Order status</span>
-                                <Badge variant="secondary">{dispute.order_status}</Badge>
+                                <span className="text-muted-foreground">
+                                    Order status
+                                </span>
+                                <Badge variant="secondary">
+                                    {dispute.order_status}
+                                </Badge>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Fund status</span>
-                                <Badge variant={fundsReleased ? 'default' : 'secondary'}>
+                                <span className="text-muted-foreground">
+                                    Fund status
+                                </span>
+                                <Badge
+                                    variant={
+                                        fundsReleased ? 'default' : 'secondary'
+                                    }
+                                >
                                     {dispute.order_fund_status}
                                 </Badge>
                             </div>
                             {fundsReleased && (
-                                <p className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-                                    Funds already released to seller. Partial/full refund will claw back from seller wallet.
+                                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    Funds already released to seller.
+                                    Partial/full refund will claw back from
+                                    seller wallet.
                                 </p>
                             )}
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Buyer</span>
+                                <span className="text-muted-foreground">
+                                    Buyer
+                                </span>
                                 <span>{dispute.buyer?.name ?? '—'}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Seller</span>
+                                <span className="text-muted-foreground">
+                                    Seller
+                                </span>
                                 <span>{dispute.seller?.name ?? '—'}</span>
                             </div>
                         </div>
 
                         {/* Requirements */}
                         <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm">
-                            <p className="font-medium mb-2">Requirements</p>
-                            <p className="text-muted-foreground whitespace-pre-wrap">{dispute.order_requirements}</p>
+                            <p className="mb-2 font-medium">Requirements</p>
+                            <p className="whitespace-pre-wrap text-muted-foreground">
+                                {dispute.order_requirements}
+                            </p>
                         </div>
 
                         {/* Delivery files */}
                         {dispute.order_deliveries.length > 0 && (
-                            <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm space-y-3">
+                            <div className="space-y-3 rounded-2xl border border-border/70 bg-card p-5 text-sm">
                                 <p className="font-medium">Delivery Files</p>
                                 {dispute.order_deliveries.map((d) => (
-                                    <div key={d.id} className="rounded-xl border border-border/70 p-3">
-                                        <p className="text-muted-foreground text-xs">
-                                            {formatDate(d.delivered_at)} by {d.delivered_by ?? 'Seller'}
+                                    <div
+                                        key={d.id}
+                                        className="rounded-xl border border-border/70 p-3"
+                                    >
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatDate(d.delivered_at)} by{' '}
+                                            {d.delivered_by ?? 'Seller'}
                                         </p>
-                                        {d.note && <p className="mt-1 text-muted-foreground">{d.note}</p>}
+                                        {d.note && (
+                                            <p className="mt-1 text-muted-foreground">
+                                                {d.note}
+                                            </p>
+                                        )}
                                         <a
                                             href={d.file_url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="mt-2 inline-flex items-center gap-1 text-primary underline underline-offset-4 text-xs"
+                                            className="mt-2 inline-flex items-center gap-1 text-xs text-primary underline underline-offset-4"
                                         >
                                             <FileText className="size-3.5" />
                                             Download
@@ -219,10 +295,13 @@ export default function AdminDisputeShow({ dispute }: Props) {
 
                         {/* Dispute reason */}
                         <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm">
-                            <p className="font-medium mb-2">Dispute Reason</p>
-                            <p className="text-muted-foreground whitespace-pre-wrap">{dispute.reason}</p>
+                            <p className="mb-2 font-medium">Dispute Reason</p>
+                            <p className="whitespace-pre-wrap text-muted-foreground">
+                                {dispute.reason}
+                            </p>
                             <p className="mt-2 text-xs text-muted-foreground">
-                                Raised by {dispute.raised_by} on {formatDate(dispute.created_at)}
+                                Raised by {dispute.raised_by} on{' '}
+                                {formatDate(dispute.created_at)}
                             </p>
                         </div>
 
@@ -230,7 +309,7 @@ export default function AdminDisputeShow({ dispute }: Props) {
                         {dispute.status === 'open' ? (
                             <form
                                 onSubmit={submitResolve}
-                                className="rounded-2xl border border-border/70 bg-card p-5 space-y-4 text-sm"
+                                className="space-y-4 rounded-2xl border border-border/70 bg-card p-5 text-sm"
                             >
                                 <p className="font-semibold">Resolve Dispute</p>
 
@@ -238,7 +317,9 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                     <Label>Decision</Label>
                                     <Select
                                         value={resolveForm.data.decision}
-                                        onValueChange={(v) => resolveForm.setData('decision', v)}
+                                        onValueChange={(v) =>
+                                            resolveForm.setData('decision', v)
+                                        }
                                     >
                                         <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Choose decision..." />
@@ -255,10 +336,13 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={resolveForm.errors.decision} />
+                                    <InputError
+                                        message={resolveForm.errors.decision}
+                                    />
                                 </div>
 
-                                {resolveForm.data.decision === 'partial_refund' && (
+                                {resolveForm.data.decision ===
+                                    'partial_refund' && (
                                     <div className="space-y-3">
                                         <div className="grid gap-2">
                                             <Label htmlFor="partial_amount">
@@ -271,9 +355,15 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                                     min="1"
                                                     max="99"
                                                     step="1"
-                                                    value={resolveForm.data.partial_amount}
+                                                    value={
+                                                        resolveForm.data
+                                                            .partial_amount
+                                                    }
                                                     onChange={(e) =>
-                                                        resolveForm.setData('partial_amount', e.target.value)
+                                                        resolveForm.setData(
+                                                            'partial_amount',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                     className="flex-1 accent-primary"
                                                 />
@@ -282,59 +372,98 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                                         type="number"
                                                         min="1"
                                                         max="99"
-                                                        value={resolveForm.data.partial_amount}
-                                                        onChange={(e) =>
-                                                            resolveForm.setData('partial_amount', e.target.value)
+                                                        value={
+                                                            resolveForm.data
+                                                                .partial_amount
                                                         }
-                                                        className="w-16 rounded-md border border-input bg-transparent px-2 py-1 text-sm text-center outline-none"
+                                                        onChange={(e) =>
+                                                            resolveForm.setData(
+                                                                'partial_amount',
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="w-16 rounded-md border border-input bg-transparent px-2 py-1 text-center text-sm outline-none"
                                                     />
-                                                    <span className="text-muted-foreground">%</span>
+                                                    <span className="text-muted-foreground">
+                                                        %
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <InputError message={resolveForm.errors.partial_amount} />
+                                            <InputError
+                                                message={
+                                                    resolveForm.errors
+                                                        .partial_amount
+                                                }
+                                            />
                                         </div>
 
                                         {/* Live split preview */}
-                                        <div className="rounded-xl border border-border/70 bg-muted/30 p-4 space-y-2 text-xs">
-                                            <p className="font-medium text-sm mb-1">Split Preview</p>
+                                        <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-4 text-xs">
+                                            <p className="mb-1 text-sm font-medium">
+                                                Split Preview
+                                            </p>
                                             <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Order total</span>
-                                                <span className="font-medium">{usd(gross)}</span>
+                                                <span className="text-muted-foreground">
+                                                    Order total
+                                                </span>
+                                                <span className="font-medium">
+                                                    {usd(gross)}
+                                                </span>
                                             </div>
                                             <div className="h-px bg-border/70" />
                                             <div className="flex justify-between text-blue-600">
-                                                <span>Buyer refund ({pct}%)</span>
-                                                <span className="font-semibold">{usd(buyerRefund)}</span>
+                                                <span>
+                                                    Buyer refund ({pct}%)
+                                                </span>
+                                                <span className="font-semibold">
+                                                    {usd(buyerRefund)}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between text-emerald-600">
-                                                <span>Seller keeps ({100 - pct}%)</span>
-                                                <span className="font-semibold">{usd(sellerKeeps)}</span>
+                                                <span>
+                                                    Seller keeps ({100 - pct}%)
+                                                </span>
+                                                <span className="font-semibold">
+                                                    {usd(sellerKeeps)}
+                                                </span>
                                             </div>
                                             {feeRate > 0 && (
                                                 <>
                                                     <div className="h-px bg-border/70" />
                                                     <div className="flex justify-between text-muted-foreground">
-                                                        <span>Platform fee ({feeRate}% of seller portion)</span>
-                                                        <span>−{usd(platformFee)}</span>
+                                                        <span>
+                                                            Platform fee (
+                                                            {feeRate}% of seller
+                                                            portion)
+                                                        </span>
+                                                        <span>
+                                                            −{usd(platformFee)}
+                                                        </span>
                                                     </div>
-                                                    <div className="flex justify-between text-emerald-700 font-medium">
+                                                    <div className="flex justify-between font-medium text-emerald-700">
                                                         <span>Seller net</span>
-                                                        <span>{usd(sellerNet)}</span>
+                                                        <span>
+                                                            {usd(sellerNet)}
+                                                        </span>
                                                     </div>
                                                 </>
                                             )}
                                             {fundsReleased && (
-                                                <p className="mt-1 text-amber-700 bg-amber-50 rounded px-2 py-1">
-                                                    Funds already released — {usd(buyerRefund)} will be clawed back from seller wallet.
+                                                <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-amber-700">
+                                                    Funds already released —{' '}
+                                                    {usd(buyerRefund)} will be
+                                                    clawed back from seller
+                                                    wallet.
                                                 </p>
                                             )}
                                         </div>
                                     </div>
                                 )}
 
-                                {resolveForm.data.decision === 'full_refund' && (
-                                    <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-xs space-y-1">
-                                        <div className="flex justify-between text-blue-600 font-medium">
+                                {resolveForm.data.decision ===
+                                    'full_refund' && (
+                                    <div className="space-y-1 rounded-xl border border-border/70 bg-muted/30 p-4 text-xs">
+                                        <div className="flex justify-between font-medium text-blue-600">
                                             <span>Buyer refund</span>
                                             <span>{usd(gross)}</span>
                                         </div>
@@ -343,21 +472,26 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                             <span>{usd(0)}</span>
                                         </div>
                                         {fundsReleased && (
-                                            <p className="mt-1 text-amber-700 bg-amber-50 rounded px-2 py-1">
-                                                Funds already released — full seller net will be clawed back.
+                                            <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-amber-700">
+                                                Funds already released — full
+                                                seller net will be clawed back.
                                             </p>
                                         )}
                                     </div>
                                 )}
 
                                 {resolveForm.data.decision === 'release' && (
-                                    <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-xs space-y-1">
-                                        <div className="flex justify-between text-emerald-600 font-medium">
+                                    <div className="space-y-1 rounded-xl border border-border/70 bg-muted/30 p-4 text-xs">
+                                        <div className="flex justify-between font-medium text-emerald-600">
                                             <span>Seller net</span>
                                             <span>
                                                 {fundsReleased
                                                     ? 'Already in wallet'
-                                                    : usd(parseFloat(dispute.order_seller_net_amount) || 0)}
+                                                    : usd(
+                                                          parseFloat(
+                                                              dispute.order_seller_net_amount,
+                                                          ) || 0,
+                                                      )}
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-muted-foreground">
@@ -368,56 +502,105 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                 )}
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="admin_note">Admin Note (optional)</Label>
+                                    <Label htmlFor="admin_note">
+                                        Admin Note (optional)
+                                    </Label>
                                     <textarea
                                         id="admin_note"
                                         rows={3}
                                         value={resolveForm.data.admin_note}
-                                        onChange={(e) => resolveForm.setData('admin_note', e.target.value)}
-                                        className="rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none resize-none"
+                                        onChange={(e) =>
+                                            resolveForm.setData(
+                                                'admin_note',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none"
                                         placeholder="Explain the decision to both parties..."
                                     />
-                                    <InputError message={resolveForm.errors.admin_note} />
+                                    <InputError
+                                        message={resolveForm.errors.admin_note}
+                                    />
                                 </div>
 
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={resolveForm.processing || !resolveForm.data.decision}
+                                    disabled={
+                                        resolveForm.processing ||
+                                        !resolveForm.data.decision
+                                    }
                                 >
-                                    {resolveForm.processing ? 'Resolving...' : 'Close Dispute'}
+                                    {resolveForm.processing
+                                        ? 'Resolving...'
+                                        : 'Close Dispute'}
                                 </Button>
                             </form>
                         ) : (
-                            <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm space-y-2">
+                            <div className="space-y-2 rounded-2xl border border-border/70 bg-card p-5 text-sm">
                                 <p className="font-semibold">Resolution</p>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Decision</span>
+                                    <span className="text-muted-foreground">
+                                        Decision
+                                    </span>
                                     <Badge variant="outline">
-                                        {decisionLabel[dispute.decision ?? ''] ?? dispute.decision}
+                                        {decisionLabel[
+                                            dispute.decision ?? ''
+                                        ] ?? dispute.decision}
                                     </Badge>
                                 </div>
-                                {dispute.decision === 'partial_refund' && dispute.partial_amount && (
-                                    <>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Buyer refund</span>
-                                            <span className="text-blue-600 font-medium">
-                                                {dispute.partial_amount}% ({usd(gross * parseFloat(dispute.partial_amount) / 100)})
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Seller kept</span>
-                                            <span className="text-emerald-600 font-medium">
-                                                {(100 - parseFloat(dispute.partial_amount)).toFixed(0)}% ({usd(gross * (100 - parseFloat(dispute.partial_amount)) / 100)})
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
+                                {dispute.decision === 'partial_refund' &&
+                                    dispute.partial_amount && (
+                                        <>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">
+                                                    Buyer refund
+                                                </span>
+                                                <span className="font-medium text-blue-600">
+                                                    {dispute.partial_amount}% (
+                                                    {usd(
+                                                        (gross *
+                                                            parseFloat(
+                                                                dispute.partial_amount,
+                                                            )) /
+                                                            100,
+                                                    )}
+                                                    )
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">
+                                                    Seller kept
+                                                </span>
+                                                <span className="font-medium text-emerald-600">
+                                                    {(
+                                                        100 -
+                                                        parseFloat(
+                                                            dispute.partial_amount,
+                                                        )
+                                                    ).toFixed(0)}
+                                                    % (
+                                                    {usd(
+                                                        (gross *
+                                                            (100 -
+                                                                parseFloat(
+                                                                    dispute.partial_amount,
+                                                                ))) /
+                                                            100,
+                                                    )}
+                                                    )
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
                                 {dispute.admin_note && (
-                                    <p className="text-muted-foreground mt-2 whitespace-pre-wrap">{dispute.admin_note}</p>
+                                    <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                                        {dispute.admin_note}
+                                    </p>
                                 )}
                                 <p className="text-xs text-muted-foreground">
-                                    Resolved by {dispute.resolved_by} on {formatDate(dispute.resolved_at)}
+                                    Resolved by {dispute.resolved_by} on{' '}
+                                    {formatDate(dispute.resolved_at)}
                                 </p>
                             </div>
                         )}
@@ -426,37 +609,45 @@ export default function AdminDisputeShow({ dispute }: Props) {
                     {/* Right: chat */}
                     <div className="flex flex-col rounded-2xl border border-border/70 bg-card xl:col-span-2">
                         <div className="border-b border-border/70 px-5 py-3">
-                            <p className="font-medium text-sm">Dispute Chat</p>
+                            <p className="text-sm font-medium">Dispute Chat</p>
                             <p className="text-xs text-muted-foreground">
                                 Buyer, seller, and admin can all participate
                             </p>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-[300px] max-h-[520px]">
+                        <div className="max-h-[520px] min-h-[300px] flex-1 space-y-4 overflow-y-auto p-5">
                             {dispute.messages.length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-8">
+                                <p className="py-8 text-center text-sm text-muted-foreground">
                                     No messages yet.
                                 </p>
                             )}
                             {dispute.messages.map((msg) => (
-                                <div key={msg.id} className={`flex flex-col gap-1 ${msg.is_mine ? 'items-end' : 'items-start'}`}>
+                                <div
+                                    key={msg.id}
+                                    className={`flex flex-col gap-1 ${msg.is_mine ? 'items-end' : 'items-start'}`}
+                                >
                                     <p className="text-xs text-muted-foreground">
-                                        {msg.sender_name} · {formatDate(msg.created_at)}
+                                        {msg.sender_name} ·{' '}
+                                        {formatDate(msg.created_at)}
                                     </p>
-                                    <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                                        msg.is_mine
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted text-foreground'
-                                    }`}>
+                                    <div
+                                        className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                                            msg.is_mine
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-foreground'
+                                        }`}
+                                    >
                                         {msg.body && (
-                                            <p className="whitespace-pre-wrap">{msg.body}</p>
+                                            <p className="whitespace-pre-wrap">
+                                                {msg.body}
+                                            </p>
                                         )}
                                         {msg.attachment_url && (
                                             <a
                                                 href={msg.attachment_url}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="mt-1 inline-flex items-center gap-1 underline underline-offset-4 text-xs text-primary"
+                                                className="mt-1 inline-flex items-center gap-1 text-xs text-primary underline underline-offset-4"
                                             >
                                                 <FileText className="size-3.5" />
                                                 Attachment
@@ -471,14 +662,16 @@ export default function AdminDisputeShow({ dispute }: Props) {
                         {dispute.status === 'open' && (
                             <form
                                 onSubmit={sendMessage}
-                                className="border-t border-border/70 p-4 space-y-3"
+                                className="space-y-3 border-t border-border/70 p-4"
                             >
                                 <textarea
                                     rows={3}
                                     value={msgForm.data.body}
-                                    onChange={(e) => msgForm.setData('body', e.target.value)}
+                                    onChange={(e) =>
+                                        msgForm.setData('body', e.target.value)
+                                    }
                                     placeholder="Write a message to both parties..."
-                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none resize-none"
+                                    className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 />
                                 <InputError message={msgForm.errors.body} />
 
@@ -499,12 +692,18 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                             }
                                         />
                                     </label>
-                                    <Button type="submit" size="sm" disabled={msgForm.processing}>
-                                        <Send className="size-4 mr-1" />
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        disabled={msgForm.processing}
+                                    >
+                                        <Send className="mr-1 size-4" />
                                         Send
                                     </Button>
                                 </div>
-                                <InputError message={msgForm.errors.attachment} />
+                                <InputError
+                                    message={msgForm.errors.attachment}
+                                />
                             </form>
                         )}
 
