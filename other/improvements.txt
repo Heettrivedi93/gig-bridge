@@ -68,3 +68,7 @@ Queue notifications — user experience and server performance
 Auto-release scheduler — core business feature mentioned in README
 
 window.location.href → router.visit() — quick frontend fix
+
+account:trivedi.workdo1@gmail.com limit resets on Apr 10, 2026 at 4.00 PM
+account:heettrivedi93@gmail.com limit resets on Apr 13, 2026, 1:54 PM
+account:heettrivedi82@gmail.com limit resets on Apr 14, 2026, 2:07 PM
