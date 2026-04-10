@@ -53,7 +53,7 @@ export default function TablePagination({
                         <SelectTrigger className="w-[88px]" size="sm">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent align="start">
+                        <SelectContent align="start" side="top">
                             {pageSizeOptions.map((option) => (
                                 <SelectItem key={option} value={String(option)}>
                                     {option}

@@ -84,70 +84,74 @@ export default function AdminLedgerIndex({
                     ))}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-3">
-                    <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
-                        <h3 className="font-semibold">Revenue Channels</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Track paid plan revenue and commission earned from
-                            sellers selling services to buyers.
-                        </p>
+                <div className="space-y-4">
+                    <div className="grid gap-4 xl:grid-cols-2">
+                        <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                            <h3 className="font-semibold">Revenue Channels</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Track paid plan revenue and commission earned
+                                from sellers selling services to buyers.
+                            </p>
 
-                        <div className="mt-4 space-y-3">
-                            {revenueSummary.map((item) => (
-                                <div
-                                    key={item.label}
-                                    className="rounded-lg border border-border/70 p-4"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium">
-                                                {item.label}
-                                            </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {item.detail}
-                                            </p>
+                            <div className="mt-4 space-y-3">
+                                {revenueSummary.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className="rounded-lg border border-border/70 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="font-medium">
+                                                    {item.label}
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {item.detail}
+                                                </p>
+                                            </div>
+                                            <span className="text-base font-semibold">
+                                                USD {item.value}
+                                            </span>
                                         </div>
-                                        <span className="text-base font-semibold">
-                                            USD {item.value}
-                                        </span>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                                ))}
+                            </div>
+                        </section>
 
-                    <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
-                        <h3 className="font-semibold">Operational Balances</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Snapshot of held funds, payout queues, and released
-                            seller balances.
-                        </p>
+                        <section className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                            <h3 className="font-semibold">
+                                Operational Balances
+                            </h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Snapshot of held funds, payout queues, and
+                                released seller balances.
+                            </p>
 
-                        <div className="mt-4 space-y-3">
-                            {walletSummary.map((item) => (
-                                <div
-                                    key={item.label}
-                                    className="rounded-lg border border-border/70 p-4"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium">
-                                                {item.label}
-                                            </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {item.detail}
-                                            </p>
+                            <div className="mt-4 space-y-3">
+                                {walletSummary.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className="rounded-lg border border-border/70 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="font-medium">
+                                                    {item.label}
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {item.detail}
+                                                </p>
+                                            </div>
+                                            <span className="text-base font-semibold">
+                                                USD {item.value}
+                                            </span>
                                         </div>
-                                        <span className="text-base font-semibold">
-                                            USD {item.value}
-                                        </span>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
 
-                    <section className="overflow-hidden rounded-xl border border-sidebar-border/70 xl:col-span-2 dark:border-sidebar-border">
+                    <section className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                         <div className="border-b border-border bg-card px-4 py-4">
                             <h3 className="font-semibold">
                                 Transaction Stream
