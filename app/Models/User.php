@@ -107,6 +107,11 @@ class User extends Authenticatable
         return $this->hasMany(Review::class, 'seller_id');
     }
 
+    public function gigFavourites(): HasMany
+    {
+        return $this->hasMany(GigFavourite::class);
+    }
+
     public function activeSubscription(): ?Subscription
     {
         return $this->subscriptions()

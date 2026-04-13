@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Bell,
+    Bookmark,
     CreditCard,
     LayoutGrid,
     ReceiptText,
@@ -110,6 +111,15 @@ export function AppSidebar() {
                       title: 'Explore Gigs',
                       href: '/buyer/gigs',
                       icon: Search,
+                  } satisfies NavItem,
+              ]
+            : []),
+        ...(isBuyer && canAccess('buyer.gigs.access')
+            ? [
+                  {
+                      title: 'Saved Gigs',
+                      href: '/buyer/favourites',
+                      icon: Bookmark,
                   } satisfies NavItem,
               ]
             : []),

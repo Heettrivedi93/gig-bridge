@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Clock3,
+    Heart,
     Layers3,
     Search,
     SlidersHorizontal,
@@ -8,6 +9,7 @@ import {
     Star,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from '@/components/flash-toaster';
 import Heading from '@/components/heading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -50,11 +52,13 @@ type GigCard = {
 type CategoryOption = {
     id: number;
     name: string;
+    subcategories: { id: number; name: string }[];
 };
 
 type Filters = {
     keyword: string;
     category_id: string;
+    subcategory_id: string;
     price_max: string;
     delivery_days: string;
     rating: string;
@@ -65,6 +69,7 @@ type Props = {
     gigs: GigCard[];
     categories: CategoryOption[];
     filters: Filters;
+    favourite_gig_ids: number[];
 };
 
 function sellerInitials(name: string | null) {
@@ -80,10 +85,35 @@ function sellerInitials(name: string | null) {
         .toUpperCase();
 }
 
-export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
+export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig_ids }: Props) {
     const [query, setQuery] = useState<Filters>(filters);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
+    const [savedIds, setSavedIds] = useState<Set<number>>(new Set(favourite_gig_ids));
     const keywordSearchTimeoutRef = useRef<number | null>(null);
+
+    const selectedCategory = useMemo(
+        () => categories.find((c) => String(c.id) === query.category_id) ?? null,
+        [categories, query.category_id],
+    );
+
+    const toggleFavourite = (e: React.MouseEvent, gigId: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isNowSaved = !savedIds.has(gigId);
+        setSavedIds((prev) => {
+            const next = new Set(prev);
+            next.has(gigId) ? next.delete(gigId) : next.add(gigId);
+            return next;
+        });
+        toast('success', isNowSaved ? 'Gig saved to your wishlist.' : 'Gig removed from your wishlist.');
+        const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+        fetch(`/buyer/gigs/${gigId}/favourite`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+        });
+    };
+
     const activeFilterCount = useMemo(
         () =>
             Object.entries(query).filter(
@@ -138,6 +168,7 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
         const reset = {
             keyword: '',
             category_id: '',
+            subcategory_id: '',
             price_max: '',
             delivery_days: '',
             rating: '',
@@ -177,6 +208,7 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                 setQuery({
                                     ...query,
                                     category_id: value === 'all' ? '' : value,
+                                    subcategory_id: '',
                                 })
                             }
                         >
@@ -198,6 +230,38 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {selectedCategory && selectedCategory.subcategories.length > 0 && (
+                        <div>
+                            <Label>Subcategory</Label>
+                            <Select
+                                value={query.subcategory_id || 'all'}
+                                onValueChange={(value) =>
+                                    setQuery({
+                                        ...query,
+                                        subcategory_id: value === 'all' ? '' : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="mt-2 w-full">
+                                    <SelectValue placeholder="All subcategories" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All subcategories
+                                    </SelectItem>
+                                    {selectedCategory.subcategories.map((sub) => (
+                                        <SelectItem
+                                            key={sub.id}
+                                            value={String(sub.id)}
+                                        >
+                                            {sub.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     <div>
                         <Label htmlFor="price-max">Max price</Label>
@@ -371,7 +435,16 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         {query.category_id && (
-                            <Badge variant="secondary">Category selected</Badge>
+                            <Badge variant="secondary">
+                                {selectedCategory?.name ?? 'Category selected'}
+                            </Badge>
+                        )}
+                        {query.subcategory_id && (
+                            <Badge variant="secondary">
+                                {selectedCategory?.subcategories.find(
+                                    (s) => String(s.id) === query.subcategory_id,
+                                )?.name ?? 'Subcategory selected'}
+                            </Badge>
                         )}
                         {query.price_max && (
                             <Badge variant="secondary">
@@ -465,6 +538,21 @@ export default function BuyerGigIndex({ gigs, categories, filters }: Props) {
                                                     </Badge>
                                                 )}
                                             </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={(e) => toggleFavourite(e, gig.id)}
+                                                className="absolute right-3 bottom-3 flex size-8 items-center justify-center rounded-full bg-background/80 shadow backdrop-blur transition hover:scale-110"
+                                                aria-label={savedIds.has(gig.id) ? 'Remove from saved' : 'Save gig'}
+                                            >
+                                                <Heart
+                                                    className={`size-4 transition ${
+                                                        savedIds.has(gig.id)
+                                                            ? 'fill-rose-500 text-rose-500'
+                                                            : 'text-muted-foreground'
+                                                    }`}
+                                                />
+                                            </button>
                                         </div>
 
                                         <div className="p-5">

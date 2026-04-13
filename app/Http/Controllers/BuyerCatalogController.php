@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Gig;
+use App\Models\GigFavourite;
 use App\Services\CouponService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class BuyerCatalogController extends Controller
         $filters = [
             'keyword' => trim((string) $request->string('keyword')),
             'category_id' => trim((string) $request->string('category_id')),
+            'subcategory_id' => trim((string) $request->string('subcategory_id')),
             'price_max' => trim((string) $request->string('price_max')),
             'delivery_days' => trim((string) $request->string('delivery_days')),
             'rating' => trim((string) $request->string('rating')),
@@ -54,6 +56,9 @@ class BuyerCatalogController extends Controller
             ->when($filters['category_id'] !== '', function (Builder $query) use ($filters) {
                 $query->where('category_id', $filters['category_id']);
             })
+            ->when($filters['subcategory_id'] !== '', function (Builder $query) use ($filters) {
+                $query->where('subcategory_id', $filters['subcategory_id']);
+            })
             ->when($filters['price_max'] !== '', function (Builder $query) use ($filters) {
                 $query->whereHas('packages', fn (Builder $packageQuery) => $packageQuery->where('price', '<=', (float) $filters['price_max']));
             })
@@ -80,13 +85,22 @@ class BuyerCatalogController extends Controller
             'categories' => Category::query()
                 ->whereNull('parent_id')
                 ->where('status', 'active')
+                ->with(['subcategories' => fn ($q) => $q->where('status', 'active')->orderBy('name')])
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (Category $category) => [
                     'id' => $category->id,
                     'name' => $category->name,
+                    'subcategories' => $category->subcategories->map(fn (Category $sub) => [
+                        'id' => $sub->id,
+                        'name' => $sub->name,
+                    ])->values(),
                 ]),
             'filters' => $filters,
+            'favourite_gig_ids' => GigFavourite::query()
+                ->where('user_id', $request->user()->id)
+                ->pluck('gig_id')
+                ->values(),
         ]);
     }
 

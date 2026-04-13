@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminWalletLedgerController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
+use App\Http\Controllers\GigFavouriteController;
 use App\Http\Controllers\BuyerCatalogController;
 use App\Http\Controllers\BuyerOrderController;
 use App\Http\Controllers\DashboardController;
@@ -81,6 +82,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware('can:buyer.gigs.access')->group(function () {
             Route::get('gigs', [BuyerCatalogController::class, 'index'])->name('gigs.index');
             Route::get('gigs/{gig}', [BuyerCatalogController::class, 'show'])->name('gigs.show');
+            Route::get('favourites', [GigFavouriteController::class, 'index'])->name('favourites.index');
+            Route::post('gigs/{gig}/favourite', [GigFavouriteController::class, 'toggle'])->name('gigs.favourite');
         });
 
         Route::middleware('can:buyer.orders.access')->group(function () {

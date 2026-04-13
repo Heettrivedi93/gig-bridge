@@ -62,4 +62,9 @@ class Gig extends Model
     {
         return $this->hasMany(Review::class);
     }
+
+    public function favourites(): HasMany
+    {
+        return $this->hasMany(GigFavourite::class);
+    }
 }
