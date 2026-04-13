@@ -61,25 +61,29 @@ const steps = [
         number: '01',
         role: 'Buyer',
         title: 'Find a gig',
-        description: 'Search the catalog, compare packages, and place an order in minutes.',
+        description:
+            'Search the catalog, compare packages, and place an order in minutes.',
     },
     {
         number: '02',
         role: 'Buyer',
         title: 'Pay securely',
-        description: 'Complete checkout via PayPal. Funds are held in escrow until you approve the work.',
+        description:
+            'Complete checkout via PayPal. Funds are held in escrow until you approve the work.',
     },
     {
         number: '03',
         role: 'Seller',
         title: 'Deliver the work',
-        description: 'Seller uploads the completed files and notes. You review and accept or request a revision.',
+        description:
+            'Seller uploads the completed files and notes. You review and accept or request a revision.',
     },
     {
         number: '04',
         role: 'Both',
         title: 'Done',
-        description: 'Order completes, funds release to the seller, and you leave a review.',
+        description:
+            'Order completes, funds release to the seller, and you leave a review.',
     },
 ];
 
@@ -101,7 +105,11 @@ const categories = [
     'Data & Analytics',
 ];
 
-export default function Welcome({ canRegister = true }: { canRegister?: boolean }) {
+export default function Welcome({
+    canRegister = true,
+}: {
+    canRegister?: boolean;
+}) {
     const { auth } = usePage().props;
 
     return (
@@ -167,7 +175,10 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
 
                     <div className="relative mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40">
                         <div className="mx-auto max-w-3xl text-center">
-                            <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm">
+                            <Badge
+                                variant="secondary"
+                                className="mb-6 px-4 py-1.5 text-sm"
+                            >
                                 Freelance marketplace for digital services
                             </Badge>
 
@@ -180,14 +191,18 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                             </h1>
 
                             <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-                                GigBridge connects buyers with skilled sellers across design,
-                                development, writing, and more — with secure payments and
-                                built-in project tools.
+                                GigBridge connects buyers with skilled sellers
+                                across design, development, writing, and more —
+                                with secure payments and built-in project tools.
                             </p>
 
                             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                                 {canRegister && !auth.user && (
-                                    <Button asChild size="lg" className="h-12 px-8 text-base">
+                                    <Button
+                                        asChild
+                                        size="lg"
+                                        className="h-12 px-8 text-base"
+                                    >
                                         <Link href={register()}>
                                             Start for free
                                             <ArrowRight className="ml-2 size-5" />
@@ -195,7 +210,11 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                     </Button>
                                 )}
                                 {auth.user ? (
-                                    <Button asChild size="lg" className="h-12 px-8 text-base">
+                                    <Button
+                                        asChild
+                                        size="lg"
+                                        className="h-12 px-8 text-base"
+                                    >
                                         <Link href={dashboard()}>
                                             Go to dashboard
                                             <ArrowRight className="ml-2 size-5" />
@@ -223,7 +242,9 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 >
                                     <p className="text-3xl font-bold">
                                         {stat.value}
-                                        <span className="text-xl">{stat.suffix}</span>
+                                        <span className="text-xl">
+                                            {stat.suffix}
+                                        </span>
                                     </p>
                                     <p className="mt-1.5 text-xs text-muted-foreground">
                                         {stat.label}
@@ -237,7 +258,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                 {/* ── Categories ── */}
                 <section className="border-b border-border/60 bg-muted/30 py-12">
                     <div className="mx-auto max-w-7xl px-6">
-                        <p className="mb-5 text-center text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                        <p className="mb-5 text-center text-sm font-medium tracking-widest text-muted-foreground uppercase">
                             Popular categories
                         </p>
                         <div className="flex flex-wrap justify-center gap-3">
@@ -261,8 +282,9 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 Everything you need to get work done
                             </h2>
                             <p className="mt-4 text-muted-foreground">
-                                From discovery to delivery, GigBridge handles the entire
-                                workflow so you can focus on the work itself.
+                                From discovery to delivery, GigBridge handles
+                                the entire workflow so you can focus on the work
+                                itself.
                             </p>
                         </div>
 
@@ -275,7 +297,9 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                     <div className="flex size-10 items-center justify-center rounded-2xl bg-muted">
                                         <feature.icon className="size-5 text-foreground" />
                                     </div>
-                                    <h3 className="mt-4 font-semibold">{feature.title}</h3>
+                                    <h3 className="mt-4 font-semibold">
+                                        {feature.title}
+                                    </h3>
                                     <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                         {feature.description}
                                     </p>
@@ -309,11 +333,16 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                             <span className="text-3xl font-bold text-muted-foreground/30">
                                                 {step.number}
                                             </span>
-                                            <Badge variant="outline" className="text-xs">
+                                            <Badge
+                                                variant="outline"
+                                                className="text-xs"
+                                            >
                                                 {step.role}
                                             </Badge>
                                         </div>
-                                        <h3 className="mt-4 font-semibold">{step.title}</h3>
+                                        <h3 className="mt-4 font-semibold">
+                                            {step.title}
+                                        </h3>
                                         <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                             {step.description}
                                         </p>
@@ -333,10 +362,13 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 <div className="flex size-12 items-center justify-center rounded-2xl bg-sky-100 dark:bg-sky-950">
                                     <Search className="size-6 text-sky-600 dark:text-sky-400" />
                                 </div>
-                                <h3 className="mt-5 text-2xl font-bold">For buyers</h3>
+                                <h3 className="mt-5 text-2xl font-bold">
+                                    For buyers
+                                </h3>
                                 <p className="mt-3 text-muted-foreground">
-                                    Find the right service, pay securely, and get exactly what
-                                    you briefed — or your money back.
+                                    Find the right service, pay securely, and
+                                    get exactly what you briefed — or your money
+                                    back.
                                 </p>
                                 <ul className="mt-6 space-y-3 text-sm">
                                     {[
@@ -346,15 +378,24 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                         'Request revisions within package limits',
                                         'Leave reviews after completion',
                                     ].map((item) => (
-                                        <li key={item} className="flex items-start gap-2.5">
+                                        <li
+                                            key={item}
+                                            className="flex items-start gap-2.5"
+                                        >
                                             <BadgeCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                                            <span className="text-muted-foreground">{item}</span>
+                                            <span className="text-muted-foreground">
+                                                {item}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
                                 {canRegister && !auth.user && (
-                                    <Button asChild className="mt-8 w-full" variant="outline">
-                                        <Link href={`${register()}?role=buyer`}>
+                                    <Button
+                                        asChild
+                                        className="mt-8 w-full"
+                                        variant="outline"
+                                    >
+                                        <Link href={register()}>
                                             Sign up as buyer
                                         </Link>
                                     </Button>
@@ -366,10 +407,12 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 <div className="flex size-12 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-950">
                                     <Store className="size-6 text-amber-600 dark:text-amber-400" />
                                 </div>
-                                <h3 className="mt-5 text-2xl font-bold">For sellers</h3>
+                                <h3 className="mt-5 text-2xl font-bold">
+                                    For sellers
+                                </h3>
                                 <p className="mt-3 text-muted-foreground">
-                                    List your services, set your own prices, and get paid
-                                    reliably for every completed order.
+                                    List your services, set your own prices, and
+                                    get paid reliably for every completed order.
                                 </p>
                                 <ul className="mt-6 space-y-3 text-sm">
                                     {[
@@ -379,15 +422,24 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                         'Earnings held in escrow, released on completion',
                                         'Request withdrawals to your PayPal',
                                     ].map((item) => (
-                                        <li key={item} className="flex items-start gap-2.5">
+                                        <li
+                                            key={item}
+                                            className="flex items-start gap-2.5"
+                                        >
                                             <BadgeCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                                            <span className="text-muted-foreground">{item}</span>
+                                            <span className="text-muted-foreground">
+                                                {item}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
                                 {canRegister && !auth.user && (
-                                    <Button asChild className="mt-8 w-full" variant="outline">
-                                        <Link href={`${register()}?role=seller`}>
+                                    <Button
+                                        asChild
+                                        className="mt-8 w-full"
+                                        variant="outline"
+                                    >
+                                        <Link href={register()}>
                                             Sign up as seller
                                         </Link>
                                     </Button>
@@ -426,7 +478,9 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                         <item.icon className="size-5" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold">{item.title}</p>
+                                        <p className="font-semibold">
+                                            {item.title}
+                                        </p>
                                         <p className="mt-1.5 text-sm text-muted-foreground">
                                             {item.body}
                                         </p>
@@ -446,8 +500,9 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                     Ready to get started?
                                 </h2>
                                 <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-                                    Join GigBridge as a buyer to find services, or as a seller
-                                    to start earning. Free to sign up.
+                                    Join GigBridge as a buyer to find services,
+                                    or as a seller to start earning. Free to
+                                    sign up.
                                 </p>
                                 <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                                     {canRegister && (
@@ -483,26 +538,38 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                             <div className="flex size-7 items-center justify-center rounded-md bg-foreground">
                                 <AppLogoIcon className="size-4 text-background" />
                             </div>
-                            <span className="text-sm font-semibold">GigBridge</span>
+                            <span className="text-sm font-semibold">
+                                GigBridge
+                            </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            © {new Date().getFullYear()} GigBridge. All rights reserved.
+                            © {new Date().getFullYear()} GigBridge. All rights
+                            reserved.
                         </p>
                         <div className="flex gap-5 text-sm text-muted-foreground">
                             {!auth.user && (
                                 <>
-                                    <Link href={login()} className="hover:text-foreground">
+                                    <Link
+                                        href={login()}
+                                        className="hover:text-foreground"
+                                    >
                                         Log in
                                     </Link>
                                     {canRegister && (
-                                        <Link href={register()} className="hover:text-foreground">
+                                        <Link
+                                            href={register()}
+                                            className="hover:text-foreground"
+                                        >
                                             Register
                                         </Link>
                                     )}
                                 </>
                             )}
                             {auth.user && (
-                                <Link href={dashboard()} className="hover:text-foreground">
+                                <Link
+                                    href={dashboard()}
+                                    className="hover:text-foreground"
+                                >
                                     Dashboard
                                 </Link>
                             )}

@@ -128,3 +128,11 @@ The gig catalog loads all matching gigs into memory and returns them as a single
 The general /messages route exists but there's no route for the standalone messages page accessible from the sidebar. The MessageController::index and store routes are registered under the auth middleware but there's no named route for the sidebar link — it relies on a hardcoded /messages href.
 
 Want me to implement any of these? I'd suggest starting with 7 (messages real-time), 8 (useMemo fix), and 10 (messages sidebar link) since they're quick wins that close gaps in already-built features.
+
+1.do realtime chat in request raised sections
+2.add user specific notification preferences
+3.make new landing page 
+4.add sellers profile view in gigs
+5.buyer can save gigs 
+6.add gigs views
+7.add order deadline tracking
