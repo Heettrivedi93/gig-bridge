@@ -21,6 +21,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SellerGigController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerPlanController;
+use App\Http\Controllers\SellerProfileController;
 use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -28,6 +29,9 @@ use Laravel\Fortify\Features;
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
+
+// Public seller profile page (no auth required)
+Route::get('sellers/{user}', [SellerProfileController::class, 'show'])->name('sellers.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');

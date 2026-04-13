@@ -4,6 +4,7 @@ import {
     BadgePercent,
     CalendarClock,
     Clock3,
+    Eye,
     FileText,
     Layers3,
     Link2,
@@ -43,6 +44,7 @@ type GigDetail = {
     id: number;
     title: string;
     description: string;
+    seller_id: number | null;
     seller_name: string | null;
     seller_email: string | null;
     category_name: string | null;
@@ -53,6 +55,7 @@ type GigDetail = {
     delivery_days: number;
     rating: number;
     review_count: number;
+    views_count: number;
     packages: GigPackage[];
     reviews: {
         id: number;
@@ -199,10 +202,21 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                         <ArrowLeft className="size-4" />
                         Back to gigs
                     </Link>
-                    <Heading
-                        title={gig.title}
-                        description={`By ${gig.seller_name ?? 'Seller'} in ${gig.category_name ?? 'General'} / ${gig.subcategory_name ?? 'General'}`}
-                    />
+                    <Heading title={gig.title} />
+                    <p className="text-sm text-muted-foreground">
+                        By{' '}
+                        {gig.seller_id ? (
+                            <Link
+                                href={`/sellers/${gig.seller_id}`}
+                                className="font-medium text-foreground hover:underline underline-offset-4"
+                            >
+                                {gig.seller_name ?? 'Seller'}
+                            </Link>
+                        ) : (
+                            <span className="font-medium text-foreground">{gig.seller_name ?? 'Seller'}</span>
+                        )}
+                        {' '}in {gig.category_name ?? 'General'} / {gig.subcategory_name ?? 'General'}
+                    </p>
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
@@ -249,6 +263,10 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                         ? `${gig.review_count} buyer review${gig.review_count === 1 ? '' : 's'}`
                                         : 'No buyer reviews yet'}
                                 </span>
+                                <div className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-muted-foreground">
+                                    <Eye className="size-4" />
+                                    <span className="font-medium">{gig.views_count.toLocaleString()} views</span>
+                                </div>
                             </div>
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {gig.tags.map((tag) => (

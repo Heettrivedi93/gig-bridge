@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Clock3,
+    Eye,
     Heart,
     Layers3,
     Search,
@@ -36,6 +37,7 @@ type GigCard = {
     id: number;
     title: string;
     description: string;
+    seller_id: number | null;
     seller_name: string | null;
     category_name: string | null;
     subcategory_name: string | null;
@@ -46,6 +48,7 @@ type GigCard = {
     delivery_days: number;
     rating: number;
     review_count: number;
+    views_count: number;
     package_count: number;
 };
 
@@ -566,13 +569,19 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="text-sm font-medium">
-                                                            {gig.seller_name}
-                                                        </p>
+                                                        {gig.seller_id ? (
+                                                            <Link
+                                                                href={`/sellers/${gig.seller_id}`}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-sm font-medium hover:underline underline-offset-4"
+                                                            >
+                                                                {gig.seller_name}
+                                                            </Link>
+                                                        ) : (
+                                                            <p className="text-sm font-medium">{gig.seller_name}</p>
+                                                        )}
                                                         <p className="text-xs text-muted-foreground">
-                                                            {
-                                                                gig.subcategory_name
-                                                            }
+                                                            {gig.subcategory_name}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -624,30 +633,27 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                                                 </div>
                                                 <div>
                                                     <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                                                        Packages
-                                                    </p>
-                                                    <p className="mt-2 flex items-center gap-1 font-medium">
-                                                        <Layers3 className="size-4 text-muted-foreground" />
-                                                        {gig.package_count}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
                                                         Rating
                                                     </p>
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
                                                         <Star className="size-4 text-amber-500" />
                                                         {gig.review_count > 0
-                                                            ? gig.rating.toFixed(
-                                                                  1,
-                                                              )
+                                                            ? gig.rating.toFixed(1)
                                                             : 'New'}
                                                         <span className="text-xs text-muted-foreground">
-                                                            {gig.review_count >
-                                                            0
+                                                            {gig.review_count > 0
                                                                 ? `(${gig.review_count})`
                                                                 : '(0 reviews)'}
                                                         </span>
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+                                                        Views
+                                                    </p>
+                                                    <p className="mt-2 flex items-center gap-1 font-medium">
+                                                        <Eye className="size-4 text-muted-foreground" />
+                                                        {gig.views_count.toLocaleString()}
                                                     </p>
                                                 </div>
                                             </div>

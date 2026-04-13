@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { ImagePlus, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
+import { ImagePlus, Eye, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -67,6 +67,7 @@ type GigItem = {
     rejection_reason: string | null;
     approved_at: string | null;
     rejected_at: string | null;
+    views_count: number;
     images: { id: number; url: string }[];
     packages: Record<PackageTier, PackageForm>;
 };
@@ -821,6 +822,15 @@ export default function SellerGigsIndex({
                                                     </span>
                                                 </div>
                                             ))}
+                                            <div className="flex items-center justify-between border-t border-border/50 pt-2 text-sm">
+                                                <span className="flex items-center gap-1 text-muted-foreground">
+                                                    <Eye className="size-3.5" />
+                                                    Views
+                                                </span>
+                                                <span className="font-medium">
+                                                    {gig.views_count.toLocaleString()}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div className="flex flex-wrap gap-2">

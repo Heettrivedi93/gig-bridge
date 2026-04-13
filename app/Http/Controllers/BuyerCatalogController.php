@@ -123,10 +123,18 @@ class BuyerCatalogController extends Controller
 
         abort_if($gig->category?->status !== 'active' || $gig->subcategory?->status !== 'active', 404);
 
+        // Increment view count once per session per gig
+        $sessionKey = 'viewed_gig_' . $gig->id;
+        if (! $request->session()->has($sessionKey)) {
+            $gig->increment('views_count');
+            $request->session()->put($sessionKey, true);
+        }
+
         return Inertia::render('buyer/gigs/show', [
             'gig' => [
                 ...$this->catalogGigPayload($gig),
                 'description' => $gig->description,
+                'seller_id' => $gig->seller?->id,
                 'seller_email' => $gig->seller?->email,
                 'packages' => $gig->packages
                     ->sortBy(fn ($package) => match ($package->tier) {
@@ -146,6 +154,7 @@ class BuyerCatalogController extends Controller
                         'revision_count' => $package->revision_count,
                     ]),
                 'review_count' => (int) ($gig->reviews_count ?? 0),
+                'views_count' => (int) $gig->views_count,
                 'reviews' => $gig->reviews
                     ->sortByDesc('created_at')
                     ->values()
@@ -189,6 +198,7 @@ class BuyerCatalogController extends Controller
             'id' => $gig->id,
             'title' => $gig->title,
             'description' => $gig->description,
+            'seller_id' => $gig->seller?->id,
             'seller_name' => $gig->seller?->name,
             'category_name' => $gig->category?->name,
             'subcategory_name' => $gig->subcategory?->name,
@@ -199,6 +209,7 @@ class BuyerCatalogController extends Controller
             'delivery_days' => (int) ($gig->packages_min_delivery_days ?? 0),
             'rating' => round((float) ($gig->reviews_avg_rating ?? 0), 1),
             'review_count' => (int) ($gig->reviews_count ?? 0),
+            'views_count' => (int) ($gig->views_count ?? 0),
             'package_count' => $gig->packages->count(),
         ];
     }

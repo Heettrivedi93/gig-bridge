@@ -338,6 +338,7 @@ class SellerGigController extends Controller
                     'revision_count' => (string) ($gig->packages->firstWhere('tier', $tier)?->revision_count ?? ''),
                 ],
             ])->all(),
+            'views_count' => (int) ($gig->views_count ?? 0),
         ];
     }
 
