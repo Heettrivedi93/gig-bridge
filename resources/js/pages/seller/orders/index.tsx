@@ -10,6 +10,7 @@ import {
     PackageCheck,
     ShieldAlert,
     ShoppingBag,
+    SlidersHorizontal,
     Truck,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -40,6 +41,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useClientPagination } from '@/hooks/use-client-pagination';
+import EmptyState from '@/components/empty-state';
 import type { BreadcrumbItem } from '@/types';
 
 type SellerOrder = {
@@ -427,25 +429,18 @@ export default function SellerOrdersIndex({ orders }: Props) {
                 </section>
 
                 {orders.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <h2 className="text-lg font-semibold">
-                            No seller orders yet
-                        </h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Paid buyer orders will appear here once someone
-                            purchases one of your gigs.
-                        </p>
-                    </section>
+                    <EmptyState
+                        icon={ShoppingBag}
+                        title="No seller orders yet"
+                        description="Paid buyer orders will appear here once someone purchases one of your gigs."
+                    />
                 ) : filteredOrders.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <h2 className="text-lg font-semibold">
-                            No matching orders
-                        </h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Try changing your search term or clearing one of the
-                            filters.
-                        </p>
-                    </section>
+                    <EmptyState
+                        icon={SlidersHorizontal}
+                        title="No matching orders"
+                        description="Try changing your search term or clearing one of the filters."
+                        action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); } }}
+                    />
                 ) : (
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
                         <div className="hidden max-w-full overflow-x-auto lg:block">

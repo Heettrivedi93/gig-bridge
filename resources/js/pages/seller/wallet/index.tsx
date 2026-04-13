@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { Wallet2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import EmptyState from '@/components/empty-state';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -209,9 +210,11 @@ export default function SellerWalletIndex({
                     </div>
 
                     {withdrawals.length === 0 ? (
-                        <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                            No withdrawal requests yet.
-                        </div>
+                        <EmptyState
+                            icon={Wallet2}
+                            title="No withdrawal requests yet"
+                            description="Once you have available balance, request a payout and it will appear here."
+                        />
                     ) : (
                         <div className="divide-y divide-border/70">
                             {withdrawals.map((withdrawal) => (

@@ -6,6 +6,8 @@ import {
     FileText,
     MessageCircle,
     RefreshCcw,
+    ShoppingBag,
+    SlidersHorizontal,
     Star,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -36,6 +38,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useClientPagination } from '@/hooks/use-client-pagination';
+import EmptyState from '@/components/empty-state';
 import type { BreadcrumbItem } from '@/types';
 
 type OrderItem = {
@@ -635,28 +638,19 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 </section>
 
                 {orders.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <h2 className="text-lg font-semibold">No orders yet</h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Browse the catalog, pick a package, and your first
-                            buyer order will show up here.
-                        </p>
-                        <div className="mt-5">
-                            <Button asChild>
-                                <Link href="/buyer/gigs">Explore gigs</Link>
-                            </Button>
-                        </div>
-                    </section>
+                    <EmptyState
+                        icon={ShoppingBag}
+                        title="No orders yet"
+                        description="Browse the catalog, pick a package, and your first buyer order will show up here."
+                        action={{ label: 'Explore gigs', onClick: () => { window.location.href = '/buyer/gigs'; } }}
+                    />
                 ) : filteredOrders.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <h2 className="text-lg font-semibold">
-                            No matching orders
-                        </h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Try changing your search term or clearing one of the
-                            filters.
-                        </p>
-                    </section>
+                    <EmptyState
+                        icon={SlidersHorizontal}
+                        title="No matching orders"
+                        description="Try changing your search term or clearing one of the filters."
+                        action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); } }}
+                    />
                 ) : (
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
                         <div className="hidden max-w-full overflow-x-auto lg:block">

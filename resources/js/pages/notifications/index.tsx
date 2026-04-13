@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { BellRing, CheckCheck } from 'lucide-react';
+import { Bell, BellRing, CheckCheck } from 'lucide-react';
 import Heading from '@/components/heading';
+import EmptyState from '@/components/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { roleLayout } from '@/hooks/use-role-layout';
@@ -63,12 +64,11 @@ export default function NotificationsIndex({ notificationItems }: Props) {
 
                 <div className="grid gap-4">
                     {notificationItems.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
-                            <BellRing className="mx-auto size-8 text-muted-foreground" />
-                            <p className="mt-3 text-sm text-muted-foreground">
-                                No notifications yet.
-                            </p>
-                        </div>
+                        <EmptyState
+                            icon={Bell}
+                            title="No notifications yet"
+                            description="Order updates, messages, and payment events will appear here."
+                        />
                     ) : (
                         notificationItems.map((notification) => (
                             <div

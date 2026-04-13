@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Eye, MessageCircle } from 'lucide-react';
+import { Eye, MessageCircle, ShieldAlert, SlidersHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import TablePagination from '@/components/table-pagination';
@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useClientPagination } from '@/hooks/use-client-pagination';
+import EmptyState from '@/components/empty-state';
 import type { BreadcrumbItem } from '@/types';
 
 type DisputeRow = {
@@ -205,23 +206,18 @@ export default function DisputesIndex({ disputes }: Props) {
                 </section>
 
                 {disputes.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <p className="text-lg font-semibold">No disputes yet</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Disputes you raise from your orders will appear
-                            here.
-                        </p>
-                    </section>
+                    <EmptyState
+                        icon={ShieldAlert}
+                        title="No disputes yet"
+                        description="Disputes you raise from your orders will appear here."
+                    />
                 ) : filteredDisputes.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <p className="text-lg font-semibold">
-                            No matching disputes
-                        </p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Try changing the search term or clearing the current
-                            filters.
-                        </p>
-                    </section>
+                    <EmptyState
+                        icon={SlidersHorizontal}
+                        title="No matching disputes"
+                        description="Try changing the search term or clearing the current filters."
+                        action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all'); setDecisionFilter('all'); } }}
+                    />
                 ) : (
                     <div className="overflow-hidden rounded-xl border border-border/70">
                         {/* Desktop */}
