@@ -528,17 +528,25 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                             </a>
                                                         )}
                                                         {order.brief_file_url && (
-                                                            <a
-                                                                href={
-                                                                    order.brief_file_url
-                                                                }
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
-                                                            >
-                                                                <FileText className="size-3.5" />
-                                                                File
-                                                            </a>
+                                                            <>
+                                                                <a
+                                                                    href={order.brief_file_url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                                >
+                                                                    <Eye className="size-3.5" />
+                                                                    View
+                                                                </a>
+                                                                <a
+                                                                    href={order.brief_file_url}
+                                                                    download
+                                                                    className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                                >
+                                                                    <Download className="size-3.5" />
+                                                                    Download
+                                                                </a>
+                                                            </>
                                                         )}
                                                     </div>
                                                 </td>
@@ -955,10 +963,16 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         </a>
                                     )}
                                     {selectedOrder.brief_file_url && (
-                                        <a href={selectedOrder.brief_file_url} target="_blank" rel="noreferrer"
-                                            className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
-                                            <FileText className="size-3.5" /> Brief file
-                                        </a>
+                                        <>
+                                            <a href={selectedOrder.brief_file_url} target="_blank" rel="noreferrer"
+                                                className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                                <Eye className="size-3.5" /> View brief
+                                            </a>
+                                            <a href={selectedOrder.brief_file_url} download
+                                                className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                                <Download className="size-3.5" /> Download brief
+                                            </a>
+                                        </>
                                     )}
                                 </div>
                                 {selectedOrder.style_notes && (
@@ -1014,10 +1028,16 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                         <p className="text-muted-foreground">By {delivery.delivered_by ?? 'Seller'}</p>
                                                         {delivery.note && <p className="mt-1 text-muted-foreground">{delivery.note}</p>}
                                                     </div>
-                                                    <a href={delivery.file_url} target="_blank" rel="noreferrer"
-                                                        className="inline-flex shrink-0 items-center gap-1.5 text-primary underline underline-offset-4">
-                                                        <FileText className="size-4" /> Download
-                                                    </a>
+                                                    <div className="flex shrink-0 flex-col gap-1.5">
+                                                        <a href={delivery.file_url} target="_blank" rel="noreferrer"
+                                                            className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-4">
+                                                            <Eye className="size-3.5" /> View
+                                                        </a>
+                                                        <a href={delivery.file_url} download
+                                                            className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-4">
+                                                            <Download className="size-3.5" /> Download
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}

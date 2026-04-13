@@ -163,15 +163,8 @@ export default function Welcome({
 
                 {/* ── Hero ── */}
                 <section className="relative overflow-hidden border-b border-border/60">
-                    {/* subtle grid background */}
-                    <div
-                        className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.06]"
-                        style={{
-                            backgroundImage:
-                                'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-                            backgroundSize: '48px 48px',
-                        }}
-                    />
+                    {/* Animated scrolling grid background */}
+                    <div className="hero-grid pointer-events-none absolute inset-0 opacity-[0.04] dark:opacity-[0.07]" />
 
                     <div className="relative mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40">
                         <div className="mx-auto max-w-3xl text-center">
