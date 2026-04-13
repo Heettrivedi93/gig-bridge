@@ -12,6 +12,7 @@ import {
     Palette,
     ShoppingCart,
     Star,
+    User,
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -47,6 +48,11 @@ type GigDetail = {
     seller_id: number | null;
     seller_name: string | null;
     seller_email: string | null;
+    seller_avatar: string | null;
+    seller_member_since: string | null;
+    seller_completed_orders: number;
+    seller_review_count: number;
+    seller_average_rating: number;
     category_name: string | null;
     subcategory_name: string | null;
     tags: string[];
@@ -204,18 +210,7 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                     </Link>
                     <Heading title={gig.title} />
                     <p className="text-sm text-muted-foreground">
-                        By{' '}
-                        {gig.seller_id ? (
-                            <Link
-                                href={`/sellers/${gig.seller_id}`}
-                                className="font-medium text-foreground hover:underline underline-offset-4"
-                            >
-                                {gig.seller_name ?? 'Seller'}
-                            </Link>
-                        ) : (
-                            <span className="font-medium text-foreground">{gig.seller_name ?? 'Seller'}</span>
-                        )}
-                        {' '}in {gig.category_name ?? 'General'} / {gig.subcategory_name ?? 'General'}
+                        in {gig.category_name ?? 'General'} / {gig.subcategory_name ?? 'General'}
                     </p>
                 </div>
 
@@ -398,6 +393,47 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                     </section>
 
                     <aside className="space-y-6">
+                        {/* Seller card */}
+                        {gig.seller_id && (
+                            <Link
+                                href={`/sellers/${gig.seller_id}`}
+                                className="group flex items-center gap-4 rounded-3xl border border-border/70 bg-card p-5 transition hover:border-primary/50 hover:shadow-sm"
+                            >
+                                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-muted text-lg font-bold text-muted-foreground">
+                                    {gig.seller_avatar ? (
+                                        <img
+                                            src={gig.seller_avatar}
+                                            alt={gig.seller_name ?? ''}
+                                            className="size-14 rounded-2xl object-cover"
+                                        />
+                                    ) : (
+                                        <User className="size-6 text-muted-foreground" />
+                                    )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-semibold truncate">{gig.seller_name ?? 'Seller'}</p>
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        {gig.seller_average_rating > 0 && (
+                                            <span className="flex items-center gap-1">
+                                                <Star className="size-3 fill-amber-400 text-amber-400" />
+                                                {gig.seller_average_rating.toFixed(1)}
+                                                <span>({gig.seller_review_count})</span>
+                                            </span>
+                                        )}
+                                        {gig.seller_completed_orders > 0 && (
+                                            <span>{gig.seller_completed_orders} orders done</span>
+                                        )}
+                                        {gig.seller_member_since && (
+                                            <span>Since {gig.seller_member_since}</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <span className="shrink-0 text-xs font-medium text-primary group-hover:underline underline-offset-4">
+                                    View profile →
+                                </span>
+                            </Link>
+                        )}
+
                         <section className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex items-center gap-2">
                                 <ShoppingCart className="size-4" />

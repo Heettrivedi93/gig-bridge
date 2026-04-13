@@ -857,176 +857,206 @@ export default function SellerOrdersIndex({ orders }: Props) {
                 open={Boolean(selectedOrder)}
                 onOpenChange={(open) => !open && setSelectedOrder(null)}
             >
-                <DialogContent className="sm:max-w-3xl">
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle>Seller order detail</DialogTitle>
+                        <DialogTitle>Order #{selectedOrder?.id} — {selectedOrder?.gig_title}</DialogTitle>
                         <DialogDescription>
-                            Review delivery history, revision notes, and
-                            cancellation trail for this order.
+                            Full order details, buyer brief, delivery history, and revision trail.
                         </DialogDescription>
                     </DialogHeader>
 
                     {selectedOrder && (
-                        <div className="space-y-6">
-                            <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Order #{selectedOrder.id}
-                                        </p>
-                                        <p className="mt-1 text-xl font-semibold">
-                                            {selectedOrder.gig_title}
-                                        </p>
+                        <div className="space-y-5">
+
+                            {/* ── Top summary ── */}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {/* Order info */}
+                                <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm space-y-2">
+                                    <p className="font-semibold text-base mb-3">Order info</p>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Order ID</span>
+                                        <span className="font-medium">#{selectedOrder.id}</span>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Badge variant="outline">
-                                            {selectedOrder.package?.tier}
-                                        </Badge>
-                                        <Badge>{selectedOrder.status}</Badge>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Package</span>
+                                        <span className="font-medium capitalize">{selectedOrder.package?.tier} — {selectedOrder.package?.title}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Quantity</span>
+                                        <span className="font-medium">{selectedOrder.quantity}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Delivery days</span>
+                                        <span className="font-medium">{selectedOrder.package?.delivery_days ?? 0} days</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Revisions</span>
+                                        <span className="font-medium">{selectedOrder.package?.revision_count ?? 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Status</span>
+                                        <Badge variant={selectedOrder.status === 'active' ? 'default' : 'secondary'}>{selectedOrder.status}</Badge>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Payment</span>
+                                        <Badge variant={selectedOrder.payment_status === 'paid' ? 'default' : 'secondary'}>{selectedOrder.payment_status}</Badge>
                                     </div>
                                 </div>
-                                {Number(selectedOrder.discount_amount) > 0 && (
-                                    <p className="mt-4 text-sm text-emerald-600">
-                                        Subtotal USD{' '}
-                                        {selectedOrder.subtotal_amount} •
-                                        Discount USD{' '}
-                                        {selectedOrder.discount_amount}
-                                        {selectedOrder.coupon_code
-                                            ? ` • Coupon ${selectedOrder.coupon_code}`
-                                            : ''}
-                                    </p>
+
+                                {/* Pricing + buyer */}
+                                <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm space-y-2">
+                                    <p className="font-semibold text-base mb-3">Buyer & pricing</p>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Buyer</span>
+                                        <span className="font-medium">{selectedOrder.buyer?.name ?? '—'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Email</span>
+                                        <span className="font-medium">{selectedOrder.buyer?.email ?? '—'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Subtotal</span>
+                                        <span className="font-medium">USD {selectedOrder.subtotal_amount}</span>
+                                    </div>
+                                    {Number(selectedOrder.discount_amount) > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Discount{selectedOrder.coupon_code ? ` (${selectedOrder.coupon_code})` : ''}</span>
+                                            <span className="font-medium text-emerald-600">−USD {selectedOrder.discount_amount}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-border/70 pt-2">
+                                        <span className="font-semibold">Total</span>
+                                        <span className="font-bold">USD {selectedOrder.price}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-1">
+                                        <span className="text-muted-foreground">Delivered</span>
+                                        <span>{shortDate(selectedOrder.delivered_at)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Completed</span>
+                                        <span>{shortDate(selectedOrder.completed_at)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Cancelled</span>
+                                        <span>{shortDate(selectedOrder.cancelled_at)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── Buyer brief ── */}
+                            <div className="rounded-2xl border border-border/70 bg-card p-4 text-sm">
+                                <p className="font-semibold mb-2">Buyer requirements</p>
+                                <p className="whitespace-pre-wrap text-muted-foreground leading-6">{selectedOrder.requirements}</p>
+                                <div className="mt-3 flex flex-wrap gap-4">
+                                    {selectedOrder.reference_link && (
+                                        <a href={selectedOrder.reference_link} target="_blank" rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                            <FileText className="size-3.5" /> Reference link
+                                        </a>
+                                    )}
+                                    {selectedOrder.brief_file_url && (
+                                        <a href={selectedOrder.brief_file_url} target="_blank" rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                            <FileText className="size-3.5" /> Brief file
+                                        </a>
+                                    )}
+                                </div>
+                                {selectedOrder.style_notes && (
+                                    <div className="mt-3">
+                                        <p className="font-medium text-muted-foreground mb-1">Style notes</p>
+                                        <p className="whitespace-pre-wrap text-muted-foreground">{selectedOrder.style_notes}</p>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="grid gap-6 lg:grid-cols-2">
-                                <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                    <h3 className="text-base font-semibold">
-                                        Deliveries
-                                    </h3>
-                                    {selectedOrder.deliveries.length === 0 ? (
-                                        <p className="mt-3 text-sm text-muted-foreground">
-                                            No delivery submitted yet.
-                                        </p>
-                                    ) : (
-                                        <div className="mt-4 space-y-4">
-                                            {selectedOrder.deliveries.map(
-                                                (delivery) => (
-                                                    <div
-                                                        key={delivery.id}
-                                                        className="rounded-2xl border border-border/70 p-4 text-sm"
-                                                    >
-                                                        <p className="font-medium">
-                                                            {formatDate(
-                                                                delivery.delivered_at,
-                                                            )}
-                                                        </p>
-                                                        <p className="mt-1 text-muted-foreground">
-                                                            By{' '}
-                                                            {delivery.delivered_by ??
-                                                                'Seller'}
-                                                        </p>
-                                                        {delivery.note && (
-                                                            <p className="mt-2 text-muted-foreground">
-                                                                {delivery.note}
-                                                            </p>
-                                                        )}
-                                                        <a
-                                                            href={
-                                                                delivery.file_url
-                                                            }
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="mt-3 inline-flex items-center gap-2 text-primary underline underline-offset-4"
-                                                        >
-                                                            <FileText className="size-4" />
-                                                            Download delivery
-                                                        </a>
-                                                    </div>
-                                                ),
-                                            )}
-                                        </div>
+                            {/* ── Actions ── */}
+                            {['active', 'delivered'].includes(selectedOrder.status) && (
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedOrder.status === 'active' && selectedOrder.payment_status === 'paid' && (
+                                        <Button size="sm" onClick={() => { setSelectedOrder(null); setDeliveryTarget(selectedOrder); }}>
+                                            <Truck className="mr-1.5 size-4" /> Submit delivery
+                                        </Button>
+                                    )}
+                                    {selectedOrder.buyer && (
+                                        <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setMessageOrder(selectedOrder); }}>
+                                            <MessageCircle className="mr-1.5 size-4" /> Message buyer
+                                        </Button>
+                                    )}
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setCancelTarget(selectedOrder); }}
+                                        disabled={!['active', 'delivered'].includes(selectedOrder.status)}>
+                                        <Ban className="mr-1.5 size-4" /> Cancel order
+                                    </Button>
+                                    {['delivered', 'completed'].includes(selectedOrder.status) && selectedOrder.payment_status === 'paid' && !selectedOrder.open_dispute_id && (
+                                        <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setDisputeTarget(selectedOrder); }}>
+                                            <AlertTriangle className="mr-1.5 size-4" /> Raise dispute
+                                        </Button>
+                                    )}
+                                    {selectedOrder.open_dispute_id && (
+                                        <Button size="sm" variant="outline" onClick={() => window.location.href = `/disputes/${selectedOrder.open_dispute_id}`}>
+                                            <AlertTriangle className="mr-1.5 size-4 text-amber-500" /> View dispute
+                                        </Button>
                                     )}
                                 </div>
+                            )}
 
-                                <div className="space-y-6">
-                                    <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">
-                                            Revision requests
-                                        </h3>
-                                        {selectedOrder.revisions.length ===
-                                        0 ? (
-                                            <p className="mt-3 text-sm text-muted-foreground">
-                                                No revision requests yet.
-                                            </p>
-                                        ) : (
-                                            <div className="mt-4 space-y-4">
-                                                {selectedOrder.revisions.map(
-                                                    (revision) => (
-                                                        <div
-                                                            key={revision.id}
-                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
-                                                        >
-                                                            <p className="font-medium">
-                                                                {revision.requested_by ??
-                                                                    'Buyer'}
-                                                            </p>
-                                                            <p className="mt-1 text-muted-foreground">
-                                                                {formatDate(
-                                                                    revision.created_at,
-                                                                )}
-                                                            </p>
-                                                            <p className="mt-2 text-muted-foreground">
-                                                                {revision.note}
-                                                            </p>
-                                                        </div>
-                                                    ),
-                                                )}
+                            {/* ── Deliveries ── */}
+                            <div className="rounded-2xl border border-border/70 bg-card p-4">
+                                <p className="font-semibold mb-3">Delivery history ({selectedOrder.deliveries.length})</p>
+                                {selectedOrder.deliveries.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No delivery submitted yet.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {selectedOrder.deliveries.map((delivery) => (
+                                            <div key={delivery.id} className="rounded-xl border border-border/70 p-3 text-sm">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-medium">{formatDate(delivery.delivered_at)}</p>
+                                                        <p className="text-muted-foreground">By {delivery.delivered_by ?? 'Seller'}</p>
+                                                        {delivery.note && <p className="mt-1 text-muted-foreground">{delivery.note}</p>}
+                                                    </div>
+                                                    <a href={delivery.file_url} target="_blank" rel="noreferrer"
+                                                        className="inline-flex shrink-0 items-center gap-1.5 text-primary underline underline-offset-4">
+                                                        <FileText className="size-4" /> Download
+                                                    </a>
+                                                </div>
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
+                                )}
+                            </div>
 
-                                    <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">
-                                            Cancellation trail
-                                        </h3>
-                                        {selectedOrder.cancellations.length ===
-                                        0 ? (
-                                            <p className="mt-3 text-sm text-muted-foreground">
-                                                No cancellation recorded.
-                                            </p>
-                                        ) : (
-                                            <div className="mt-4 space-y-4">
-                                                {selectedOrder.cancellations.map(
-                                                    (cancellation) => (
-                                                        <div
-                                                            key={
-                                                                cancellation.id
-                                                            }
-                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
-                                                        >
-                                                            <p className="font-medium capitalize">
-                                                                {
-                                                                    cancellation.cancelled_by
-                                                                }
-                                                            </p>
-                                                            <p className="mt-1 text-muted-foreground">
-                                                                {formatDate(
-                                                                    cancellation.created_at,
-                                                                )}
-                                                            </p>
-                                                            <p className="mt-2 text-muted-foreground">
-                                                                {
-                                                                    cancellation.reason
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                    ),
-                                                )}
+                            {/* ── Revisions ── */}
+                            {selectedOrder.revisions.length > 0 && (
+                                <div className="rounded-2xl border border-border/70 bg-card p-4">
+                                    <p className="font-semibold mb-3">Revision requests ({selectedOrder.revisions.length})</p>
+                                    <div className="space-y-3">
+                                        {selectedOrder.revisions.map((revision) => (
+                                            <div key={revision.id} className="rounded-xl border border-border/70 p-3 text-sm">
+                                                <p className="font-medium">{revision.requested_by ?? 'Buyer'}</p>
+                                                <p className="text-xs text-muted-foreground">{formatDate(revision.created_at)}</p>
+                                                <p className="mt-1 text-muted-foreground">{revision.note}</p>
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* ── Cancellations ── */}
+                            {selectedOrder.cancellations.length > 0 && (
+                                <div className="rounded-2xl border border-border/70 bg-card p-4">
+                                    <p className="font-semibold mb-3">Cancellation trail</p>
+                                    <div className="space-y-3">
+                                        {selectedOrder.cancellations.map((c) => (
+                                            <div key={c.id} className="rounded-xl border border-border/70 p-3 text-sm">
+                                                <p className="font-medium capitalize">{c.cancelled_by}</p>
+                                                <p className="text-xs text-muted-foreground">{formatDate(c.created_at)}</p>
+                                                <p className="mt-1 text-muted-foreground">{c.reason}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     )}
                 </DialogContent>

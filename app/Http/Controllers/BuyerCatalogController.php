@@ -111,7 +111,7 @@ class BuyerCatalogController extends Controller
         abort_unless($gig->status === 'active' && $gig->approval_status === 'approved', 404);
 
         $gig->load([
-            'seller:id,name,email',
+            'seller:id,name,email,profile_picture,created_at',
             'category:id,name,status',
             'subcategory:id,name,status',
             'images',
@@ -136,6 +136,19 @@ class BuyerCatalogController extends Controller
                 'description' => $gig->description,
                 'seller_id' => $gig->seller?->id,
                 'seller_email' => $gig->seller?->email,
+                'seller_avatar' => $gig->seller?->profile_picture
+                    ? Storage::disk('public')->url($gig->seller->profile_picture)
+                    : null,
+                'seller_member_since' => $gig->seller?->created_at?->format('M Y'),
+                'seller_completed_orders' => $gig->seller
+                    ? \App\Models\Order::where('seller_id', $gig->seller->id)->where('status', 'completed')->count()
+                    : 0,
+                'seller_review_count' => $gig->seller
+                    ? \App\Models\Review::where('seller_id', $gig->seller->id)->count()
+                    : 0,
+                'seller_average_rating' => $gig->seller
+                    ? round((float) \App\Models\Review::where('seller_id', $gig->seller->id)->avg('rating'), 1)
+                    : 0,
                 'packages' => $gig->packages
                     ->sortBy(fn ($package) => match ($package->tier) {
                         'basic' => 1,
