@@ -147,6 +147,27 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
         }, 350);
     };
 
+    // Apply any filter change immediately (debounced for text inputs)
+    const applyInstant = (nextQuery: Filters) => {
+        clearKeywordSearchTimeout();
+        router.get('/buyer/gigs', nextQuery, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            preserveUrl: true,
+        });
+    };
+
+    const updateFilter = (patch: Partial<Filters>, debounce = false) => {
+        const nextQuery = { ...query, ...patch };
+        setQuery(nextQuery);
+        if (debounce) {
+            scheduleKeywordSearch(nextQuery);
+        } else {
+            applyInstant(nextQuery);
+        }
+    };
+
     useEffect(() => {
         return () => {
             clearKeywordSearchTimeout();
@@ -208,11 +229,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         <Select
                             value={query.category_id || 'all'}
                             onValueChange={(value) =>
-                                setQuery({
-                                    ...query,
-                                    category_id: value === 'all' ? '' : value,
-                                    subcategory_id: '',
-                                })
+                                updateFilter({ category_id: value === 'all' ? '' : value, subcategory_id: '' })
                             }
                         >
                             <SelectTrigger className="mt-2 w-full">
@@ -240,10 +257,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             <Select
                                 value={query.subcategory_id || 'all'}
                                 onValueChange={(value) =>
-                                    setQuery({
-                                        ...query,
-                                        subcategory_id: value === 'all' ? '' : value,
-                                    })
+                                    updateFilter({ subcategory_id: value === 'all' ? '' : value })
                                 }
                             >
                                 <SelectTrigger className="mt-2 w-full">
@@ -273,12 +287,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             type="number"
                             min="1"
                             value={query.price_max}
-                            onChange={(event) =>
-                                setQuery({
-                                    ...query,
-                                    price_max: event.target.value,
-                                })
-                            }
+                            onChange={(event) => updateFilter({ price_max: event.target.value }, true)}
                             className="mt-2"
                             placeholder="500"
                         />
@@ -291,12 +300,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             type="number"
                             min="1"
                             value={query.delivery_days}
-                            onChange={(event) =>
-                                setQuery({
-                                    ...query,
-                                    delivery_days: event.target.value,
-                                })
-                            }
+                            onChange={(event) => updateFilter({ delivery_days: event.target.value }, true)}
                             className="mt-2"
                             placeholder="7"
                         />
@@ -307,10 +311,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         <Select
                             value={query.rating || 'all'}
                             onValueChange={(value) =>
-                                setQuery({
-                                    ...query,
-                                    rating: value === 'all' ? '' : value,
-                                })
+                                updateFilter({ rating: value === 'all' ? '' : value })
                             }
                         >
                             <SelectTrigger className="mt-2 w-full">
@@ -328,9 +329,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         <Label>Sort</Label>
                         <Select
                             value={query.sort || 'latest'}
-                            onValueChange={(value) =>
-                                setQuery({ ...query, sort: value })
-                            }
+                            onValueChange={(value) => updateFilter({ sort: value })}
                         >
                             <SelectTrigger className="mt-2 w-full">
                                 <SelectValue />
@@ -351,10 +350,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                     </div>
                 </div>
 
-                <div className="mt-5 space-y-3">
-                    <Button className="w-full" onClick={applyFilters}>
-                        Apply filters
-                    </Button>
+                <div className="mt-5">
                     <Button
                         variant="outline"
                         className="w-full"
@@ -399,15 +395,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             <Input
                                 id="buyer-search"
                                 value={query.keyword}
-                                onChange={(event) => {
-                                    const nextQuery = {
-                                        ...query,
-                                        keyword: event.target.value,
-                                    };
-
-                                    setQuery(nextQuery);
-                                    scheduleKeywordSearch(nextQuery);
-                                }}
+                                onChange={(event) => updateFilter({ keyword: event.target.value }, true)}
                                 className="h-12 rounded-2xl border-border/70 pl-11"
                                 placeholder="Search for logo design, web development, copywriting..."
                             />
@@ -429,7 +417,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             </Button>
                             <Button
                                 className="rounded-2xl"
-                                onClick={applyFilters}
+                                onClick={() => applyInstant(query)}
                             >
                                 Search
                             </Button>
