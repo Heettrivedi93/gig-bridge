@@ -83,6 +83,7 @@ class BuyerOrderController extends Controller
                         'paypal_order_id' => $order->paypal_order_id,
                         'created_at' => $order->created_at?->toIso8601String(),
                         'delivered_at' => $order->delivered_at?->toIso8601String(),
+                        'due_at' => $order->due_at?->toIso8601String(),
                         'completed_at' => $order->completed_at?->toIso8601String(),
                         'cancelled_at' => $order->cancelled_at?->toIso8601String(),
                         'used_revisions' => $usedRevisions,
@@ -372,6 +373,7 @@ class BuyerOrderController extends Controller
             'platform_fee_amount' => $platformFeeAmount,
             'seller_net_amount' => $sellerNetAmount,
             'paypal_payer_id' => data_get($capture, 'payer.payer_id'),
+            'due_at' => now()->addDays((int) ($order->package?->delivery_days ?? 0)),
         ]);
 
         $this->coupons->markUsed($order->coupon, $buyer->id, $order->fresh());

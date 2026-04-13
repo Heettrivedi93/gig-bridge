@@ -17,6 +17,7 @@ import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import OrderChatModal from '@/components/order-chat-modal';
+import OrderDueDate from '@/components/order-due-date';
 import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,7 @@ type SellerOrder = {
     status: string;
     payment_status: string;
     delivered_at: string | null;
+    due_at: string | null;
     completed_at: string | null;
     cancelled_at: string | null;
     deliveries: {
@@ -559,6 +561,9 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                             order.delivered_at,
                                                         )}
                                                     </p>
+                                                    <div className="mt-1">
+                                                        <OrderDueDate dueAt={order.due_at} status={order.status} />
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex flex-col gap-2">
@@ -749,6 +754,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         >
                                             {order.payment_status}
                                         </Badge>
+                                        <OrderDueDate dueAt={order.due_at} status={order.status} />
                                     </div>
                                     <p className="mt-3 text-sm text-muted-foreground">
                                         {summarizeText(order.requirements, 100)}

@@ -203,6 +203,7 @@ class SellerOrderController extends Controller
             'status' => $order->status,
             'payment_status' => $order->payment_status,
             'delivered_at' => $order->delivered_at?->toIso8601String(),
+            'due_at' => $order->due_at?->toIso8601String(),
             'completed_at' => $order->completed_at?->toIso8601String(),
             'cancelled_at' => $order->cancelled_at?->toIso8601String(),
             'deliveries' => $order->deliveries->map(fn ($delivery) => [

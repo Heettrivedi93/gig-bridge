@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import OrderChatModal from '@/components/order-chat-modal';
+import OrderDueDate from '@/components/order-due-date';
 import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,7 @@ type OrderItem = {
     paypal_order_id: string | null;
     created_at: string | null;
     delivered_at: string | null;
+    due_at: string | null;
     completed_at: string | null;
     cancelled_at: string | null;
     used_revisions: number;
@@ -768,6 +770,9 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                                             order.delivered_at,
                                                         )}
                                                     </p>
+                                                    <div className="mt-1">
+                                                        <OrderDueDate dueAt={order.due_at} status={order.status} />
+                                                    </div>
                                                     <p className="mt-1 text-muted-foreground">
                                                         {order.package
                                                             ?.delivery_days ??
@@ -976,6 +981,7 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         >
                                             {order.payment_status}
                                         </Badge>
+                                        <OrderDueDate dueAt={order.due_at} status={order.status} />
                                     </div>
                                     <p className="mt-3 text-sm text-muted-foreground">
                                         {summarizeText(order.requirements, 100)}
