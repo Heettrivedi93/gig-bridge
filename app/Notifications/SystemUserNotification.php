@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use App\Services\NotificationPreferenceService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,14 +25,18 @@ class SystemUserNotification extends Notification
         $preferences = app(NotificationPreferenceService::class);
         $channels = [];
 
-        if ($this->inAppEvent && $preferences->inAppEnabled() && $preferences->supportsInAppEvent($this->inAppEvent)) {
+        if (
+            $this->inAppEvent
+            && $notifiable instanceof User
+            && $preferences->userSupportsInAppEvent($notifiable, $this->inAppEvent)
+        ) {
             $channels[] = 'database';
         }
 
         if (
             $this->emailEvent
-            && $preferences->emailEnabled()
-            && $preferences->supportsEmailEvent($this->emailEvent)
+            && $notifiable instanceof User
+            && $preferences->userSupportsEmailEvent($notifiable, $this->emailEvent)
             && filled($notifiable->email ?? null)
         ) {
             $channels[] = 'mail';

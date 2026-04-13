@@ -31,6 +31,13 @@ export default function SettingsLayout({
         { title: 'Security', href: editSecurity(), icon: null },
         { title: 'Appearance', href: editAppearance(), icon: null },
     ];
+    if (!isSuperAdmin) {
+        sidebarNavItems.splice(2, 0, {
+            title: 'Notifications',
+            href: '/settings/notifications',
+            icon: null,
+        });
+    }
 
     return (
         <Layout breadcrumbs={resolvedBreadcrumbs}>

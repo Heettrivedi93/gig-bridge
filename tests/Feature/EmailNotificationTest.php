@@ -242,3 +242,72 @@ test('email notification is skipped when email notifications are disabled', func
 
     Notification::assertNothingSent();
 });
+
+test('email notification is skipped when user disables that email event', function () {
+    Notification::fake();
+
+    Setting::setMany([
+        'notifications_email_enabled' => true,
+        'notifications_email_events' => ['order_placed'],
+        'notifications_in_app_enabled' => false,
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
+    ]);
+
+    Http::fake([
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+            'id' => 'ORDER-EMAIL-3',
+            'status' => 'CREATED',
+        ], 201),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-EMAIL-3/capture' => Http::response([
+            'status' => 'COMPLETED',
+            'payer' => [
+                'payer_id' => 'PAYER-EMAIL-3',
+            ],
+        ]),
+    ]);
+
+    [$category, $subcategory] = emailNotificationCategory();
+    $seller = emailNotificationUser('seller');
+    $seller->update([
+        'notification_preferences' => [
+            'email_enabled' => true,
+            'email_events' => ['messages'],
+            'in_app_enabled' => true,
+            'in_app_events' => ['orders', 'messages', 'payment_released'],
+        ],
+    ]);
+
+    $buyer = emailNotificationUser('buyer');
+    $gig = emailNotificationGig($seller, $category, $subcategory);
+    $package = $gig->packages()->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.store', $gig), [
+            'package_id' => $package->id,
+            'quantity' => 1,
+            'requirements' => 'Need this completed quickly.',
+            'billing_name' => 'Buyer Example',
+            'billing_email' => 'buyer@example.com',
+        ])
+        ->assertRedirect(route('buyer.orders.index'));
+
+    $order = Order::query()->latest('id')->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.order', $order))
+        ->assertOk();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.capture', $order), [
+            'order_id' => 'ORDER-EMAIL-3',
+        ])
+        ->assertOk();
+
+    Notification::assertNotSentTo($seller, SystemUserNotification::class);
+});

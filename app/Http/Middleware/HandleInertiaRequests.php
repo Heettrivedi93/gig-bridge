@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Setting;
+use App\Services\NotificationPreferenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
@@ -38,7 +38,10 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $inAppNotificationsEnabled = (bool) Setting::getValue('notifications_in_app_enabled', true);
+        $preferences = app(NotificationPreferenceService::class);
+        $inAppNotificationsEnabled = $user
+            ? $preferences->userInAppEnabled($user)
+            : false;
         $notifications = $user && $inAppNotificationsEnabled
             ? $user->notifications()
                 ->latest()
@@ -73,6 +76,7 @@ class HandleInertiaRequests extends Middleware
                     'avatar' => $user->profile_picture
                         ? Storage::disk('public')->url($user->profile_picture)
                         : null,
+                    'notification_preferences' => $user->notification_preferences,
                 ]) : null,
             ],
             'notifications' => [

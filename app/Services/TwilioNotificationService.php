@@ -10,6 +10,10 @@ use Throwable;
 
 class TwilioNotificationService
 {
+    public function __construct(
+        private readonly NotificationPreferenceService $preferences,
+    ) {}
+
     public function send(User $user, string $event, string $title, string $message): void
     {
         if (! $this->isEnabled($event, $user)) {
@@ -83,9 +87,7 @@ class TwilioNotificationService
             return false;
         }
 
-        $events = Setting::getValue('notifications_twilio_events', []);
-
-        if (! in_array($event, is_array($events) ? $events : [], true)) {
+        if (! $this->preferences->userSupportsTwilioEvent($user, $event)) {
             return false;
         }
 

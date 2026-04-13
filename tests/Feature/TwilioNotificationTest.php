@@ -201,7 +201,7 @@ test('twilio request is skipped when twilio notifications are disabled', functio
         ])
         ->assertRedirect(route('buyer.orders.index'));
 
-    Http::assertNothingSent();
+    Http::assertNotSent(fn ($request) => $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json');
 });
 
 test('twilio request failure does not break business action', function () {
@@ -261,4 +261,68 @@ test('twilio request failure does not break business action', function () {
         ->assertOk();
 
     Log::shouldHaveReceived('warning')->once();
+});
+
+test('twilio request is skipped when user disables that twilio event', function () {
+    Http::fake([
+        'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json' => Http::response(['sid' => 'SM125'], 201),
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+            'id' => 'ORDER-TWILIO-3',
+            'status' => 'CREATED',
+        ], 201),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-TWILIO-3/capture' => Http::response([
+            'status' => 'COMPLETED',
+            'payer' => [
+                'payer_id' => 'PAYER-TWILIO-3',
+            ],
+        ]),
+    ]);
+
+    configureTwilioNotifications(['order_placed']);
+    Setting::setMany([
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
+    ]);
+
+    [$category, $subcategory] = twilioNotificationCategory();
+    $seller = twilioNotificationUser('seller', '+15550000008');
+    $seller->update([
+        'notification_preferences' => [
+            'twilio_enabled' => true,
+            'twilio_events' => ['payment_released'],
+        ],
+    ]);
+
+    $buyer = twilioNotificationUser('buyer', '+15550000009');
+    $gig = twilioNotificationGig($seller, $category, $subcategory);
+    $package = $gig->packages()->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.store', $gig), [
+            'package_id' => $package->id,
+            'quantity' => 1,
+            'requirements' => 'Need this completed quickly.',
+            'billing_name' => 'Buyer Example',
+            'billing_email' => 'buyer@example.com',
+        ])
+        ->assertRedirect(route('buyer.orders.index'));
+
+    $order = Order::query()->latest('id')->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.order', $order))
+        ->assertOk();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.capture', $order), [
+            'order_id' => 'ORDER-TWILIO-3',
+        ])
+        ->assertOk();
+
+    Http::assertNotSent(fn ($request) => $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123456789/Messages.json');
 });

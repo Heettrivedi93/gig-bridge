@@ -302,9 +302,14 @@ class SystemNotificationService
             ->filter(fn ($user) => $user instanceof User)
             ->unique('id')
             ->each(function (User $user) use ($title, $message, $inAppEvent, $emailEvent, $twilioEvent, $actionUrl) {
+                $shouldSendInApp = $inAppEvent
+                    && $this->preferences->userSupportsInAppEvent($user, $inAppEvent);
+                $shouldSendEmail = $emailEvent
+                    && $this->preferences->userSupportsEmailEvent($user, $emailEvent);
+
                 if (
-                    ($inAppEvent && $this->preferences->inAppEnabled() && $this->preferences->supportsInAppEvent($inAppEvent))
-                    || ($emailEvent && $this->preferences->emailEnabled() && $this->preferences->supportsEmailEvent($emailEvent))
+                    $shouldSendInApp
+                    || $shouldSendEmail
                 ) {
                     try {
                         $user->notify(new SystemUserNotification(
