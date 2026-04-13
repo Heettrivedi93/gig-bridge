@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
@@ -19,5 +20,20 @@ Broadcast::channel('orders.{orderId}.messages', function (User $user, int $order
             $query->where('buyer_id', $user->id)
                 ->orWhere('seller_id', $user->id);
         })
+        ->exists();
+});
+
+Broadcast::channel('disputes.{disputeId}.messages', function (User $user, int $disputeId): bool {
+    // Super admin can always listen
+    if ($user->hasRole('super_admin')) {
+        return true;
+    }
+
+    return Dispute::query()
+        ->where('id', $disputeId)
+        ->whereHas('order', fn ($q) => $q
+            ->where('buyer_id', $user->id)
+            ->orWhere('seller_id', $user->id)
+        )
         ->exists();
 });

@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, FileText, Paperclip, Send } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +81,7 @@ const decisionLabel: Record<string, string> = {
 
 export default function AdminDisputeShow({ dispute }: Props) {
     const bottomRef = useRef<HTMLDivElement>(null);
+    const [messages, setMessages] = useState<DisputeMessage[]>(dispute.messages);
 
     const gross = parseFloat(dispute.order_gross_amount) || 0;
     const feeRate = parseFloat(dispute.order_platform_fee_percentage) || 0;
@@ -93,7 +94,7 @@ export default function AdminDisputeShow({ dispute }: Props) {
 
     const resolveForm = useForm<{
         decision: string;
-        partial_amount: string; // refund % 1–99
+        partial_amount: string;
         admin_note: string;
     }>({
         decision: '',
@@ -102,8 +103,27 @@ export default function AdminDisputeShow({ dispute }: Props) {
     });
 
     useEffect(() => {
+        setMessages(dispute.messages);
+    }, [dispute.messages]);
+
+    useEffect(() => {
+        const echo = (window as any).Echo;
+        if (!echo) return;
+
+        const channel = echo.private(`disputes.${dispute.id}.messages`);
+        channel.listen('.message.sent', (e: { message: DisputeMessage & { sender_id: number } }) => {
+            setMessages((prev) => {
+                if (prev.some((m) => m.id === e.message.id)) return prev;
+                return [...prev, { ...e.message, is_mine: false }];
+            });
+        });
+
+        return () => echo.leave(`disputes.${dispute.id}.messages`);
+    }, [dispute.id]);
+
+    useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [dispute.messages.length]);
+    }, [messages.length]);
 
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault();
@@ -616,12 +636,12 @@ export default function AdminDisputeShow({ dispute }: Props) {
                         </div>
 
                         <div className="max-h-[520px] min-h-[300px] flex-1 space-y-4 overflow-y-auto p-5">
-                            {dispute.messages.length === 0 && (
+                            {messages.length === 0 && (
                                 <p className="py-8 text-center text-sm text-muted-foreground">
                                     No messages yet.
                                 </p>
                             )}
-                            {dispute.messages.map((msg) => (
+                            {messages.map((msg) => (
                                 <div
                                     key={msg.id}
                                     className={`flex flex-col gap-1 ${msg.is_mine ? 'items-end' : 'items-start'}`}

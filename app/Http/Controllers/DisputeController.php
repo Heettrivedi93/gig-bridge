@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\DisputeMessageSent;
 use App\Models\Dispute;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
@@ -114,10 +115,20 @@ class DisputeController extends Controller
             'attachment' => ['nullable', 'file', 'max:8192'],
         ]);
 
-        $dispute->messages()->create([
+        $msg = $dispute->messages()->create([
             'sender_id' => $user->id,
             'body' => $data['body'] ?? null,
             'attachment_path' => $request->file('attachment')?->store('dispute-attachments', 'public'),
+        ]);
+
+        DisputeMessageSent::dispatch($dispute->id, [
+            'id' => $msg->id,
+            'sender_id' => $msg->sender_id,
+            'sender_name' => $user->name,
+            'is_mine' => false, // receiver-side default; frontend overrides by sender_id
+            'body' => $msg->body,
+            'attachment_url' => $msg->attachment_path ? Storage::disk('public')->url($msg->attachment_path) : null,
+            'created_at' => $msg->created_at?->toIso8601String(),
         ]);
 
         return back()->with('success', 'Message sent.');

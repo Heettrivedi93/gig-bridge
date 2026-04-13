@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\DisputeMessageSent;
 use App\Http\Controllers\Controller;
 use App\Models\Dispute;
 use App\Services\DisputeService;
@@ -127,10 +128,20 @@ class AdminDisputeController extends Controller
             'attachment' => ['nullable', 'file', 'max:8192'],
         ]);
 
-        $dispute->messages()->create([
+        $msg = $dispute->messages()->create([
             'sender_id' => $request->user()->id,
             'body' => $data['body'] ?? null,
             'attachment_path' => $request->file('attachment')?->store('dispute-attachments', 'public'),
+        ]);
+
+        DisputeMessageSent::dispatch($dispute->id, [
+            'id' => $msg->id,
+            'sender_id' => $msg->sender_id,
+            'sender_name' => $request->user()->name,
+            'is_mine' => false,
+            'body' => $msg->body,
+            'attachment_url' => $msg->attachment_path ? Storage::disk('public')->url($msg->attachment_path) : null,
+            'created_at' => $msg->created_at?->toIso8601String(),
         ]);
 
         return back()->with('success', 'Message sent.');
