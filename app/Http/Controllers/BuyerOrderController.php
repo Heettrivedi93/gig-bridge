@@ -474,9 +474,12 @@ class BuyerOrderController extends Controller
         $buyer = $this->ensureBuyer($request);
         abort_unless($order->buyer_id === $buyer->id, 403);
 
-        if ($order->status !== 'completed' || $order->payment_status !== 'paid') {
+        if (
+            $order->status !== 'completed'
+            || ! in_array($order->payment_status, ['paid', 'released'], true)
+        ) {
             throw ValidationException::withMessages([
-                'rating' => 'Only completed paid orders can be reviewed.',
+                'rating' => 'Only completed paid or released orders can be reviewed.',
             ]);
         }
 

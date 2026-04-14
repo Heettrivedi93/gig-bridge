@@ -145,3 +145,5 @@ Want me to implement any of these? I'd suggest starting with 7 (messages real-ti
 1.implement admin broadcast announcement feature
 2.implement seller ranking system 
 3.implement next level reach milestone Improvements
+4.seller availability option implemented
+5.smart recommendation in gigs
