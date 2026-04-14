@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Gig;
 use App\Models\GigFavourite;
 use App\Services\CouponService;
+use App\Services\SellerRankingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +17,7 @@ class BuyerCatalogController extends Controller
 {
     public function __construct(
         private readonly CouponService $coupons,
+        private readonly SellerRankingService $sellerRanking,
     ) {}
 
     public function index(Request $request): Response
@@ -32,7 +34,7 @@ class BuyerCatalogController extends Controller
             'sort' => trim((string) $request->string('sort', 'latest')),
         ];
 
-        $gigs = Gig::query()
+        $gigCollection = Gig::query()
             ->where('status', 'active')
             ->where('approval_status', 'approved')
             ->whereHas('category', fn (Builder $query) => $query->where('status', 'active'))
@@ -77,8 +79,9 @@ class BuyerCatalogController extends Controller
             ->when($filters['sort'] === 'price_desc', fn (Builder $query) => $query->orderByDesc('packages_min_price'))
             ->when($filters['sort'] === 'delivery_asc', fn (Builder $query) => $query->orderBy('packages_min_delivery_days'))
             ->when(! in_array($filters['sort'], ['price_asc', 'price_desc', 'delivery_asc'], true), fn (Builder $query) => $query->latest('id'))
-            ->get()
-            ->map(fn (Gig $gig) => $this->catalogGigPayload($gig));
+            ->get();
+        $this->refreshSellerLevels($gigCollection);
+        $gigs = $gigCollection->map(fn (Gig $gig) => $this->catalogGigPayload($gig));
 
         return Inertia::render('buyer/gigs/index', [
             'gigs' => $gigs,
@@ -111,7 +114,7 @@ class BuyerCatalogController extends Controller
         abort_unless($gig->status === 'active' && $gig->approval_status === 'approved', 404);
 
         $gig->load([
-            'seller:id,name,email,profile_picture,created_at',
+            'seller:id,name,email,profile_picture,created_at,seller_level',
             'category:id,name,status',
             'subcategory:id,name,status',
             'images',
@@ -120,6 +123,10 @@ class BuyerCatalogController extends Controller
         ]);
         $gig->loadAvg('reviews as reviews_avg_rating', 'rating');
         $gig->loadCount('reviews');
+        if ($gig->seller) {
+            $this->sellerRanking->recalculate($gig->seller);
+            $gig->seller->refresh();
+        }
 
         abort_if($gig->category?->status !== 'active' || $gig->subcategory?->status !== 'active', 404);
 
@@ -140,6 +147,9 @@ class BuyerCatalogController extends Controller
                     ? Storage::disk('public')->url($gig->seller->profile_picture)
                     : null,
                 'seller_member_since' => $gig->seller?->created_at?->format('M Y'),
+                'seller_level' => $gig->seller
+                    ? $this->sellerRanking->badge($gig->seller->seller_level)
+                    : null,
                 'seller_completed_orders' => $gig->seller
                     ? \App\Models\Order::where('seller_id', $gig->seller->id)->where('status', 'completed')->count()
                     : 0,
@@ -213,6 +223,9 @@ class BuyerCatalogController extends Controller
             'description' => $gig->description,
             'seller_id' => $gig->seller?->id,
             'seller_name' => $gig->seller?->name,
+            'seller_level' => $gig->seller
+                ? $this->sellerRanking->badge($gig->seller->seller_level)
+                : null,
             'category_name' => $gig->category?->name,
             'subcategory_name' => $gig->subcategory?->name,
             'tags' => $gig->tags ?? [],
@@ -225,5 +238,16 @@ class BuyerCatalogController extends Controller
             'views_count' => (int) ($gig->views_count ?? 0),
             'package_count' => $gig->packages->count(),
         ];
+    }
+
+    private function refreshSellerLevels(\Illuminate\Support\Collection $gigs): void
+    {
+        $gigs->pluck('seller')
+            ->filter()
+            ->unique('id')
+            ->each(function ($seller) {
+                $this->sellerRanking->recalculate($seller);
+                $seller->refresh();
+            });
     }
 }

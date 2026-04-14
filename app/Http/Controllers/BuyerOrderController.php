@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Services\CouponService;
 use App\Services\OrderFundService;
 use App\Services\PaypalCheckoutService;
+use App\Services\SellerRankingService;
 use App\Services\SystemNotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +29,7 @@ class BuyerOrderController extends Controller
         private readonly CouponService $coupons,
         private readonly OrderFundService $funds,
         private readonly SystemNotificationService $notifications,
+        private readonly SellerRankingService $sellerRanking,
     ) {}
 
     public function index(Request $request): Response
@@ -455,6 +457,7 @@ class BuyerOrderController extends Controller
         }
 
         $this->notifications->orderCompleted($freshOrder->fresh());
+        $this->sellerRanking->recalculate($freshOrder->seller()->firstOrFail());
 
         return back()->with('success', 'Order marked as completed.');
     }
@@ -489,6 +492,8 @@ class BuyerOrderController extends Controller
             'rating' => $data['rating'],
             'comment' => $data['comment'],
         ]);
+
+        $this->sellerRanking->recalculate($order->seller()->firstOrFail());
 
         return back()->with('success', 'Review submitted successfully.');
     }
@@ -527,6 +532,7 @@ class BuyerOrderController extends Controller
         }
 
         $this->notifications->orderCancelledByBuyer($order->fresh());
+        $this->sellerRanking->recalculate($order->seller()->firstOrFail());
 
         return back()->with('success', 'Order cancelled successfully.');
     }

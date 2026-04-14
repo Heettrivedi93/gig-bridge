@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\WalletTransaction;
@@ -34,6 +35,7 @@ class DashboardController extends Controller
         $filters = null;
         $sellerAnalytics = null;
         $buyerAnalytics = null;
+        $announcement = $this->resolveAnnouncement($user);
 
         if ($isSeller) {
             [$range, $startDate, $previousStartDate, $previousEndDate, $bucketUnit, $bucketFormat] = $this->resolveRange(
@@ -647,6 +649,7 @@ class DashboardController extends Controller
         }
 
         return Inertia::render('dashboard', [
+            'announcement' => $announcement,
             'role' => $role,
             'stats' => $stats,
             'filters' => $filters,
@@ -657,6 +660,31 @@ class DashboardController extends Controller
             'recentOrders' => $recentOrders,
             'recentTransactions' => $recentTransactions,
         ]);
+    }
+
+    private function resolveAnnouncement(?\App\Models\User $user): ?array
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $announcement = Announcement::query()
+            ->active()
+            ->forUser($user)
+            ->whereDoesntHave('dismissedBy', fn ($query) => $query->where('user_id', $user->id))
+            ->latest('id')
+            ->first();
+
+        if (! $announcement) {
+            return null;
+        }
+
+        return [
+            'id' => $announcement->id,
+            'message' => $announcement->message,
+            'audience' => $announcement->audience,
+            'expires_at' => $announcement->expires_at?->toIso8601String(),
+        ];
     }
 
     private function resolveRange(?string $requestedRange): array

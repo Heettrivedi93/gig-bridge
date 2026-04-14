@@ -4,6 +4,7 @@ import {
     BookText,
     BadgePercent,
     LayoutGrid,
+    Megaphone,
     Package,
     Settings,
     ShieldAlert,
@@ -35,6 +36,7 @@ import type { BreadcrumbItem, NavItem } from '@/types';
 const adminNavItems: NavItem[] = [
     { title: 'Dashboard', href: admin.dashboard.url(), icon: LayoutGrid },
     { title: 'Notifications', href: '/notifications', icon: Bell },
+    { title: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { title: 'Categories', href: admin.categories.index.url(), icon: Tag },
     { title: 'Plans', href: '/admin/plans', icon: Package },
     { title: 'Coupons', href: '/admin/coupons', icon: BadgePercent },

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminCategoryController;
+use App\Http\Controllers\Admin\AdminAnnouncementController;
 use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminDisputeController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Admin\AdminWithdrawalController;
 use App\Http\Controllers\GigFavouriteController;
 use App\Http\Controllers\BuyerCatalogController;
 use App\Http\Controllers\BuyerOrderController;
+use App\Http\Controllers\AnnouncementDismissalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\MessageController;
@@ -35,6 +37,7 @@ Route::get('sellers/{user}', [SellerProfileController::class, 'show'])->name('se
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('announcements/{announcement}/dismiss', [AnnouncementDismissalController::class, 'store'])->name('announcements.dismiss');
     Route::get('orders/{order}/messages', [MessageController::class, 'orderThread'])->name('messages.order-thread');
     Route::post('orders/{order}/messages', [MessageController::class, 'storeForOrder'])->name('messages.order-store');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -111,6 +114,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Admin routes
 Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureSuperAdmin::class])->group(function () {
     Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    // Announcements
+    Route::get('announcements', [AdminAnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('announcements', [AdminAnnouncementController::class, 'store'])->name('announcements.store');
+    Route::put('announcements/{announcement}', [AdminAnnouncementController::class, 'update'])->name('announcements.update');
+    Route::delete('announcements/{announcement}', [AdminAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
     // Categories
     Route::get('categories', [AdminCategoryController::class, 'index'])->name('categories.index');

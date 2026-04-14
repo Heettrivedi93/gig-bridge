@@ -3,7 +3,6 @@ import {
     Clock3,
     Eye,
     Heart,
-    Layers3,
     Search,
     SlidersHorizontal,
     Sparkles,
@@ -12,6 +11,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '@/components/flash-toaster';
 import Heading from '@/components/heading';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ type GigCard = {
     description: string;
     seller_id: number | null;
     seller_name: string | null;
+    seller_level: SellerLevelBadgeData;
     category_name: string | null;
     subcategory_name: string | null;
     tags: string[];
@@ -88,14 +90,22 @@ function sellerInitials(name: string | null) {
         .toUpperCase();
 }
 
-export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig_ids }: Props) {
+export default function BuyerGigIndex({
+    gigs,
+    categories,
+    filters,
+    favourite_gig_ids,
+}: Props) {
     const [query, setQuery] = useState<Filters>(filters);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
-    const [savedIds, setSavedIds] = useState<Set<number>>(new Set(favourite_gig_ids));
+    const [savedIds, setSavedIds] = useState<Set<number>>(
+        new Set(favourite_gig_ids),
+    );
     const keywordSearchTimeoutRef = useRef<number | null>(null);
 
     const selectedCategory = useMemo(
-        () => categories.find((c) => String(c.id) === query.category_id) ?? null,
+        () =>
+            categories.find((c) => String(c.id) === query.category_id) ?? null,
         [categories, query.category_id],
     );
 
@@ -105,15 +115,28 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
         const isNowSaved = !savedIds.has(gigId);
         setSavedIds((prev) => {
             const next = new Set(prev);
-            next.has(gigId) ? next.delete(gigId) : next.add(gigId);
+
+            if (next.has(gigId)) {
+                next.delete(gigId);
+            } else {
+                next.add(gigId);
+            }
+
             return next;
         });
-        toast('success', isNowSaved ? 'Gig saved to your wishlist.' : 'Gig removed from your wishlist.');
-        const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+        toast(
+            'success',
+            isNowSaved
+                ? 'Gig saved to your wishlist.'
+                : 'Gig removed from your wishlist.',
+        );
+        const csrf =
+            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                ?.content ?? '';
         fetch(`/buyer/gigs/${gigId}/favourite`, {
             method: 'POST',
             credentials: 'same-origin',
-            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
         });
     };
 
@@ -161,6 +184,7 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
     const updateFilter = (patch: Partial<Filters>, debounce = false) => {
         const nextQuery = { ...query, ...patch };
         setQuery(nextQuery);
+
         if (debounce) {
             scheduleKeywordSearch(nextQuery);
         } else {
@@ -173,18 +197,6 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
             clearKeywordSearchTimeout();
         };
     }, []);
-
-    const applyFilters = () => {
-        clearKeywordSearchTimeout();
-
-        router.get('/buyer/gigs', query, {
-            preserveState: true,
-            preserveScroll: true,
-            preserveUrl: true,
-        });
-
-        setShowMobileFilters(false);
-    };
 
     const clearFilters = () => {
         clearKeywordSearchTimeout();
@@ -229,7 +241,10 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         <Select
                             value={query.category_id || 'all'}
                             onValueChange={(value) =>
-                                updateFilter({ category_id: value === 'all' ? '' : value, subcategory_id: '' })
+                                updateFilter({
+                                    category_id: value === 'all' ? '' : value,
+                                    subcategory_id: '',
+                                })
                             }
                         >
                             <SelectTrigger className="mt-2 w-full">
@@ -251,34 +266,40 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         </Select>
                     </div>
 
-                    {selectedCategory && selectedCategory.subcategories.length > 0 && (
-                        <div>
-                            <Label>Subcategory</Label>
-                            <Select
-                                value={query.subcategory_id || 'all'}
-                                onValueChange={(value) =>
-                                    updateFilter({ subcategory_id: value === 'all' ? '' : value })
-                                }
-                            >
-                                <SelectTrigger className="mt-2 w-full">
-                                    <SelectValue placeholder="All subcategories" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        All subcategories
-                                    </SelectItem>
-                                    {selectedCategory.subcategories.map((sub) => (
-                                        <SelectItem
-                                            key={sub.id}
-                                            value={String(sub.id)}
-                                        >
-                                            {sub.name}
+                    {selectedCategory &&
+                        selectedCategory.subcategories.length > 0 && (
+                            <div>
+                                <Label>Subcategory</Label>
+                                <Select
+                                    value={query.subcategory_id || 'all'}
+                                    onValueChange={(value) =>
+                                        updateFilter({
+                                            subcategory_id:
+                                                value === 'all' ? '' : value,
+                                        })
+                                    }
+                                >
+                                    <SelectTrigger className="mt-2 w-full">
+                                        <SelectValue placeholder="All subcategories" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All subcategories
                                         </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
+                                        {selectedCategory.subcategories.map(
+                                            (sub) => (
+                                                <SelectItem
+                                                    key={sub.id}
+                                                    value={String(sub.id)}
+                                                >
+                                                    {sub.name}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                     <div>
                         <Label htmlFor="price-max">Max price</Label>
@@ -287,7 +308,12 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             type="number"
                             min="1"
                             value={query.price_max}
-                            onChange={(event) => updateFilter({ price_max: event.target.value }, true)}
+                            onChange={(event) =>
+                                updateFilter(
+                                    { price_max: event.target.value },
+                                    true,
+                                )
+                            }
                             className="mt-2"
                             placeholder="500"
                         />
@@ -300,7 +326,12 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             type="number"
                             min="1"
                             value={query.delivery_days}
-                            onChange={(event) => updateFilter({ delivery_days: event.target.value }, true)}
+                            onChange={(event) =>
+                                updateFilter(
+                                    { delivery_days: event.target.value },
+                                    true,
+                                )
+                            }
                             className="mt-2"
                             placeholder="7"
                         />
@@ -311,7 +342,9 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         <Select
                             value={query.rating || 'all'}
                             onValueChange={(value) =>
-                                updateFilter({ rating: value === 'all' ? '' : value })
+                                updateFilter({
+                                    rating: value === 'all' ? '' : value,
+                                })
                             }
                         >
                             <SelectTrigger className="mt-2 w-full">
@@ -329,7 +362,9 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         <Label>Sort</Label>
                         <Select
                             value={query.sort || 'latest'}
-                            onValueChange={(value) => updateFilter({ sort: value })}
+                            onValueChange={(value) =>
+                                updateFilter({ sort: value })
+                            }
                         >
                             <SelectTrigger className="mt-2 w-full">
                                 <SelectValue />
@@ -395,7 +430,12 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                             <Input
                                 id="buyer-search"
                                 value={query.keyword}
-                                onChange={(event) => updateFilter({ keyword: event.target.value }, true)}
+                                onChange={(event) =>
+                                    updateFilter(
+                                        { keyword: event.target.value },
+                                        true,
+                                    )
+                                }
                                 className="h-12 rounded-2xl border-border/70 pl-11"
                                 placeholder="Search for logo design, web development, copywriting..."
                             />
@@ -433,7 +473,8 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                         {query.subcategory_id && (
                             <Badge variant="secondary">
                                 {selectedCategory?.subcategories.find(
-                                    (s) => String(s.id) === query.subcategory_id,
+                                    (s) =>
+                                        String(s.id) === query.subcategory_id,
                                 )?.name ?? 'Subcategory selected'}
                             </Badge>
                         )}
@@ -532,9 +573,15 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
 
                                             <button
                                                 type="button"
-                                                onClick={(e) => toggleFavourite(e, gig.id)}
+                                                onClick={(e) =>
+                                                    toggleFavourite(e, gig.id)
+                                                }
                                                 className="absolute right-3 bottom-3 flex size-8 items-center justify-center rounded-full bg-background/80 shadow backdrop-blur transition hover:scale-110"
-                                                aria-label={savedIds.has(gig.id) ? 'Remove from saved' : 'Save gig'}
+                                                aria-label={
+                                                    savedIds.has(gig.id)
+                                                        ? 'Remove from saved'
+                                                        : 'Save gig'
+                                                }
                                             >
                                                 <Heart
                                                     className={`size-4 transition ${
@@ -560,16 +607,32 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                                                         {gig.seller_id ? (
                                                             <Link
                                                                 href={`/sellers/${gig.seller_id}`}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="text-sm font-medium hover:underline underline-offset-4"
+                                                                onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                }
+                                                                className="text-sm font-medium underline-offset-4 hover:underline"
                                                             >
-                                                                {gig.seller_name}
+                                                                {
+                                                                    gig.seller_name
+                                                                }
                                                             </Link>
                                                         ) : (
-                                                            <p className="text-sm font-medium">{gig.seller_name}</p>
+                                                            <p className="text-sm font-medium">
+                                                                {
+                                                                    gig.seller_name
+                                                                }
+                                                            </p>
                                                         )}
+                                                        <SellerLevelBadge
+                                                            level={
+                                                                gig.seller_level
+                                                            }
+                                                            className="mt-1"
+                                                        />
                                                         <p className="text-xs text-muted-foreground">
-                                                            {gig.subcategory_name}
+                                                            {
+                                                                gig.subcategory_name
+                                                            }
                                                         </p>
                                                     </div>
                                                 </div>
@@ -626,10 +689,13 @@ export default function BuyerGigIndex({ gigs, categories, filters, favourite_gig
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
                                                         <Star className="size-4 text-amber-500" />
                                                         {gig.review_count > 0
-                                                            ? gig.rating.toFixed(1)
+                                                            ? gig.rating.toFixed(
+                                                                  1,
+                                                              )
                                                             : 'New'}
                                                         <span className="text-xs text-muted-foreground">
-                                                            {gig.review_count > 0
+                                                            {gig.review_count >
+                                                            0
                                                                 ? `(${gig.review_count})`
                                                                 : '(0 reviews)'}
                                                         </span>

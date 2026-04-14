@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\SellerOrdersExport;
 use App\Models\Order;
 use App\Services\OrderFundService;
+use App\Services\SellerRankingService;
 use App\Services\SystemNotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +23,7 @@ class SellerOrderController extends Controller
     public function __construct(
         private readonly OrderFundService $funds,
         private readonly SystemNotificationService $notifications,
+        private readonly SellerRankingService $sellerRanking,
     ) {}
 
     public function index(Request $request): Response
@@ -110,6 +112,7 @@ class SellerOrderController extends Controller
         ]);
 
         $this->notifications->orderDelivered($order->fresh());
+        $this->sellerRanking->recalculate($seller);
 
         return back()->with('success', 'Order delivered successfully.');
     }
@@ -148,6 +151,7 @@ class SellerOrderController extends Controller
         }
 
         $this->notifications->orderCancelledBySeller($order->fresh());
+        $this->sellerRanking->recalculate($seller);
 
         return back()->with('success', 'Order cancelled successfully.');
     }

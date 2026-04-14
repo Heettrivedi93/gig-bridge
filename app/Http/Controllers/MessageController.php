@@ -6,6 +6,7 @@ use App\Events\OrderMessageSent;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\SellerRankingService;
 use App\Services\SystemNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,7 @@ class MessageController extends Controller
 {
     public function __construct(
         private readonly SystemNotificationService $notifications,
+        private readonly SellerRankingService $sellerRanking,
     ) {}
 
     public function index(Request $request): Response
@@ -165,6 +167,10 @@ class MessageController extends Controller
             Str::limit($body !== '' ? $body : 'Sent an attachment.', 120),
         );
 
+        if ($sender->hasRole('seller')) {
+            $this->sellerRanking->recalculate($sender);
+        }
+
         return redirect()
             ->route('messages.index', array_filter([
                 'recipient_id' => $receiver->id,
@@ -236,6 +242,10 @@ class MessageController extends Controller
             $order,
             Str::limit($body !== '' ? $body : 'Sent an attachment.', 120),
         );
+
+        if ($sender->hasRole('seller')) {
+            $this->sellerRanking->recalculate($sender);
+        }
 
         OrderMessageSent::dispatch($order->id, $this->messagePayload($message));
 

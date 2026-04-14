@@ -66,6 +66,7 @@ function publishedGig(User $seller, Category $category, Category $subcategory, a
         'description' => 'A clean logo package for startups and new brands.',
         'tags' => ['logo', 'branding'],
         'status' => 'active',
+        'approval_status' => 'approved',
     ], $attributes));
 
     foreach ([

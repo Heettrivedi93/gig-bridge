@@ -26,6 +26,7 @@ use Spatie\Permission\Traits\HasRoles;
     'skills',
     'location',
     'website',
+    'seller_level',
     'notification_preferences',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]

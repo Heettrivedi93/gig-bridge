@@ -6,6 +6,7 @@ use App\Models\Gig;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\User;
+use App\Services\SellerRankingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -13,9 +14,14 @@ use Inertia\Response;
 
 class SellerProfileController extends Controller
 {
+    public function __construct(
+        private readonly SellerRankingService $sellerRanking,
+    ) {}
+
     public function show(User $user): Response
     {
         abort_unless($user->hasRole('seller'), 404);
+        $level = $this->sellerRanking->recalculate($user);
 
         $gigs = Gig::query()
             ->where('user_id', $user->id)
@@ -45,6 +51,7 @@ class SellerProfileController extends Controller
                 'rating'          => round((float) ($gig->reviews_avg_rating ?? 0), 1),
                 'review_count'    => (int) ($gig->reviews_count ?? 0),
                 'package_count'   => $gig->packages->count(),
+                'seller_level'    => $this->sellerRanking->badge($level),
             ]);
 
         $reviewStats = Review::query()
@@ -88,6 +95,7 @@ class SellerProfileController extends Controller
                     ? Storage::disk('public')->url($user->profile_picture)
                     : null,
                 'member_since' => $user->created_at?->format('F Y'),
+                'seller_level' => $this->sellerRanking->badge($level),
             ],
             'stats' => [
                 'gig_count'        => $gigs->count(),

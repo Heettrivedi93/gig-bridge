@@ -2,12 +2,14 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     BadgeCheck,
+    BadgeAlert,
     CircleDollarSign,
     Clock3,
     ShoppingBag,
     Sparkles,
     Wallet,
     Wallet2,
+    X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import * as RechartsPrimitive from 'recharts';
@@ -135,6 +137,12 @@ type BuyerAnalytics = {
 };
 
 type PageProps = {
+    announcement: {
+        id: number;
+        message: string;
+        audience: 'all' | 'buyers' | 'sellers';
+        expires_at: string | null;
+    } | null;
     role: 'seller' | 'buyer' | 'general';
     stats: DashboardStat[];
     filters: null | {
@@ -248,6 +256,63 @@ function formatCurrency(value: number | string) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(Number.isFinite(amount) ? amount : 0)}`;
+}
+
+function DashboardAnnouncement({
+    announcement,
+}: {
+    announcement: PageProps['announcement'];
+}) {
+    const [isHidden, setIsHidden] = useState(false);
+    const [isDismissing, setIsDismissing] = useState(false);
+
+    if (!announcement || isHidden) {
+        return null;
+    }
+
+    return (
+        <section className="rounded-3xl border border-amber-200/80 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(249,115,22,0.1),rgba(255,255,255,0.65))] p-5 shadow-sm dark:border-amber-900/70 dark:bg-[linear-gradient(135deg,rgba(120,53,15,0.5),rgba(146,64,14,0.2),rgba(20,20,20,0.5))]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex gap-3">
+                    <div className="rounded-2xl bg-background/80 p-2.5 text-amber-700 shadow-sm ring-1 ring-amber-200/70 dark:bg-black/20 dark:text-amber-300 dark:ring-amber-900/60">
+                        <BadgeAlert className="size-4" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold tracking-wide text-amber-900 uppercase dark:text-amber-100">
+                            Admin announcement
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-foreground">
+                            {announcement.message}
+                        </p>
+                    </div>
+                </div>
+
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={isDismissing}
+                    onClick={() => {
+                        setIsDismissing(true);
+                        router.post(
+                            `/announcements/${announcement.id}/dismiss`,
+                            {},
+                            {
+                                preserveScroll: true,
+                                preserveState: true,
+                                onSuccess: () => setIsHidden(true),
+                                onFinish: () => setIsDismissing(false),
+                            },
+                        );
+                    }}
+                    className="shrink-0 bg-background/75"
+                >
+                    <X className="mr-1.5 size-4" />
+                    {isDismissing ? 'Dismissing…' : 'Dismiss'}
+                </Button>
+            </div>
+        </section>
+    );
 }
 
 function useInViewOnce<T extends HTMLElement>() {
@@ -2078,6 +2143,14 @@ export default function Dashboard() {
     return (
         <>
             <Head title="Dashboard" />
+            {props.announcement ? (
+                <div className="px-6 pt-6">
+                    <DashboardAnnouncement
+                        key={props.announcement.id}
+                        announcement={props.announcement}
+                    />
+                </div>
+            ) : null}
             {props.role === 'seller' && props.sellerAnalytics ? (
                 <SellerDashboard
                     filters={props.filters}

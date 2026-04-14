@@ -4,12 +4,13 @@ import {
     BadgeCheck,
     Clock3,
     ExternalLink,
-    Layers3,
     MapPin,
     Star,
 } from 'lucide-react';
 import { useCallback } from 'react';
 import Heading from '@/components/heading';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { roleLayout } from '@/hooks/use-role-layout';
@@ -27,6 +28,7 @@ type GigCard = {
     rating: number;
     review_count: number;
     package_count: number;
+    seller_level: SellerLevelBadgeData;
 };
 
 type Review = {
@@ -48,6 +50,7 @@ type Props = {
         website: string | null;
         avatar: string | null;
         member_since: string | null;
+        seller_level: SellerLevelBadgeData;
     };
     stats: {
         gig_count: number;
@@ -60,12 +63,22 @@ type Props = {
 };
 
 function initials(name: string) {
-    return name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+    return name
+        .split(' ')
+        .map((p) => p[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
 }
 
 function formatDate(value: string | null) {
-    if (!value) return '';
-    return new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
+    if (!value) {
+        return '';
+    }
+
+    return new Date(value).toLocaleDateString(undefined, {
+        dateStyle: 'medium',
+    });
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -81,8 +94,14 @@ function StarRating({ rating }: { rating: number }) {
     );
 }
 
-export default function SellerShow({ seller, stats, gigs, recent_reviews }: Props) {
-    const { auth } = usePage<{ auth: { user: { roles?: string[] } | null } }>().props;
+export default function SellerShow({
+    seller,
+    stats,
+    gigs,
+    recent_reviews,
+}: Props) {
+    const { auth } = usePage<{ auth: { user: { roles?: string[] } | null } }>()
+        .props;
     const isBuyer = auth?.user?.roles?.includes('buyer') ?? false;
 
     const goBack = useCallback(() => {
@@ -109,25 +128,37 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
                     </button>
                     <Heading
                         title={seller.name}
-                        description={seller.location ? `Based in ${seller.location}` : 'Seller profile'}
+                        description={
+                            seller.location
+                                ? `Based in ${seller.location}`
+                                : 'Seller profile'
+                        }
                     />
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-
                     {/* ── Left sidebar ── */}
                     <aside className="space-y-5">
                         {/* Profile card */}
                         <div className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex flex-col items-center text-center">
                                 <Avatar className="size-20 rounded-2xl border border-border/70">
-                                    <AvatarImage src={seller.avatar ?? undefined} alt={seller.name} />
+                                    <AvatarImage
+                                        src={seller.avatar ?? undefined}
+                                        alt={seller.name}
+                                    />
                                     <AvatarFallback className="rounded-2xl bg-muted text-xl font-semibold">
                                         {initials(seller.name)}
                                     </AvatarFallback>
                                 </Avatar>
 
-                                <h2 className="mt-4 text-lg font-bold">{seller.name}</h2>
+                                <h2 className="mt-4 text-lg font-bold">
+                                    {seller.name}
+                                </h2>
+                                <SellerLevelBadge
+                                    level={seller.seller_level}
+                                    className="mt-3"
+                                />
 
                                 {seller.location && (
                                     <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
@@ -138,7 +169,9 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
 
                                 {stats.average_rating > 0 && (
                                     <div className="mt-3 flex items-center gap-2">
-                                        <StarRating rating={stats.average_rating} />
+                                        <StarRating
+                                            rating={stats.average_rating}
+                                        />
                                         <span className="text-sm font-medium">
                                             {stats.average_rating.toFixed(1)}
                                         </span>
@@ -151,16 +184,28 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
 
                             <div className="mt-6 space-y-3 border-t border-border/70 pt-5 text-sm">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Member since</span>
-                                    <span className="font-medium">{seller.member_since}</span>
+                                    <span className="text-muted-foreground">
+                                        Member since
+                                    </span>
+                                    <span className="font-medium">
+                                        {seller.member_since}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Active gigs</span>
-                                    <span className="font-medium">{stats.gig_count}</span>
+                                    <span className="text-muted-foreground">
+                                        Active gigs
+                                    </span>
+                                    <span className="font-medium">
+                                        {stats.gig_count}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-muted-foreground">Completed orders</span>
-                                    <span className="font-medium">{stats.completed_orders}</span>
+                                    <span className="text-muted-foreground">
+                                        Completed orders
+                                    </span>
+                                    <span className="font-medium">
+                                        {stats.completed_orders}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -169,7 +214,7 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
                         {seller.bio && (
                             <div className="rounded-3xl border border-border/70 bg-card p-5">
                                 <p className="mb-2 font-semibold">About</p>
-                                <p className="text-sm leading-6 text-muted-foreground whitespace-pre-line">
+                                <p className="text-sm leading-6 whitespace-pre-line text-muted-foreground">
                                     {seller.bio}
                                 </p>
                             </div>
@@ -208,7 +253,6 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
 
                     {/* ── Right: gigs + reviews ── */}
                     <div className="space-y-8">
-
                         {/* Gigs */}
                         <section>
                             <h2 className="mb-4 text-lg font-bold">
@@ -218,14 +262,17 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
                             {gigs.length === 0 ? (
                                 <div className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-14 text-center">
                                     <BadgeCheck className="mx-auto size-8 text-muted-foreground" />
-                                    <p className="mt-3 font-medium">No active gigs yet</p>
+                                    <p className="mt-3 font-medium">
+                                        No active gigs yet
+                                    </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        This seller hasn't published any services yet.
+                                        This seller hasn't published any
+                                        services yet.
                                     </p>
                                 </div>
                             ) : (
                                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                                    {gigs.map((gig) => (
+                                    {gigs.map((gig) =>
                                         isBuyer ? (
                                             <Link
                                                 key={gig.id}
@@ -241,8 +288,8 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
                                             >
                                                 <GigCardContent gig={gig} />
                                             </div>
-                                        )
-                                    ))}
+                                        ),
+                                    )}
                                 </div>
                             )}
                         </section>
@@ -256,9 +303,13 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
                                     </h2>
                                     {stats.average_rating > 0 && (
                                         <div className="flex items-center gap-1.5">
-                                            <StarRating rating={stats.average_rating} />
+                                            <StarRating
+                                                rating={stats.average_rating}
+                                            />
                                             <span className="text-sm font-medium text-amber-600">
-                                                {stats.average_rating.toFixed(1)}
+                                                {stats.average_rating.toFixed(
+                                                    1,
+                                                )}
                                             </span>
                                         </div>
                                     )}
@@ -273,7 +324,8 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <p className="font-medium">
-                                                        {review.buyer_name ?? 'Buyer'}
+                                                        {review.buyer_name ??
+                                                            'Buyer'}
                                                     </p>
                                                     {review.gig_title && (
                                                         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -300,12 +352,17 @@ export default function SellerShow({ seller, stats, gigs, recent_reviews }: Prop
 
                         {recent_reviews.length === 0 && stats.gig_count > 0 && (
                             <section>
-                                <h2 className="mb-4 text-lg font-bold">Reviews</h2>
+                                <h2 className="mb-4 text-lg font-bold">
+                                    Reviews
+                                </h2>
                                 <div className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-10 text-center">
                                     <BadgeCheck className="mx-auto size-8 text-muted-foreground" />
-                                    <p className="mt-3 font-medium">No reviews yet</p>
+                                    <p className="mt-3 font-medium">
+                                        No reviews yet
+                                    </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        Reviews appear after buyers complete orders.
+                                        Reviews appear after buyers complete
+                                        orders.
                                     </p>
                                 </div>
                             </section>
@@ -342,28 +399,41 @@ function GigCardContent({ gig }: { gig: GigCard }) {
             </div>
 
             <div className="p-4">
-                <h3 className="line-clamp-2 font-semibold leading-snug">{gig.title}</h3>
+                <SellerLevelBadge level={gig.seller_level} className="mb-3" />
+                <h3 className="line-clamp-2 leading-snug font-semibold">
+                    {gig.title}
+                </h3>
                 <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">
                     {gig.description}
                 </p>
 
                 <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl border border-border/70 bg-muted/20 p-3 text-xs">
                     <div>
-                        <p className="text-muted-foreground uppercase tracking-wide">From</p>
-                        <p className="mt-1 font-semibold">USD {gig.starting_price}</p>
+                        <p className="tracking-wide text-muted-foreground uppercase">
+                            From
+                        </p>
+                        <p className="mt-1 font-semibold">
+                            USD {gig.starting_price}
+                        </p>
                     </div>
                     <div>
-                        <p className="text-muted-foreground uppercase tracking-wide">Delivery</p>
+                        <p className="tracking-wide text-muted-foreground uppercase">
+                            Delivery
+                        </p>
                         <p className="mt-1 flex items-center gap-0.5 font-medium">
                             <Clock3 className="size-3 text-muted-foreground" />
                             {gig.delivery_days}d
                         </p>
                     </div>
                     <div>
-                        <p className="text-muted-foreground uppercase tracking-wide">Rating</p>
+                        <p className="tracking-wide text-muted-foreground uppercase">
+                            Rating
+                        </p>
                         <p className="mt-1 flex items-center gap-0.5 font-medium">
                             <Star className="size-3 text-amber-500" />
-                            {gig.review_count > 0 ? gig.rating.toFixed(1) : 'New'}
+                            {gig.review_count > 0
+                                ? gig.rating.toFixed(1)
+                                : 'New'}
                         </p>
                     </div>
                 </div>
@@ -373,7 +443,10 @@ function GigCardContent({ gig }: { gig: GigCard }) {
 }
 
 SellerShow.layout = roleLayout((isSuperAdmin) => [
-    { title: 'Dashboard', href: isSuperAdmin ? '/admin/dashboard' : '/dashboard' },
+    {
+        title: 'Dashboard',
+        href: isSuperAdmin ? '/admin/dashboard' : '/dashboard',
+    },
     { title: 'Explore Gigs', href: '/buyer/gigs' },
     { title: 'Seller Profile', href: '#' },
 ]);
