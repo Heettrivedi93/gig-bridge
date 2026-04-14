@@ -76,6 +76,23 @@ type GigDetail = {
     }[];
 };
 
+type RecommendedGig = {
+    id: number;
+    title: string;
+    description: string;
+    seller_id: number | null;
+    seller_name: string | null;
+    seller_is_available: boolean;
+    category_name: string | null;
+    subcategory_name: string | null;
+    tags: string[];
+    cover_image_url: string | null;
+    starting_price: string;
+    delivery_days: number;
+    rating: number;
+    review_count: number;
+};
+
 type CouponOption = {
     id: number;
     code: string;
@@ -91,6 +108,8 @@ type CouponOption = {
 
 type Props = {
     gig: GigDetail;
+    similar_gigs: RecommendedGig[];
+    people_also_bought: RecommendedGig[];
     coupons: CouponOption[];
 };
 
@@ -106,7 +125,14 @@ type OrderFormData = {
     billing_email: string;
 };
 
-export default function BuyerGigShow({ gig, coupons }: Props) {
+export default function BuyerGigShow({
+    gig,
+    coupons,
+    similar_gigs,
+    people_also_bought,
+}: Props) {
+    const similarGigs = similar_gigs;
+    const peopleAlsoBought = people_also_bought;
     const { auth } = usePage<{
         auth: { user: { name: string; email: string } | null };
     }>().props;
@@ -399,6 +425,130 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                                 {review.comment}
                                             </p>
                                         </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="rounded-3xl border border-border/70 bg-card p-6">
+                            <div className="flex items-center gap-2">
+                                <Layers3 className="size-4 text-muted-foreground" />
+                                <h2 className="text-lg font-semibold">
+                                    Similar gigs
+                                </h2>
+                            </div>
+                            {similarGigs.length === 0 ? (
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    We will show similar gigs here once more
+                                    matching services are available.
+                                </p>
+                            ) : (
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                    {similarGigs.map((item) => (
+                                        <Link
+                                            key={`similar-${item.id}`}
+                                            href={`/buyer/gigs/${item.id}`}
+                                            className="overflow-hidden rounded-2xl border border-border/70 bg-background transition hover:border-primary/40"
+                                        >
+                                            <div className="aspect-[16/9] bg-muted">
+                                                {item.cover_image_url ? (
+                                                    <img
+                                                        src={
+                                                            item.cover_image_url
+                                                        }
+                                                        alt={item.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                        No preview image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2 p-4">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <Badge variant="secondary">
+                                                        {item.category_name ??
+                                                            'General'}
+                                                    </Badge>
+                                                    <span className="text-sm font-semibold">
+                                                        USD{' '}
+                                                        {item.starting_price}
+                                                    </span>
+                                                </div>
+                                                <p className="line-clamp-2 font-medium">
+                                                    {item.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    by{' '}
+                                                    {item.seller_name ??
+                                                        'Seller'}{' '}
+                                                    • {item.delivery_days} days
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="rounded-3xl border border-border/70 bg-card p-6">
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="size-4 text-muted-foreground" />
+                                <h2 className="text-lg font-semibold">
+                                    People also bought
+                                </h2>
+                            </div>
+                            {peopleAlsoBought.length === 0 ? (
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    We will show related buyer picks here as
+                                    order history grows.
+                                </p>
+                            ) : (
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                    {peopleAlsoBought.map((item) => (
+                                        <Link
+                                            key={`also-${item.id}`}
+                                            href={`/buyer/gigs/${item.id}`}
+                                            className="overflow-hidden rounded-2xl border border-border/70 bg-background transition hover:border-primary/40"
+                                        >
+                                            <div className="aspect-[16/9] bg-muted">
+                                                {item.cover_image_url ? (
+                                                    <img
+                                                        src={
+                                                            item.cover_image_url
+                                                        }
+                                                        alt={item.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                        No preview image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2 p-4">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <Badge variant="secondary">
+                                                        {item.subcategory_name ??
+                                                            item.category_name ??
+                                                            'General'}
+                                                    </Badge>
+                                                    <span className="text-sm font-semibold">
+                                                        USD{' '}
+                                                        {item.starting_price}
+                                                    </span>
+                                                </div>
+                                                <p className="line-clamp-2 font-medium">
+                                                    {item.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {item.review_count > 0
+                                                        ? `${item.rating.toFixed(1)} stars (${item.review_count})`
+                                                        : 'New service'}
+                                                </p>
+                                            </div>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
