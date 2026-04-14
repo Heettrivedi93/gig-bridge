@@ -16,6 +16,7 @@ import * as RechartsPrimitive from 'recharts';
 import Heading from '@/components/heading';
 import SellerLevelBadge from '@/components/seller-level-badge';
 import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
+import SellerRankingProgress from '@/components/seller-ranking-progress';
 import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -146,6 +147,23 @@ type PageProps = {
         expires_at: string | null;
     } | null;
     sellerLevel: SellerLevelBadgeData;
+    sellerProgress: {
+        current_level: string | null;
+        next_level: string | null;
+        next_label: string | null;
+        is_top: boolean;
+        requirements: {
+            key: string;
+            label: string;
+            current: number | null;
+            target: number;
+            unit: string;
+            lower_is_better: boolean;
+            met: boolean;
+            progress: number;
+        }[];
+        blocking: string | null;
+    } | null;
     role: 'seller' | 'buyer' | 'general';
     stats: DashboardStat[];
     filters: null | {
@@ -1128,6 +1146,7 @@ function LegacyDashboard({
 function SellerDashboard({
     filters,
     sellerLevel,
+    sellerProgress,
     sellerAnalytics,
     recentOrders,
     recentTransactions,
@@ -1135,6 +1154,7 @@ function SellerDashboard({
     PageProps,
     | 'filters'
     | 'sellerLevel'
+    | 'sellerProgress'
     | 'sellerAnalytics'
     | 'recentOrders'
     | 'recentTransactions'
@@ -1668,6 +1688,39 @@ function SellerDashboard({
                     )}
                 </section>
             </section>
+
+            {/* Ranking Progress */}
+            {sellerProgress && (
+                <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+                    <SellerRankingProgress
+                        progress={sellerProgress}
+                        level={sellerLevel}
+                    />
+                    <div className="rounded-3xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border">
+                        <p className="font-semibold">Level Requirements</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Thresholds for each seller level on GigBridge.
+                        </p>
+                        <div className="mt-4 space-y-3 text-sm">
+                            {[
+                                { label: 'Level 1', orders: 5,  rate: '80%', rating: '4.3', response: '< 48h', color: 'text-sky-600' },
+                                { label: 'Level 2', orders: 20, rate: '90%', rating: '4.6', response: '< 24h', color: 'text-violet-600' },
+                                { label: 'Top Rated', orders: 50, rate: '95%', rating: '4.8', response: '< 12h', color: 'text-amber-600' },
+                            ].map((lvl) => (
+                                <div key={lvl.label} className="rounded-2xl border border-border/70 p-3">
+                                    <p className={`font-semibold ${lvl.color}`}>{lvl.label}</p>
+                                    <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                        <span>Orders: {lvl.orders}+</span>
+                                        <span>Completion: {lvl.rate}+</span>
+                                        <span>Rating: {lvl.rating}+</span>
+                                        <span>Response: {lvl.response}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
         </div>
     );
 }
@@ -2169,6 +2222,7 @@ export default function Dashboard() {
                 <SellerDashboard
                     filters={props.filters}
                     sellerLevel={props.sellerLevel}
+                    sellerProgress={props.sellerProgress}
                     sellerAnalytics={props.sellerAnalytics}
                     recentOrders={props.recentOrders}
                     recentTransactions={props.recentTransactions}

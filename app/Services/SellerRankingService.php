@@ -118,6 +118,51 @@ class SellerRankingService
         return null;
     }
 
+    private const THRESHOLDS = [
+        'level_1'   => ['label' => 'Level 1',   'orders' => 5,   'completion_rate' => 80.0, 'rating' => 4.3, 'response_hours' => 48],
+        'level_2'   => ['label' => 'Level 2',   'orders' => 20,  'completion_rate' => 90.0, 'rating' => 4.6, 'response_hours' => 24],
+        'top_rated' => ['label' => 'Top Rated', 'orders' => 50,  'completion_rate' => 95.0, 'rating' => 4.8, 'response_hours' => 12],
+    ];
+
+    private const LEVEL_ORDER = [null, 'level_1', 'level_2', 'top_rated'];
+
+    public function progress(User $seller): array
+    {
+        $metrics      = $this->metrics($seller);
+        $current      = $this->determineLevel($metrics);
+        $currentIndex = (int) array_search($current, self::LEVEL_ORDER, true);
+        $nextLevel    = self::LEVEL_ORDER[$currentIndex + 1] ?? null;
+
+        if ($nextLevel === null) {
+            return ['current_level' => $current, 'next_level' => null, 'next_label' => null,
+                    'is_top' => true, 'metrics' => $metrics, 'requirements' => [], 'blocking' => null];
+        }
+
+        $t = self::THRESHOLDS[$nextLevel];
+        $rt = $metrics['response_time_hours'];
+
+        $reqs = [
+            ['key' => 'orders',          'label' => 'Completed orders',  'current' => $metrics['completed_orders'], 'target' => $t['orders'],          'unit' => '',    'lower_is_better' => false, 'met' => $metrics['completed_orders'] >= $t['orders'],          'progress' => min(100, $t['orders'] > 0          ? (int) round($metrics['completed_orders'] / $t['orders'] * 100)          : 100)],
+            ['key' => 'completion_rate', 'label' => 'Completion rate',   'current' => $metrics['completion_rate'], 'target' => $t['completion_rate'], 'unit' => '%',   'lower_is_better' => false, 'met' => $metrics['completion_rate'] >= $t['completion_rate'], 'progress' => min(100, $t['completion_rate'] > 0 ? (int) round($metrics['completion_rate'] / $t['completion_rate'] * 100) : 100)],
+            ['key' => 'rating',          'label' => 'Average rating',    'current' => $metrics['average_rating'],  'target' => $t['rating'],          'unit' => '/ 5', 'lower_is_better' => false, 'met' => $metrics['average_rating'] >= $t['rating'],          'progress' => min(100, $t['rating'] > 0          ? (int) round($metrics['average_rating'] / $t['rating'] * 100)          : 100)],
+            ['key' => 'response_time',   'label' => 'Avg response time', 'current' => $rt,                         'target' => $t['response_hours'],  'unit' => 'h',   'lower_is_better' => true,  'met' => $rt !== null && $rt <= $t['response_hours'],          'progress' => $rt === null ? 0 : min(100, (int) round($t['response_hours'] / max($rt, 1) * 100))],
+        ];
+
+        $blocking = array_values(array_map(fn ($r) => $r['label'], array_filter($reqs, fn ($r) => ! $r['met'])));
+
+        return [
+            'current_level' => $current,
+            'next_level'    => $nextLevel,
+            'next_label'    => $t['label'],
+            'is_top'        => false,
+            'metrics'       => $metrics,
+            'requirements'  => $reqs,
+            'blocking'      => count($blocking) > 0
+                ? implode(' and ', array_slice($blocking, 0, 2)) . (count($blocking) === 1 ? ' needs' : ' need') . ' improvement to reach ' . $t['label'] . '.'
+                : null,
+        ];
+    }
+
     private function averageResponseTimeHours(User $seller): ?float
     {
         $messages = Message::query()

@@ -41,11 +41,13 @@ class DashboardController extends Controller
         $buyerAnalytics = null;
         $announcement = $this->resolveAnnouncement($user);
         $sellerLevel = null;
+        $sellerProgress = null;
 
         if ($isSeller) {
             $sellerLevel = $this->sellerRanking->badge(
                 $this->sellerRanking->recalculate($user)
             );
+            $sellerProgress = $this->sellerRanking->progress($user);
             [$range, $startDate, $previousStartDate, $previousEndDate, $bucketUnit, $bucketFormat] = $this->resolveRange(
                 $request->string('range')->value()
             );
@@ -660,6 +662,7 @@ class DashboardController extends Controller
             'announcement' => $announcement,
             'role' => $role,
             'sellerLevel' => $sellerLevel,
+            'sellerProgress' => $sellerProgress,
             'stats' => $stats,
             'filters' => $filters,
             'sellerAnalytics' => $sellerAnalytics,
