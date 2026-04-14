@@ -40,6 +40,7 @@ type GigCard = {
     description: string;
     seller_id: number | null;
     seller_name: string | null;
+    seller_is_available: boolean;
     seller_level: SellerLevelBadgeData;
     category_name: string | null;
     subcategory_name: string | null;
@@ -72,6 +73,14 @@ type Filters = {
 
 type Props = {
     gigs: GigCard[];
+    pagination: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
+    };
     categories: CategoryOption[];
     filters: Filters;
     favourite_gig_ids: number[];
@@ -92,22 +101,69 @@ function sellerInitials(name: string | null) {
 
 export default function BuyerGigIndex({
     gigs,
+    pagination,
     categories,
     filters,
     favourite_gig_ids,
 }: Props) {
     const [query, setQuery] = useState<Filters>(filters);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
+    const [visibleGigs, setVisibleGigs] = useState<GigCard[]>(gigs);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [savedIds, setSavedIds] = useState<Set<number>>(
         new Set(favourite_gig_ids),
     );
     const keywordSearchTimeoutRef = useRef<number | null>(null);
+    const catalogRequestTokenRef = useRef(0);
 
     const selectedCategory = useMemo(
         () =>
             categories.find((c) => String(c.id) === query.category_id) ?? null,
         [categories, query.category_id],
     );
+
+    const syncCatalogResults = (nextGigs: GigCard[], append = false) => {
+        setVisibleGigs((previous) => {
+            if (!append) {
+                return nextGigs;
+            }
+
+            const seen = new Set(previous.map((gig) => gig.id));
+
+            return [
+                ...previous,
+                ...nextGigs.filter((gig) => !seen.has(gig.id)),
+            ];
+        });
+        setIsLoadingMore(false);
+    };
+
+    const visitCatalog = (
+        nextQuery: Filters & { page?: number },
+        append = false,
+    ) => {
+        const requestToken = ++catalogRequestTokenRef.current;
+
+        router.get('/buyer/gigs', nextQuery, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            preserveUrl: true,
+            onSuccess: (page) => {
+                if (catalogRequestTokenRef.current !== requestToken) {
+                    return;
+                }
+
+                const nextGigs = (page.props as { gigs: GigCard[] }).gigs;
+                syncCatalogResults(nextGigs, append);
+            },
+            onError: () => {
+                if (catalogRequestTokenRef.current === requestToken) {
+                    setIsLoadingMore(false);
+                }
+            },
+        });
+    };
 
     const toggleFavourite = (e: React.MouseEvent, gigId: number) => {
         e.preventDefault();
@@ -161,24 +217,14 @@ export default function BuyerGigIndex({
         clearKeywordSearchTimeout();
 
         keywordSearchTimeoutRef.current = window.setTimeout(() => {
-            router.get('/buyer/gigs', nextQuery, {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-                preserveUrl: true,
-            });
+            visitCatalog(nextQuery);
         }, 350);
     };
 
     // Apply any filter change immediately (debounced for text inputs)
     const applyInstant = (nextQuery: Filters) => {
         clearKeywordSearchTimeout();
-        router.get('/buyer/gigs', nextQuery, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            preserveUrl: true,
-        });
+        visitCatalog(nextQuery);
     };
 
     const updateFilter = (patch: Partial<Filters>, debounce = false) => {
@@ -213,13 +259,19 @@ export default function BuyerGigIndex({
 
         setQuery(reset);
 
-        router.get('/buyer/gigs', reset, {
-            preserveState: true,
-            preserveScroll: true,
-            preserveUrl: true,
-        });
+        visitCatalog(reset);
 
         setShowMobileFilters(false);
+    };
+
+    const loadMore = () => {
+        if (isLoadingMore || pagination.current_page >= pagination.last_page) {
+            return;
+        }
+
+        const nextPage = pagination.current_page + 1;
+        setIsLoadingMore(true);
+        visitCatalog({ ...query, page: nextPage }, true);
     };
 
     const filterPanel = (
@@ -420,7 +472,9 @@ export default function BuyerGigIndex({
                         title="Explore Gigs"
                         description="Discover seller services, compare packages, and prepare your order with filters that match your brief."
                     />
-                    <Badge variant="outline">{gigs.length} gigs</Badge>
+                    <Badge variant="outline">
+                        {pagination.total} matching gigs
+                    </Badge>
                 </div>
 
                 <section className="rounded-[2rem] border border-border/70 bg-card p-4 sm:p-5">
@@ -512,23 +566,23 @@ export default function BuyerGigIndex({
 
                     <section className="space-y-5">
                         <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">
-                                    Marketplace results
-                                </p>
-                                <p className="text-lg font-semibold">
-                                    {gigs.length} services ready to compare
-                                </p>
-                            </div>
-                            <div className="hidden rounded-full border border-border/70 bg-card px-4 py-2 text-sm text-muted-foreground lg:block">
-                                Sort:{' '}
+                        <div>
+                            <p className="text-sm text-muted-foreground">
+                                Marketplace results
+                            </p>
+                            <p className="text-lg font-semibold">
+                                {visibleGigs.length} of {pagination.total} services ready to compare
+                            </p>
+                        </div>
+                        <div className="hidden rounded-full border border-border/70 bg-card px-4 py-2 text-sm text-muted-foreground lg:block">
+                            Sort:{' '}
                                 <span className="font-medium text-foreground">
                                     {query.sort || 'latest'}
                                 </span>
                             </div>
                         </div>
 
-                        {gigs.length === 0 ? (
+                        {visibleGigs.length === 0 ? (
                             <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
                                 <h2 className="text-lg font-semibold">
                                     No gigs matched these filters
@@ -541,7 +595,7 @@ export default function BuyerGigIndex({
                             </section>
                         ) : (
                             <div className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-3">
-                                {gigs.map((gig) => (
+                                {visibleGigs.map((gig) => (
                                     <Link
                                         key={gig.id}
                                         href={`/buyer/gigs/${gig.id}`}
@@ -564,11 +618,18 @@ export default function BuyerGigIndex({
                                                 <Badge className="border border-white/20 bg-black/55 text-white shadow-sm backdrop-blur">
                                                     {gig.category_name}
                                                 </Badge>
-                                                {gig.delivery_days <= 3 && (
-                                                    <Badge className="border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm">
-                                                        Fast delivery
-                                                    </Badge>
-                                                )}
+                                                <div className="flex flex-col items-end gap-2">
+                                                    {!gig.seller_is_available && (
+                                                        <Badge className="border border-rose-200/90 bg-rose-50 text-rose-700 shadow-sm">
+                                                            Unavailable
+                                                        </Badge>
+                                                    )}
+                                                    {gig.delivery_days <= 3 && (
+                                                        <Badge className="border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm">
+                                                            Fast delivery
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <button
@@ -727,6 +788,22 @@ export default function BuyerGigIndex({
                                         </div>
                                     </Link>
                                 ))}
+                            </div>
+                        )}
+
+                        {pagination.last_page > pagination.current_page && (
+                            <div className="flex justify-center pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="rounded-2xl px-6"
+                                    onClick={loadMore}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore
+                                        ? 'Loading more...'
+                                        : 'Load more gigs'}
+                                </Button>
                             </div>
                         )}
                     </section>

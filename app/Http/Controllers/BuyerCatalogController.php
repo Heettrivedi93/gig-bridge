@@ -34,13 +34,13 @@ class BuyerCatalogController extends Controller
             'sort' => trim((string) $request->string('sort', 'latest')),
         ];
 
-        $gigCollection = Gig::query()
+        $gigQuery = Gig::query()
             ->where('status', 'active')
             ->where('approval_status', 'approved')
             ->whereHas('category', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('subcategory', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('seller.roles', fn (Builder $query) => $query->where('name', 'seller'))
-            ->with(['seller:id,name', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
+            ->with(['seller:id,name,is_available', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
             ->withMin('packages', 'price')
             ->withMin('packages', 'delivery_days')
             ->withAvg('reviews as reviews_avg_rating', 'rating')
@@ -78,13 +78,23 @@ class BuyerCatalogController extends Controller
             ->when($filters['sort'] === 'price_asc', fn (Builder $query) => $query->orderBy('packages_min_price'))
             ->when($filters['sort'] === 'price_desc', fn (Builder $query) => $query->orderByDesc('packages_min_price'))
             ->when($filters['sort'] === 'delivery_asc', fn (Builder $query) => $query->orderBy('packages_min_delivery_days'))
-            ->when(! in_array($filters['sort'], ['price_asc', 'price_desc', 'delivery_asc'], true), fn (Builder $query) => $query->latest('id'))
-            ->get();
+            ->when(! in_array($filters['sort'], ['price_asc', 'price_desc', 'delivery_asc'], true), fn (Builder $query) => $query->latest('id'));
+
+        $gigPaginator = $gigQuery->paginate(12)->withQueryString();
+        $gigCollection = $gigPaginator->getCollection();
         $this->refreshSellerLevels($gigCollection);
         $gigs = $gigCollection->map(fn (Gig $gig) => $this->catalogGigPayload($gig));
 
         return Inertia::render('buyer/gigs/index', [
             'gigs' => $gigs,
+            'pagination' => [
+                'current_page' => $gigPaginator->currentPage(),
+                'last_page' => $gigPaginator->lastPage(),
+                'per_page' => $gigPaginator->perPage(),
+                'total' => $gigPaginator->total(),
+                'from' => $gigPaginator->firstItem(),
+                'to' => $gigPaginator->lastItem(),
+            ],
             'categories' => Category::query()
                 ->whereNull('parent_id')
                 ->where('status', 'active')
@@ -114,7 +124,7 @@ class BuyerCatalogController extends Controller
         abort_unless($gig->status === 'active' && $gig->approval_status === 'approved', 404);
 
         $gig->load([
-            'seller:id,name,email,profile_picture,created_at,seller_level',
+            'seller:id,name,email,profile_picture,created_at,seller_level,is_available',
             'category:id,name,status',
             'subcategory:id,name,status',
             'images',
@@ -223,6 +233,7 @@ class BuyerCatalogController extends Controller
             'description' => $gig->description,
             'seller_id' => $gig->seller?->id,
             'seller_name' => $gig->seller?->name,
+            'seller_is_available' => (bool) ($gig->seller?->is_available ?? false),
             'seller_level' => $gig->seller
                 ? $this->sellerRanking->badge($gig->seller->seller_level)
                 : null,

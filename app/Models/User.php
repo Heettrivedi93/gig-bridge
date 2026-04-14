@@ -27,6 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
     'location',
     'website',
     'seller_level',
+    'is_available',
     'notification_preferences',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -47,6 +48,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'permissions_managed_at' => 'datetime',
             'notification_preferences' => 'array',
+            'is_available' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }

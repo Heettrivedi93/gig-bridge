@@ -63,7 +63,27 @@ class SellerGigController extends Controller
                 'ends_at' => $subscription->ends_at?->toIso8601String(),
             ],
             'seller_level' => $sellerLevel,
+            'seller_is_available' => (bool) $seller->is_available,
         ]);
+    }
+
+    public function updateAvailability(Request $request): RedirectResponse
+    {
+        $seller = $this->ensureSeller($request);
+        $data = $request->validate([
+            'is_available' => ['required', 'boolean'],
+        ]);
+
+        $seller->forceFill([
+            'is_available' => (bool) $data['is_available'],
+        ])->save();
+
+        return back()->with(
+            'success',
+            $seller->is_available
+                ? 'You are now available for new orders.'
+                : 'You are now marked unavailable. New orders are paused.',
+        );
     }
 
     public function store(Request $request): RedirectResponse

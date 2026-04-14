@@ -49,6 +49,7 @@ type GigDetail = {
     description: string;
     seller_id: number | null;
     seller_name: string | null;
+    seller_is_available: boolean;
     seller_email: string | null;
     seller_avatar: string | null;
     seller_level: SellerLevelBadgeData;
@@ -426,6 +427,14 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                     <p className="truncate font-semibold">
                                         {gig.seller_name ?? 'Seller'}
                                     </p>
+                                    {!gig.seller_is_available && (
+                                        <Badge
+                                            variant="destructive"
+                                            className="mt-1"
+                                        >
+                                            Unavailable
+                                        </Badge>
+                                    )}
                                     <SellerLevelBadge
                                         level={gig.seller_level}
                                         className="mt-1"
@@ -857,16 +866,23 @@ export default function BuyerGigShow({ gig, coupons }: Props) {
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={form.processing}
+                                    disabled={
+                                        form.processing ||
+                                        !gig.seller_is_available
+                                    }
                                 >
                                     {form.processing
                                         ? 'Creating order...'
-                                        : 'Create order & continue'}
+                                        : gig.seller_is_available
+                                          ? 'Create order & continue'
+                                          : 'Seller unavailable'}
                                 </Button>
+                                <InputError message={form.errors.order} />
 
                                 <p className="text-xs text-muted-foreground">
-                                    This creates your order and sends you to the
-                                    buyer orders list for PayPal checkout.
+                                    {gig.seller_is_available
+                                        ? 'This creates your order and sends you to the buyer orders list for PayPal checkout.'
+                                        : 'This seller is currently on a break and not accepting new orders.'}
                                 </p>
                             </form>
                         </section>

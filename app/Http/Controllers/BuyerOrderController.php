@@ -207,6 +207,13 @@ class BuyerOrderController extends Controller
         $buyer = $this->ensureBuyer($request);
 
         abort_unless($gig->status === 'active', 404);
+        $gig->loadMissing('seller:id,is_available');
+
+        if (! ($gig->seller?->is_available ?? false)) {
+            throw ValidationException::withMessages([
+                'order' => 'This seller is currently unavailable and not accepting new orders.',
+            ]);
+        }
 
         $data = $request->validate([
             'package_id' => ['required', 'integer'],

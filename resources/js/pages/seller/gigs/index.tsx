@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { ImagePlus, Eye, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import SellerLevelBadge from '@/components/seller-level-badge';
@@ -78,6 +78,7 @@ type Props = {
     gigs: GigItem[];
     categories: CategoryOption[];
     seller_level: SellerLevelBadgeData;
+    seller_is_available: boolean;
     subscription: {
         plan_name: string;
         gig_limit: number;
@@ -576,11 +577,14 @@ export default function SellerGigsIndex({
     gigs,
     categories,
     seller_level,
+    seller_is_available,
     subscription,
 }: Props) {
     const confirm = useConfirm();
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<GigItem | null>(null);
+    const [isAvailable, setIsAvailable] = useState(seller_is_available);
+    const [isAvailabilityUpdating, setIsAvailabilityUpdating] = useState(false);
 
     const createForm = useForm<GigFormState>(emptyGigForm());
     const editForm = useForm<GigFormState>(emptyGigForm());
@@ -593,6 +597,35 @@ export default function SellerGigsIndex({
     const subscriptionEndsText = useMemo(() => {
         return formatDisplayDate(subscription.ends_at);
     }, [subscription.ends_at]);
+
+    useEffect(() => {
+        setIsAvailable(seller_is_available);
+    }, [seller_is_available]);
+
+    const toggleAvailability = () => {
+        if (isAvailabilityUpdating) {
+            return;
+        }
+
+        const previous = isAvailable;
+        const next = !isAvailable;
+        setIsAvailable(next);
+        setIsAvailabilityUpdating(true);
+
+        router.put(
+            '/seller/availability',
+            { is_available: next },
+            {
+                preserveScroll: true,
+                onError: () => {
+                    setIsAvailable(previous);
+                },
+                onFinish: () => {
+                    setIsAvailabilityUpdating(false);
+                },
+            },
+        );
+    };
 
     const openEdit = (gig: GigItem) => {
         setEditTarget(gig);
@@ -677,7 +710,7 @@ export default function SellerGigsIndex({
                     </div>
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-3">
+                <div className="grid gap-4 xl:grid-cols-4">
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
                         <p className="text-sm text-muted-foreground">
                             Active plan
@@ -715,6 +748,42 @@ export default function SellerGigsIndex({
                             Activate more gigs after freeing slots or upgrading
                             plans.
                         </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/70 bg-card p-5">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                Availability
+                            </p>
+                            <Badge
+                                variant={
+                                    isAvailable
+                                        ? 'default'
+                                        : 'destructive'
+                                }
+                            >
+                                {isAvailable
+                                    ? 'Accepting orders'
+                                    : 'On a break'}
+                            </Badge>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Toggle this when you are away. Buyers can still view
+                            your gigs, but new orders will be blocked.
+                        </p>
+                        <Button
+                            type="button"
+                            variant={isAvailable ? 'outline' : 'default'}
+                            className="mt-4 w-full"
+                            onClick={toggleAvailability}
+                            disabled={isAvailabilityUpdating}
+                        >
+                            {isAvailabilityUpdating
+                                ? 'Updating...'
+                                : isAvailable
+                                ? 'Pause new orders'
+                                : 'Resume new orders'}
+                        </Button>
                     </div>
                 </div>
 

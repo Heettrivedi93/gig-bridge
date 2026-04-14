@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('gigs', [SellerGigController::class, 'store'])->name('gigs.store');
             Route::put('gigs/{gig}', [SellerGigController::class, 'update'])->name('gigs.update');
             Route::delete('gigs/{gig}', [SellerGigController::class, 'destroy'])->name('gigs.destroy');
+            Route::put('availability', [SellerGigController::class, 'updateAvailability'])->name('availability.update');
         });
 
         Route::middleware('can:seller.orders.access')->group(function () {
