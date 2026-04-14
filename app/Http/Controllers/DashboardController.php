@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Review;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
+use App\Services\SellerRankingService;
 use App\Services\WalletService;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -17,7 +18,10 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly WalletService $wallets) {}
+    public function __construct(
+        private readonly WalletService $wallets,
+        private readonly SellerRankingService $sellerRanking,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -36,8 +40,12 @@ class DashboardController extends Controller
         $sellerAnalytics = null;
         $buyerAnalytics = null;
         $announcement = $this->resolveAnnouncement($user);
+        $sellerLevel = null;
 
         if ($isSeller) {
+            $sellerLevel = $this->sellerRanking->badge(
+                $this->sellerRanking->recalculate($user)
+            );
             [$range, $startDate, $previousStartDate, $previousEndDate, $bucketUnit, $bucketFormat] = $this->resolveRange(
                 $request->string('range')->value()
             );
@@ -651,6 +659,7 @@ class DashboardController extends Controller
         return Inertia::render('dashboard', [
             'announcement' => $announcement,
             'role' => $role,
+            'sellerLevel' => $sellerLevel,
             'stats' => $stats,
             'filters' => $filters,
             'sellerAnalytics' => $sellerAnalytics,

@@ -603,32 +603,35 @@ export default function BuyerGigIndex({
                                                             )}
                                                         </AvatarFallback>
                                                     </Avatar>
-                                                    <div>
-                                                        {gig.seller_id ? (
-                                                            <Link
-                                                                href={`/sellers/${gig.seller_id}`}
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex flex-wrap items-center gap-2.5">
+                                                            {gig.seller_id ? (
+                                                                <Link
+                                                                    href={`/sellers/${gig.seller_id}`}
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
+                                                                    className="text-sm font-medium underline-offset-4 hover:underline"
+                                                                >
+                                                                    {
+                                                                        gig.seller_name
+                                                                    }
+                                                                </Link>
+                                                            ) : (
+                                                                <p className="text-sm font-medium">
+                                                                    {
+                                                                        gig.seller_name
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                            <SellerLevelBadge
+                                                                level={
+                                                                    gig.seller_level
                                                                 }
-                                                                className="text-sm font-medium underline-offset-4 hover:underline"
-                                                            >
-                                                                {
-                                                                    gig.seller_name
-                                                                }
-                                                            </Link>
-                                                        ) : (
-                                                            <p className="text-sm font-medium">
-                                                                {
-                                                                    gig.seller_name
-                                                                }
-                                                            </p>
-                                                        )}
-                                                        <SellerLevelBadge
-                                                            level={
-                                                                gig.seller_level
-                                                            }
-                                                            className="mt-1"
-                                                        />
+                                                            />
+                                                        </div>
                                                         <p className="text-xs text-muted-foreground">
                                                             {
                                                                 gig.subcategory_name

@@ -113,6 +113,7 @@ test('super admin can view effective default permissions in user management', fu
     $admin = superAdminPermissionUser();
     $seller = sellerPermissionUser();
     $buyer = buyerPermissionUser();
+    $seller->forceFill(['seller_level' => 'level_1'])->save();
 
     $this->actingAs($admin)
         ->get(route('admin.users.index'))
@@ -121,6 +122,7 @@ test('super admin can view effective default permissions in user management', fu
             ->component('admin/users/index')
             ->where('users.0.permissions', PortalPermissions::BUYER)
             ->where('users.1.permissions', PortalPermissions::SELLER)
+            ->where('users.1.seller_level.label', 'Level 1')
             ->where('permissionsByRole.seller', PortalPermissions::SELLER)
             ->where('permissionsByRole.buyer', PortalPermissions::BUYER));
 });

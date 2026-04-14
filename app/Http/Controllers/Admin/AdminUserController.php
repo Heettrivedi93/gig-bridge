@@ -17,7 +17,7 @@ class AdminUserController extends Controller
             ->whereDoesntHave('roles', fn ($query) => $query->where('name', 'super_admin'))
             ->with(['roles:id,name', 'permissions:id,name'])
             ->orderByDesc('id')
-            ->get(['id', 'name', 'email', 'status', 'permissions_managed_at', 'created_at'])
+            ->get(['id', 'name', 'email', 'status', 'seller_level', 'permissions_managed_at', 'created_at'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -25,6 +25,7 @@ class AdminUserController extends Controller
                 'status' => $user->status,
                 'created_at' => $user->created_at,
                 'roles' => $user->getRoleNames()->values(),
+                'seller_level' => $this->sellerLevelBadge($user->seller_level),
                 'permissions' => $user->effectivePortalPermissions(),
                 'permissions_managed_at' => $user->permissions_managed_at?->toIso8601String(),
             ]);
@@ -65,5 +66,27 @@ class AdminUserController extends Controller
         ])->save();
 
         return back()->with('success', 'User updated successfully.');
+    }
+
+    private function sellerLevelBadge(?string $level): ?array
+    {
+        return match ($level) {
+            'top_rated' => [
+                'value' => 'top_rated',
+                'label' => 'Top Rated',
+                'tone' => 'top_rated',
+            ],
+            'level_2' => [
+                'value' => 'level_2',
+                'label' => 'Level 2',
+                'tone' => 'level_2',
+            ],
+            'level_1' => [
+                'value' => 'level_1',
+                'label' => 'Level 1',
+                'tone' => 'level_1',
+            ],
+            default => null,
+        };
     }
 }

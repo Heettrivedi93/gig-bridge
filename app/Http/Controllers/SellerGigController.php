@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Gig;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Services\SellerRankingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +20,17 @@ class SellerGigController extends Controller
 {
     private const PACKAGE_TIERS = ['basic', 'standard', 'premium'];
 
+    public function __construct(
+        private readonly SellerRankingService $sellerRanking,
+    ) {}
+
     public function index(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
         $subscription = $this->ensureActiveSubscription($seller->id);
+        $sellerLevel = $this->sellerRanking->badge(
+            $this->sellerRanking->recalculate($seller)
+        );
 
         return Inertia::render('seller/gigs/index', [
             'gigs' => Gig::query()
@@ -54,6 +62,7 @@ class SellerGigController extends Controller
                     ->count(),
                 'ends_at' => $subscription->ends_at?->toIso8601String(),
             ],
+            'seller_level' => $sellerLevel,
         ]);
     }
 

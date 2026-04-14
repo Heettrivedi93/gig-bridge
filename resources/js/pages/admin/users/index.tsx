@@ -3,6 +3,8 @@ import { Pencil, ShieldCheck, UserCog } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +36,7 @@ type UserRow = {
     status: Status;
     created_at: string;
     roles: string[];
+    seller_level: SellerLevelBadgeData;
     permissions: string[];
     permissions_managed_at?: string | null;
 };
@@ -52,6 +55,9 @@ type UserUpdateForm = {
 
 export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
     const [editTarget, setEditTarget] = useState<UserRow | null>(null);
+    const [selectedRole, setSelectedRole] = useState<
+        'all' | 'seller' | 'buyer'
+    >('all');
 
     const form = useForm<UserUpdateForm>({
         name: '',
@@ -68,7 +74,16 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
             })),
         [users],
     );
-    const paginatedUsers = useClientPagination(usersWithPrimaryRole);
+    const filteredUsers = useMemo(
+        () =>
+            usersWithPrimaryRole.filter((user) =>
+                selectedRole === 'all'
+                    ? true
+                    : user.primaryRole === selectedRole,
+            ),
+        [selectedRole, usersWithPrimaryRole],
+    );
+    const paginatedUsers = useClientPagination(filteredUsers);
     const assignablePermissions =
         permissionsByRole[editTarget?.roles?.[0] ?? ''] ?? [];
     const formatPermission = (permission: string) =>
@@ -77,6 +92,11 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
             .slice(1, -1)
             .join(' ')
             .replace(/\b\w/g, (char) => char.toUpperCase());
+    const roleOptions = [
+        { value: 'all' as const, label: 'All Users' },
+        { value: 'seller' as const, label: 'Sellers' },
+        { value: 'buyer' as const, label: 'Buyers' },
+    ];
 
     const openEdit = (user: UserRow) => {
         setEditTarget(user);
@@ -134,6 +154,24 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                     description="Manage user name, email, role, permissions, and account status."
                 />
 
+                <div className="flex flex-wrap gap-2">
+                    {roleOptions.map((option) => (
+                        <Button
+                            key={option.value}
+                            type="button"
+                            size="sm"
+                            variant={
+                                selectedRole === option.value
+                                    ? 'default'
+                                    : 'outline'
+                            }
+                            onClick={() => setSelectedRole(option.value)}
+                        >
+                            {option.label}
+                        </Button>
+                    ))}
+                </div>
+
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <div className="max-w-full overflow-x-auto">
                         <table className="w-full text-sm">
@@ -144,6 +182,9 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                     </th>
                                     <th className="px-4 py-3 text-left font-medium">
                                         Role
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Seller Level
                                     </th>
                                     <th className="px-4 py-3 text-left font-medium">
                                         Permissions
@@ -180,6 +221,17 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                                                     ' ',
                                                 )}
                                             </Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {user.primaryRole === 'seller' ? (
+                                                <SellerLevelBadge
+                                                    level={user.seller_level}
+                                                />
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    —
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {user.permissions.length}

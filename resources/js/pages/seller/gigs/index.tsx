@@ -3,6 +3,8 @@ import { ImagePlus, Eye, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +77,7 @@ type GigItem = {
 type Props = {
     gigs: GigItem[];
     categories: CategoryOption[];
+    seller_level: SellerLevelBadgeData;
     subscription: {
         plan_name: string;
         gig_limit: number;
@@ -572,6 +575,7 @@ function GigForm({
 export default function SellerGigsIndex({
     gigs,
     categories,
+    seller_level,
     subscription,
 }: Props) {
     const confirm = useConfirm();
@@ -664,10 +668,13 @@ export default function SellerGigsIndex({
                         description="Create, price, activate, and maintain the services you sell."
                     />
 
-                    <Button onClick={() => setShowCreate(true)} size="sm">
-                        <PlusIcon />
-                        Create Gig
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <SellerLevelBadge level={seller_level} />
+                        <Button onClick={() => setShowCreate(true)} size="sm">
+                            <PlusIcon />
+                            Create Gig
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-3">
@@ -783,9 +790,11 @@ export default function SellerGigsIndex({
                                         <div className="flex flex-wrap gap-2">
                                             <Badge
                                                 variant={
-                                                    gig.approval_status === 'approved'
+                                                    gig.approval_status ===
+                                                    'approved'
                                                         ? 'default'
-                                                        : gig.approval_status === 'rejected'
+                                                        : gig.approval_status ===
+                                                            'rejected'
                                                           ? 'destructive'
                                                           : 'secondary'
                                                 }
@@ -798,9 +807,12 @@ export default function SellerGigsIndex({
                                             <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                                                 Rejected: {gig.rejection_reason}
                                             </p>
-                                        ) : gig.approval_status === 'pending' ? (
+                                        ) : gig.approval_status ===
+                                          'pending' ? (
                                             <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                                                Pending admin review. This gig is not visible to buyers until approved.
+                                                Pending admin review. This gig
+                                                is not visible to buyers until
+                                                approved.
                                             </p>
                                         ) : null}
 

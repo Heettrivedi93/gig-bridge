@@ -14,6 +14,8 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import * as RechartsPrimitive from 'recharts';
 import Heading from '@/components/heading';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -143,6 +145,7 @@ type PageProps = {
         audience: 'all' | 'buyers' | 'sellers';
         expires_at: string | null;
     } | null;
+    sellerLevel: SellerLevelBadgeData;
     role: 'seller' | 'buyer' | 'general';
     stats: DashboardStat[];
     filters: null | {
@@ -1124,12 +1127,17 @@ function LegacyDashboard({
 
 function SellerDashboard({
     filters,
+    sellerLevel,
     sellerAnalytics,
     recentOrders,
     recentTransactions,
 }: Pick<
     PageProps,
-    'filters' | 'sellerAnalytics' | 'recentOrders' | 'recentTransactions'
+    | 'filters'
+    | 'sellerLevel'
+    | 'sellerAnalytics'
+    | 'recentOrders'
+    | 'recentTransactions'
 >) {
     if (!filters || !sellerAnalytics) {
         return null;
@@ -1177,9 +1185,15 @@ function SellerDashboard({
             <section className="rounded-3xl border border-sidebar-border/70 bg-[linear-gradient(135deg,rgba(244,63,94,0.16),rgba(251,113,133,0.08),rgba(251,191,36,0.16))] p-5 dark:border-sidebar-border">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                     <div className="space-y-2">
-                        <Badge variant="outline" className="bg-background/70">
-                            Seller Analytics
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Badge
+                                variant="outline"
+                                className="bg-background/70"
+                            >
+                                Seller Analytics
+                            </Badge>
+                            <SellerLevelBadge level={sellerLevel} />
+                        </div>
                         <h2 className="text-2xl font-semibold tracking-tight">
                             Revenue and delivery cockpit
                         </h2>
@@ -2154,6 +2168,7 @@ export default function Dashboard() {
             {props.role === 'seller' && props.sellerAnalytics ? (
                 <SellerDashboard
                     filters={props.filters}
+                    sellerLevel={props.sellerLevel}
                     sellerAnalytics={props.sellerAnalytics}
                     recentOrders={props.recentOrders}
                     recentTransactions={props.recentTransactions}
