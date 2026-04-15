@@ -219,7 +219,7 @@ class SystemNotificationService
             'Your account has been created successfully. You can now sign in and start using the platform.',
             null,
             'registration',
-            'registration',
+            null,
             '/dashboard',
         );
 

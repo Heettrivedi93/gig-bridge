@@ -291,9 +291,7 @@ class NotificationPreferenceService
                 'in_app' => [
                     ['key' => 'messages', 'label' => 'Messages'],
                 ],
-                'twilio' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
-                ],
+                'twilio' => [],
             ],
             'buyer' => [
                 'email' => [
@@ -307,7 +305,6 @@ class NotificationPreferenceService
                     ['key' => 'messages', 'label' => 'Messages'],
                 ],
                 'twilio' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
                 ],
@@ -326,7 +323,6 @@ class NotificationPreferenceService
                     ['key' => 'payment_released', 'label' => 'Payment released'],
                 ],
                 'twilio' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_placed', 'label' => 'New order received'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],

@@ -164,6 +164,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', EnsureSuperAdmin::cl
     // System settings
     Route::get('settings', [AdminSettingController::class, 'index'])->name('settings.index');
     Route::put('settings', [AdminSettingController::class, 'update'])->name('settings.update');
+    Route::post('settings/logo', [AdminSettingController::class, 'uploadLogo'])->name('settings.logo.upload');
+    Route::delete('settings/logo', [AdminSettingController::class, 'resetLogo'])->name('settings.logo.reset');
 
     // Disputes
     Route::get('disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
