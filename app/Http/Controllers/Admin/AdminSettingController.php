@@ -73,7 +73,6 @@ class AdminSettingController extends Controller
             'brand_site_name'     => ['nullable', 'string', 'max:255'],
             'brand_contact_email' => ['nullable', 'email', 'max:255'],
             'brand_contact_phone' => ['nullable', 'string', 'max:50'],
-            'brand_address'       => ['nullable', 'string', 'max:2000'],
 
             'payment_paypal_mode' => ['required', 'in:sandbox,live'],
             'payment_paypal_client_id' => ['nullable', 'string', 'max:2000'],
@@ -122,7 +121,6 @@ class AdminSettingController extends Controller
             'brand_site_name'     => $data['brand_site_name'] ?: 'GigBridge',
             'brand_contact_email' => $data['brand_contact_email'] ?: '',
             'brand_contact_phone' => $data['brand_contact_phone'] ?: '',
-            'brand_address'       => $data['brand_address'] ?: '',
 
             'payment_paypal_mode' => $data['payment_paypal_mode'],
             'payment_paypal_client_id' => $data['payment_paypal_client_id'] ?: '',
@@ -207,7 +205,6 @@ class AdminSettingController extends Controller
             'brand_site_name'     => 'GigBridge',
             'brand_contact_email' => '',
             'brand_contact_phone' => '',
-            'brand_address'       => '',
             'brand_logo_path'     => '',
 
             'payment_paypal_mode' => 'sandbox',

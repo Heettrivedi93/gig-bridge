@@ -108,6 +108,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware('can:buyer.payments.access')->group(function () {
             Route::get('payments', [BuyerOrderController::class, 'payments'])->name('payments.index');
             Route::get('payments/{order}/invoice.pdf', [BuyerOrderController::class, 'downloadInvoicePdf'])->name('payments.invoice.pdf');
+            Route::get('payments/{order}/refund-receipt.pdf', [BuyerOrderController::class, 'downloadRefundReceipt'])->name('payments.refund-receipt.pdf');
         });
     });
 });

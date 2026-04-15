@@ -116,6 +116,7 @@ type PaypalConfig = {
 type Props = {
     orders: OrderItem[];
     paypal: PaypalConfig;
+    refund_policy: string;
 };
 
 type PaypalButtonsProps = {
@@ -222,7 +223,7 @@ async function requestJson<T>(
     return payload as T;
 }
 
-export default function BuyerOrdersIndex({ orders, paypal }: Props) {
+export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
     const [messageOrder, setMessageOrder] = useState<OrderItem | null>(() => {
         const messageOrderId = new URLSearchParams(window.location.search).get(
@@ -1646,6 +1647,13 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                             )}
 
                             <div ref={handlePaypalContainerRef} />
+
+                            {refund_policy && (
+                                <div className="flex gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+                                    <span className="mt-0.5 shrink-0">🛡️</span>
+                                    <p className="whitespace-pre-wrap leading-relaxed">{refund_policy}</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </DialogContent>

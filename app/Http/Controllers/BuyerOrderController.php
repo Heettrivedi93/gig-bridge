@@ -119,6 +119,7 @@ class BuyerOrderController extends Controller
                     ];
                 }),
             'paypal' => $this->paypal->publicConfig(),
+            'refund_policy' => (string) \App\Models\Setting::getValue('payment_refund_policy_text', ''),
         ]);
     }
 
@@ -200,6 +201,42 @@ class BuyerOrderController extends Controller
         ])->setPaper('a4');
 
         return $pdf->download(sprintf('buyer-invoice-%s.pdf', strtolower($invoiceNumber)));
+    }
+
+    public function downloadRefundReceipt(Request $request, Order $order)
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+        abort_unless($order->payment_status === 'refunded', 404);
+
+        $order->load([
+            'gig:id,title',
+            'package:id,title,tier',
+            'seller:id,name,email',
+            'cancellations',
+        ]);
+
+        $invoiceNumber   = 'INV-ORDER-'.$order->id;
+        $receiptNumber   = 'REF-ORDER-'.$order->id;
+        $cancellation    = $order->cancellations->first();
+        $refundReason    = $cancellation?->reason ?? 'Order cancelled';
+        $cancelledBy     = $cancellation?->cancelled_by ?? 'system';
+        $siteName        = (string) \App\Models\Setting::getValue('brand_site_name', 'GigBridge') ?: 'GigBridge';
+        $contactEmail    = (string) \App\Models\Setting::getValue('brand_contact_email', '');
+
+        $pdf = Pdf::loadView('invoices.buyer-refund-receipt', [
+            'receiptNumber'  => $receiptNumber,
+            'invoiceNumber'  => $invoiceNumber,
+            'buyer'          => $buyer,
+            'order'          => $order,
+            'refundReason'   => $refundReason,
+            'cancelledBy'    => $cancelledBy,
+            'siteName'       => $siteName,
+            'contactEmail'   => $contactEmail,
+            'generatedAt'    => now(),
+        ])->setPaper('a4');
+
+        return $pdf->download(sprintf('refund-receipt-%s.pdf', strtolower($receiptNumber)));
     }
 
     public function store(Request $request, Gig $gig): RedirectResponse

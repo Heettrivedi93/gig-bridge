@@ -190,15 +190,29 @@ export default function BuyerPaymentsIndex({ payments, total_spent, buyer }: Pro
                                         </p>
                                     </div>
 
-                                    <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                            setSelectedPayment(payment)
-                                        }
-                                    >
-                                        <FileText className="mr-2 size-4" />
-                                        View invoice
-                                    </Button>
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                setSelectedPayment(payment)
+                                            }
+                                        >
+                                            <FileText className="mr-2 size-4" />
+                                            View invoice
+                                        </Button>
+                                        {payment.status === 'refunded' && (
+                                            <Button asChild variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                                                <a
+                                                    href={`/buyer/payments/${payment.id}/refund-receipt.pdf`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    <Download className="mr-2 size-4" />
+                                                    Refund Receipt
+                                                </a>
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -344,7 +358,7 @@ export default function BuyerPaymentsIndex({ payments, total_spent, buyer }: Pro
                                 </div>
                             </div>
 
-                            <div className="flex justify-end">
+                            <div className="flex flex-wrap justify-end gap-2">
                                 <Button asChild variant="outline">
                                     <a
                                         href={`/buyer/payments/${selectedPayment.id}/invoice.pdf`}
@@ -352,9 +366,21 @@ export default function BuyerPaymentsIndex({ payments, total_spent, buyer }: Pro
                                         rel="noreferrer"
                                     >
                                         <Download className="mr-2 size-4" />
-                                        Download PDF
+                                        Download Invoice
                                     </a>
                                 </Button>
+                                {selectedPayment.status === 'refunded' && (
+                                    <Button asChild variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                                        <a
+                                            href={`/buyer/payments/${selectedPayment.id}/refund-receipt.pdf`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            <Download className="mr-2 size-4" />
+                                            Download Refund Receipt
+                                        </a>
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )}

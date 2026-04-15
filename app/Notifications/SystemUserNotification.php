@@ -57,15 +57,29 @@ class SystemUserNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $fromAddress  = (string) \App\Models\Setting::getValue('email_from_address', config('mail.from.address'));
+        $fromName     = (string) \App\Models\Setting::getValue('email_from_name', config('mail.from.name'));
+        $siteName     = (string) \App\Models\Setting::getValue('brand_site_name', 'GigBridge') ?: 'GigBridge';
+        $contactEmail = (string) \App\Models\Setting::getValue('brand_contact_email', '');
+        $contactPhone = (string) \App\Models\Setting::getValue('brand_contact_phone', '');
+
         $mail = (new MailMessage)
+            ->from($fromAddress ?: config('mail.from.address'), $fromName ?: config('mail.from.name'))
             ->subject($this->title)
             ->greeting(sprintf('Hello %s,', $notifiable->name ?? 'there'))
             ->line($this->message);
 
         if ($this->actionUrl) {
-            $mail->action('Open in GigBridge', url($this->actionUrl));
+            $mail->action('Open in ' . $siteName, url($this->actionUrl));
         }
 
-        return $mail->line('Thank you for using GigBridge.');
+        $mail->line('Thank you for using ' . $siteName . '.');
+
+        if ($contactEmail || $contactPhone) {
+            $parts = array_filter([$contactEmail, $contactPhone]);
+            $mail->line('Need help? Contact us: ' . implode(' | ', $parts));
+        }
+
+        return $mail;
     }
 }

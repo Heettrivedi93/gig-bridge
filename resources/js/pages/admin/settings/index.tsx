@@ -28,7 +28,6 @@ type SettingsForm = {
     brand_site_name: string;
     brand_contact_email: string;
     brand_contact_phone: string;
-    brand_address: string;
     brand_logo_url: string | null;
 
     payment_paypal_mode: 'sandbox' | 'live';
@@ -481,16 +480,8 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 />
                                 <InputError message={form.errors.brand_contact_phone} />
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-address">Address</Label>
-                                <Input
-                                    id="brand-address"
-                                    value={form.data.brand_address}
-                                    onChange={(e) => form.setData('brand_address', e.target.value)}
-                                />
-                                <InputError message={form.errors.brand_address} />
-                            </div>
                         </div>
+                        <p className="mt-2 text-xs text-muted-foreground">Contact email and phone appear in the footer of all notification emails sent to users.</p>
                     </section>
 
                     <section
