@@ -23,6 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useClientPagination } from '@/hooks/use-client-pagination';
+import { useConfirm } from '@/hooks/use-confirm';
 import admin from '@/routes/admin';
 import type { BreadcrumbItem } from '@/types';
 
@@ -162,6 +163,7 @@ export default function AdminOrdersIndex({
     const [editTarget, setEditTarget] = useState<OrderRow | null>(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const confirm = useConfirm();
     const [paymentFilter, setPaymentFilter] = useState('all');
     const [fundFilter, setFundFilter] = useState('all');
 
@@ -598,15 +600,20 @@ export default function AdminOrdersIndex({
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    onClick={() =>
+                                                                    onClick={async () => {
+                                                                        const ok = await confirm({
+                                                                            title: `Release funds for order #${order.id}?`,
+                                                                            description: `This will release USD ${order.net_price} to ${order.seller?.name ?? 'the seller'}. This action cannot be undone.`,
+                                                                            confirmLabel: 'Yes, release funds',
+                                                                            cancelLabel: 'Cancel',
+                                                                        });
+                                                                        if (!ok) return;
                                                                         router.post(
                                                                             `/admin/orders/${order.id}/release-funds`,
                                                                             {},
-                                                                            {
-                                                                                preserveScroll: true,
-                                                                            },
-                                                                        )
-                                                                    }
+                                                                            { preserveScroll: true },
+                                                                        );
+                                                                    }}
                                                                 >
                                                                     Release
                                                                 </Button>
