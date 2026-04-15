@@ -60,12 +60,12 @@ class AdminDashboardController extends Controller
         $paidPlanRevenue = (float) (clone $currentPlanPayments)->sum('amount');
         $previousPaidPlanRevenue = (float) (clone $previousPlanPayments)->sum('amount');
         $totalPlatformRevenue = $commissionRevenue + $paidPlanRevenue;
-        $newUsers = User::query()->where('created_at', '>=', $startDate)->count();
+        $newUsers = User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))->where('created_at', '>=', $startDate)->count();
         $completedOrders = Order::query()
             ->where('created_at', '>=', $startDate)
             ->where('status', 'completed')
             ->count();
-        $previousNewUsers = User::query()
+        $previousNewUsers = User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))
             ->whereBetween('created_at', [$previousStartDate, $previousEndDate])
             ->count();
         $previousCompletedOrders = Order::query()
@@ -389,13 +389,13 @@ class AdminDashboardController extends Controller
             'businessStats' => [
                 [
                     'label' => 'Total Users',
-                    'value' => User::count(),
-                    'detail' => sprintf('+%d this month', User::where('created_at', '>=', now()->startOfMonth())->count()),
+                    'value' => User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))->count(),
+                    'detail' => sprintf('+%d this month', User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))->where('created_at', '>=', now()->startOfMonth())->count()),
                 ],
                 [
                     'label' => 'Active Users',
-                    'value' => User::where('status', 'active')->count(),
-                    'detail' => sprintf('%d banned', User::where('status', 'banned')->count()),
+                    'value' => User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))->where('status', 'active')->count(),
+                    'detail' => sprintf('%d banned', User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))->where('status', 'banned')->count()),
                 ],
                 [
                     'label' => 'Categories',
