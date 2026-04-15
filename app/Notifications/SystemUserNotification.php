@@ -2,13 +2,16 @@
 
 namespace App\Notifications;
 
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\NotificationPreferenceService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SystemUserNotification extends Notification
+class SystemUserNotification extends Notification implements ShouldBroadcast
 {
     use Queueable;
 
@@ -31,6 +34,7 @@ class SystemUserNotification extends Notification
             && $preferences->userSupportsInAppEvent($notifiable, $this->inAppEvent)
         ) {
             $channels[] = 'database';
+            $channels[] = 'broadcast';
         }
 
         if (
@@ -48,20 +52,35 @@ class SystemUserNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title' => $this->title,
-            'message' => $this->message,
-            'event' => $this->inAppEvent ?? $this->emailEvent,
+            'title'      => $this->title,
+            'message'    => $this->message,
+            'event'      => $this->inAppEvent ?? $this->emailEvent,
             'action_url' => $this->actionUrl,
         ];
     }
 
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage([
+            'title'      => $this->title,
+            'message'    => $this->message,
+            'event'      => $this->inAppEvent ?? $this->emailEvent,
+            'action_url' => $this->actionUrl,
+        ]);
+    }
+
+    public function broadcastType(): string
+    {
+        return 'notification.received';
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
-        $fromAddress  = (string) \App\Models\Setting::getValue('email_from_address', config('mail.from.address'));
-        $fromName     = (string) \App\Models\Setting::getValue('email_from_name', config('mail.from.name'));
-        $siteName     = (string) \App\Models\Setting::getValue('brand_site_name', 'GigBridge') ?: 'GigBridge';
-        $contactEmail = (string) \App\Models\Setting::getValue('brand_contact_email', '');
-        $contactPhone = (string) \App\Models\Setting::getValue('brand_contact_phone', '');
+        $fromAddress  = (string) Setting::getValue('email_from_address', config('mail.from.address'));
+        $fromName     = (string) Setting::getValue('email_from_name', config('mail.from.name'));
+        $siteName     = (string) Setting::getValue('brand_site_name', 'GigBridge') ?: 'GigBridge';
+        $contactEmail = (string) Setting::getValue('brand_contact_email', '');
+        $contactPhone = (string) Setting::getValue('brand_contact_phone', '');
 
         $mail = (new MailMessage)
             ->from($fromAddress ?: config('mail.from.address'), $fromName ?: config('mail.from.name'))

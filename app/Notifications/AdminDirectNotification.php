@@ -3,9 +3,11 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-class AdminDirectNotification extends Notification
+class AdminDirectNotification extends Notification implements ShouldBroadcast
 {
     use Queueable;
 
@@ -17,16 +19,31 @@ class AdminDirectNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
     }
 
     public function toArray(object $notifiable): array
     {
         return [
-            'title' => $this->title,
-            'message' => $this->message,
-            'event' => 'admin_alert',
+            'title'      => $this->title,
+            'message'    => $this->message,
+            'event'      => 'admin_alert',
             'action_url' => $this->actionUrl,
         ];
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage([
+            'title'      => $this->title,
+            'message'    => $this->message,
+            'event'      => 'admin_alert',
+            'action_url' => $this->actionUrl,
+        ]);
+    }
+
+    public function broadcastType(): string
+    {
+        return 'notification.received';
     }
 }

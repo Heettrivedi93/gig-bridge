@@ -51,17 +51,20 @@ const adminNavItems: NavItem[] = [
 
 function AdminSidebar() {
     const { notifications } = usePage<{
-        notifications?: { enabled?: boolean; unread_count?: number };
+        notifications?: { enabled?: boolean; items?: { read_at?: string | null }[] };
     }>().props;
+
+    const unreadCount = notifications?.enabled
+        ? (notifications.items ?? []).filter((n) => !n.read_at).length
+        : 0;
+
     const items = adminNavItems.map((item) =>
         item.title === 'Notifications'
             ? {
                   ...item,
-                  badge:
-                      notifications?.enabled &&
-                      (notifications.unread_count ?? 0) > 0
-                          ? String(notifications.unread_count)
-                          : null,
+                  badge: unreadCount > 0
+                      ? unreadCount > 99 ? '99+' : String(unreadCount)
+                      : undefined,
               }
             : item,
     );
@@ -72,7 +75,7 @@ function AdminSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={admin.dashboard.url()} prefetch>
+                            <Link href={admin.dashboard.url()}>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
