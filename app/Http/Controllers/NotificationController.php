@@ -11,17 +11,22 @@ class NotificationController extends Controller
 {
     public function index(Request $request): Response
     {
-        $notifications = $request->user()
+        $user = $request->user();
+
+        // Mark all as read the moment the page is opened
+        $user->notifications()->whereNull('read_at')->update(['read_at' => now()]);
+
+        $notifications = $user
             ->notifications()
             ->latest()
             ->get()
             ->map(fn ($notification) => [
-                'id' => $notification->id,
-                'title' => data_get($notification->data, 'title', 'Notification'),
-                'message' => data_get($notification->data, 'message', ''),
-                'event' => data_get($notification->data, 'event', ''),
+                'id'         => $notification->id,
+                'title'      => data_get($notification->data, 'title', 'Notification'),
+                'message'    => data_get($notification->data, 'message', ''),
+                'event'      => data_get($notification->data, 'event', ''),
                 'action_url' => data_get($notification->data, 'action_url'),
-                'read_at' => $notification->read_at?->toIso8601String(),
+                'read_at'    => $notification->read_at?->toIso8601String(),
                 'created_at' => $notification->created_at?->toIso8601String(),
             ])
             ->values();
@@ -33,24 +38,22 @@ class NotificationController extends Controller
 
     public function markAsRead(Request $request, string $notification): RedirectResponse
     {
-        $record = $request->user()
+        $request->user()
             ->notifications()
             ->whereKey($notification)
-            ->firstOrFail();
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
-        if ($record->read_at === null) {
-            $record->markAsRead();
-        }
-
-        return back()->with('success', 'Notification marked as read.');
+        return back();
     }
 
     public function markAllAsRead(Request $request): RedirectResponse
     {
         $request->user()
-            ->unreadNotifications
-            ->markAsRead();
+            ->notifications()
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
-        return back()->with('success', 'All notifications marked as read.');
+        return back();
     }
 }

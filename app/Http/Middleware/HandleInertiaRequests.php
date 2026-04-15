@@ -88,7 +88,6 @@ class HandleInertiaRequests extends Middleware
             'notifications' => [
                 'enabled' => $inAppNotificationsEnabled,
                 'items' => $notifications,
-                'unread_count' => $user && $inAppNotificationsEnabled ? $user->unreadNotifications()->count() : 0,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

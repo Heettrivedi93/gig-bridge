@@ -1,5 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Bell, BellRing, CheckCheck } from 'lucide-react';
+import { Head, Link } from '@inertiajs/react';
+import { Bell } from 'lucide-react';
 import Heading from '@/components/heading';
 import EmptyState from '@/components/empty-state';
 import { Badge } from '@/components/ui/badge';
@@ -32,35 +32,15 @@ function formatDate(value?: string | null) {
 }
 
 export default function NotificationsIndex({ notificationItems }: Props) {
-    const unreadCount = notificationItems.filter(
-        (notification) => !notification.read_at,
-    ).length;
-
-    const markAllAsRead = () => {
-        router.post('/notifications/read-all', {}, { preserveScroll: true });
-    };
-
     return (
         <>
             <Head title="Notifications" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <Heading
-                        title="Notifications"
-                        description="Review recent in-app notifications triggered by orders and payment events."
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full sm:w-auto"
-                        onClick={markAllAsRead}
-                        disabled={unreadCount === 0}
-                    >
-                        <CheckCheck className="size-4" />
-                        Mark all messages
-                    </Button>
-                </div>
+                <Heading
+                    title="Notifications"
+                    description="Review recent in-app notifications triggered by orders and payment events."
+                />
 
                 <div className="grid gap-4">
                     {notificationItems.length === 0 ? (
