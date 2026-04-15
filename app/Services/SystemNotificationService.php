@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Gig;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
+use App\Notifications\AdminDirectNotification;
 use App\Notifications\SystemUserNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -332,6 +335,105 @@ class SystemNotificationService
 
                 if ($twilioEvent && $this->preferences->twilioEnabled() && $this->preferences->supportsTwilioEvent($twilioEvent)) {
                     $this->twilio->send($user, $twilioEvent, $title, $message);
+                }
+            });
+    }
+
+    public function withdrawalRequested(WithdrawalRequest $withdrawal): void
+    {
+        $withdrawal->loadMissing('seller:id,name,email');
+
+        $this->notifyAdmins(
+            'Withdrawal request submitted',
+            sprintf(
+                '%s requested a withdrawal of %s %s via %s.',
+                $withdrawal->seller?->name ?? 'A seller',
+                $withdrawal->wallet?->currency ?? 'USD',
+                number_format((float) $withdrawal->amount, 2),
+                $withdrawal->method,
+            ),
+            '/admin/withdrawals',
+        );
+
+        $this->notifyTrello(
+            'withdrawal_requests',
+            sprintf('Withdrawal request #%d submitted', $withdrawal->id),
+            sprintf(
+                "Seller: %s\nAmount: %s %s\nMethod: %s\nReview: %s",
+                $withdrawal->seller?->name ?? 'Seller',
+                $withdrawal->wallet?->currency ?? 'USD',
+                number_format((float) $withdrawal->amount, 2),
+                $withdrawal->method,
+                url('/admin/withdrawals'),
+            ),
+        );
+    }
+
+    public function gigSubmittedForApproval(Gig $gig): void
+    {
+        $gig->loadMissing('seller:id,name,email');
+
+        $this->notifyAdmins(
+            'Gig pending approval',
+            sprintf(
+                '%s submitted a gig "%s" for approval.',
+                $gig->seller?->name ?? 'A seller',
+                $gig->title,
+            ),
+            '/admin/gigs',
+        );
+    }
+
+    public function disputeRaised(Order $order, User $raisedBy): void
+    {
+        $order->loadMissing(['buyer:id,name', 'seller:id,name', 'gig:id,title']);
+
+        $this->notifyAdmins(
+            'New dispute raised',
+            sprintf(
+                '%s raised a dispute on order #%d (%s).',
+                $raisedBy->name,
+                $order->id,
+                $order->gig?->title ?? 'order',
+            ),
+            '/admin/disputes',
+        );
+
+        $this->notifyTrello(
+            'order_cancelled',
+            sprintf('Dispute raised on order #%d', $order->id),
+            sprintf(
+                "Raised by: %s\nBuyer: %s\nSeller: %s\nGig: %s\nReview: %s",
+                $raisedBy->name,
+                $order->buyer?->name ?? 'Buyer',
+                $order->seller?->name ?? 'Seller',
+                $order->gig?->title ?? 'Gig',
+                url('/admin/disputes'),
+            ),
+        );
+    }
+
+    /**
+     * Notify all super_admin users directly (bypasses per-user preference checks).
+     */
+    private function notifyAdmins(string $title, string $message, string $actionUrl): void
+    {
+        if (! $this->preferences->inAppEnabled()) {
+            return;
+        }
+
+        User::role('super_admin')
+            ->get(['id', 'name', 'email'])
+            ->each(function (User $admin) use ($title, $message, $actionUrl) {
+                try {
+                    // Use direct database notification — bypass per-user preference checks for admins
+                    $admin->notify(new AdminDirectNotification($title, $message, $actionUrl));
+                } catch (Throwable $exception) {
+                    Log::warning('Admin notification failed.', [
+                        'admin_id' => $admin->id,
+                        'title' => $title,
+                        'message' => $exception->getMessage(),
+                    ]);
                 }
             });
     }

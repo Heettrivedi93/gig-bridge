@@ -25,13 +25,9 @@ class AdminSettingController extends Controller
                 'email' => [
                     ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_placed', 'label' => 'Order placed'],
+                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
-                    ['key' => 'messages', 'label' => 'Messages'],
-                    ['key' => 'reviews', 'label' => 'Reviews'],
-                    ['key' => 'payments', 'label' => 'Payments'],
-                    ['key' => 'withdrawals', 'label' => 'Withdrawals'],
-                    ['key' => 'subscriptions', 'label' => 'Subscriptions'],
                 ],
                 'in_app' => [
                     ['key' => 'orders', 'label' => 'Orders'],
@@ -247,13 +243,9 @@ class AdminSettingController extends Controller
         return [
             'registration',
             'order_placed',
+            'order_delivered',
             'order_completed',
             'order_cancelled',
-            'messages',
-            'reviews',
-            'payments',
-            'withdrawals',
-            'subscriptions',
         ];
     }
 

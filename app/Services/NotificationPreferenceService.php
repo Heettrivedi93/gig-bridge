@@ -90,16 +90,7 @@ class NotificationPreferenceService
             Setting::getValue('notifications_email_events', $this->defaultEmailEvents())
         );
 
-        $aliases = [
-            'payment_released' => ['payment_released', 'payments'],
-            'payments' => ['payment_released', 'payments'],
-        ];
-
-        $acceptedEvents = $aliases[$event] ?? [$event];
-
-        return collect($acceptedEvents)->contains(
-            fn (string $acceptedEvent) => in_array($acceptedEvent, $events, true)
-        );
+        return in_array($event, $events, true);
     }
 
     public function inAppEnabled(): bool
@@ -137,14 +128,7 @@ class NotificationPreferenceService
             return false;
         }
 
-        $acceptedEvents = [
-            ...($event === 'payments' ? ['payments', 'payment_released'] : [$event]),
-            ...($event === 'payment_released' ? ['payments', 'payment_released'] : []),
-        ];
-
-        return collect($acceptedEvents)->contains(
-            fn (string $acceptedEvent) => in_array($acceptedEvent, $this->userPreferences($user)['email_events'], true)
-        );
+        return in_array($event, $this->userPreferences($user)['email_events'], true);
     }
 
     public function userInAppEnabled(User $user): bool
@@ -181,45 +165,18 @@ class NotificationPreferenceService
             array_filter($events, fn (mixed $event) => is_string($event) && $event !== '')
         )));
 
-        $legacyOnlyEvents = ['messages', 'reviews', 'withdrawals', 'subscriptions'];
-        $hasLegacySchema = collect($normalized)->contains(
-            fn (string $event) => in_array($event, $legacyOnlyEvents, true)
-        );
+        $allowed = [
+            'registration',
+            'order_placed',
+            'order_delivered',
+            'order_completed',
+            'order_cancelled',
+        ];
 
-        if ($hasLegacySchema) {
-            $normalized = array_values(array_unique([
-                ...array_filter(
-                    $normalized,
-                    fn (string $event) => ! in_array($event, $legacyOnlyEvents, true)
-                ),
-                'messages',
-                'order_delivered',
-                'revision_requested',
-                'payment_released',
-            ]));
-        }
-
-        $hasAnyOrderEmailEnabled = collect($normalized)->contains(
-            fn (string $event) => in_array($event, [
-                'order_placed',
-                'order_delivered',
-                'revision_requested',
-                'order_completed',
-                'order_cancelled',
-            ], true)
-        );
-
-        if ($hasAnyOrderEmailEnabled) {
-            $normalized = array_values(array_unique([
-                ...$normalized,
-                'order_delivered',
-                'revision_requested',
-                'order_completed',
-                'order_cancelled',
-            ]));
-        }
-
-        return $normalized;
+        return array_values(array_unique(array_filter(
+            $normalized,
+            fn (string $event) => in_array($event, $allowed, true)
+        )));
     }
 
     private function normalizedInAppEvents(mixed $events, User $user): array
@@ -274,11 +231,8 @@ class NotificationPreferenceService
             'registration',
             'order_placed',
             'order_delivered',
-            'revision_requested',
             'order_completed',
             'order_cancelled',
-            'messages',
-            'payment_released',
         ];
     }
 
@@ -333,7 +287,6 @@ class NotificationPreferenceService
             'default' => [
                 'email' => [
                     ['key' => 'registration', 'label' => 'Registration'],
-                    ['key' => 'messages', 'label' => 'Messages'],
                 ],
                 'in_app' => [
                     ['key' => 'messages', 'label' => 'Messages'],
@@ -346,8 +299,8 @@ class NotificationPreferenceService
                 'email' => [
                     ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_delivered', 'label' => 'Order delivered'],
+                    ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
-                    ['key' => 'messages', 'label' => 'Messages'],
                 ],
                 'in_app' => [
                     ['key' => 'orders', 'label' => 'Order updates'],
@@ -363,11 +316,9 @@ class NotificationPreferenceService
                 'email' => [
                     ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_placed', 'label' => 'New order received'],
-                    ['key' => 'revision_requested', 'label' => 'Revision requested'],
+                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
-                    ['key' => 'messages', 'label' => 'Messages'],
-                    ['key' => 'payment_released', 'label' => 'Payment released'],
                 ],
                 'in_app' => [
                     ['key' => 'orders', 'label' => 'Order updates'],

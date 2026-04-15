@@ -9,6 +9,7 @@ use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Models\WithdrawalRequest;
 use App\Services\PaypalCheckoutService;
+use App\Services\SystemNotificationService;
 use App\Services\WalletService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,7 @@ class SellerPlanController extends Controller
     public function __construct(
         private readonly PaypalCheckoutService $paypal,
         private readonly WalletService $wallets,
+        private readonly SystemNotificationService $notifications,
     ) {}
 
     public function index(Request $request): Response
@@ -245,7 +247,7 @@ class SellerPlanController extends Controller
                 sprintf('Withdrawal request reserved for seller #%d', $seller->id),
             );
 
-            WithdrawalRequest::create([
+            $withdrawalRequest = WithdrawalRequest::create([
                 'seller_id' => $seller->id,
                 'wallet_id' => $wallet->id,
                 'amount' => $amount,
@@ -255,6 +257,16 @@ class SellerPlanController extends Controller
                 'note' => $data['details'] ?: null,
             ]);
         });
+
+        $latestRequest = WithdrawalRequest::query()
+            ->where('seller_id', $seller->id)
+            ->with('wallet')
+            ->latest('id')
+            ->first();
+
+        if ($latestRequest) {
+            $this->notifications->withdrawalRequested($latestRequest);
+        }
 
         return back()->with('success', 'Withdrawal request submitted successfully.');
     }

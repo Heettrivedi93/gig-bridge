@@ -7,6 +7,7 @@ use App\Models\Gig;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\SellerRankingService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class SellerGigController extends Controller
 
     public function __construct(
         private readonly SellerRankingService $sellerRanking,
+        private readonly SystemNotificationService $notifications,
     ) {}
 
     public function index(Request $request): Response
@@ -115,6 +117,8 @@ class SellerGigController extends Controller
 
             $this->syncPackages($gig, $data['packages']);
             $this->appendImages($gig, $request->file('images', []));
+
+            $this->notifications->gigSubmittedForApproval($gig);
         });
 
         return back()->with('success', 'Gig created successfully.');
@@ -152,6 +156,10 @@ class SellerGigController extends Controller
             $this->syncPackages($gig, $data['packages']);
             $this->removeImages($gig, $data['remove_image_ids'] ?? []);
             $this->appendImages($gig, $request->file('images', []));
+
+            if ($needsReapproval) {
+                $this->notifications->gigSubmittedForApproval($gig);
+            }
         });
 
         return back()->with('success', 'Gig updated successfully.');

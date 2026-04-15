@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\DisputeMessageSent;
 use App\Models\Dispute;
 use App\Models\Order;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,9 @@ use Inertia\Response;
 
 class DisputeController extends Controller
 {
+    public function __construct(
+        private readonly SystemNotificationService $notifications,
+    ) {}
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -77,6 +81,8 @@ class DisputeController extends Controller
             'reason' => $data['reason'],
             'status' => 'open',
         ]);
+
+        $this->notifications->disputeRaised($order, $user);
 
         return back()->with('success', 'Dispute raised successfully. Admin will review shortly.');
     }
