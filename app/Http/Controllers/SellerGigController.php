@@ -140,17 +140,24 @@ class SellerGigController extends Controller
             $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
             $needsReapproval = $this->needsReapproval($gig, $data, $normalizedTags);
 
+            $pendingChanges = null;
+            if ($needsReapproval) {
+                $gig->loadMissing('packages');
+                $pendingChanges = $this->buildPendingChanges($gig, $data, $normalizedTags);
+            }
+
             $gig->update([
-                'category_id' => $data['category_id'],
-                'subcategory_id' => $data['subcategory_id'],
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'tags' => $normalizedTags,
-                'status' => $data['status'],
-                'approval_status' => $needsReapproval ? 'pending' : $gig->approval_status,
+                'category_id'      => $data['category_id'],
+                'subcategory_id'   => $data['subcategory_id'],
+                'title'            => $data['title'],
+                'description'      => $data['description'],
+                'tags'             => $normalizedTags,
+                'status'           => $data['status'],
+                'approval_status'  => $needsReapproval ? 'pending' : $gig->approval_status,
                 'rejection_reason' => $needsReapproval ? null : $gig->rejection_reason,
-                'approved_at' => $needsReapproval ? null : $gig->approved_at,
-                'rejected_at' => $needsReapproval ? null : $gig->rejected_at,
+                'pending_changes'  => $needsReapproval ? $pendingChanges : $gig->pending_changes,
+                'approved_at'      => $needsReapproval ? null : $gig->approved_at,
+                'rejected_at'      => $needsReapproval ? null : $gig->rejected_at,
             ]);
 
             $this->syncPackages($gig, $data['packages']);
@@ -377,6 +384,64 @@ class SellerGigController extends Controller
             ])->all(),
             'views_count' => (int) ($gig->views_count ?? 0),
         ];
+    }
+
+    private function buildPendingChanges(Gig $gig, array $data, array $normalizedTags): array
+    {
+        $changes = [];
+
+        if ($gig->title !== $data['title']) {
+            $changes['title'] = ['old' => $gig->title, 'new' => $data['title']];
+        }
+
+        if ($gig->description !== $data['description']) {
+            $changes['description'] = ['old' => $gig->description, 'new' => $data['description']];
+        }
+
+        if ((int) $gig->category_id !== (int) $data['category_id']) {
+            $changes['category_id'] = ['old' => $gig->category_id, 'new' => $data['category_id']];
+        }
+
+        if ((int) $gig->subcategory_id !== (int) $data['subcategory_id']) {
+            $changes['subcategory_id'] = ['old' => $gig->subcategory_id, 'new' => $data['subcategory_id']];
+        }
+
+        if (($gig->tags ?? []) !== $normalizedTags) {
+            $changes['tags'] = ['old' => $gig->tags ?? [], 'new' => $normalizedTags];
+        }
+
+        foreach (self::PACKAGE_TIERS as $tier) {
+            $existing = $gig->packages->firstWhere('tier', $tier);
+            $payload  = $data['packages'][$tier] ?? null;
+
+            if (! $existing || ! $payload) {
+                continue;
+            }
+
+            $pkgChanges = [];
+
+            if ((string) $existing->title !== (string) $payload['title']) {
+                $pkgChanges['title'] = ['old' => $existing->title, 'new' => $payload['title']];
+            }
+            if ((string) $existing->description !== (string) $payload['description']) {
+                $pkgChanges['description'] = ['old' => $existing->description, 'new' => $payload['description']];
+            }
+            if ((float) $existing->price !== (float) $payload['price']) {
+                $pkgChanges['price'] = ['old' => (string) $existing->price, 'new' => (string) $payload['price']];
+            }
+            if ((int) $existing->delivery_days !== (int) $payload['delivery_days']) {
+                $pkgChanges['delivery_days'] = ['old' => $existing->delivery_days, 'new' => (int) $payload['delivery_days']];
+            }
+            if ((int) $existing->revision_count !== (int) $payload['revision_count']) {
+                $pkgChanges['revision_count'] = ['old' => $existing->revision_count, 'new' => (int) $payload['revision_count']];
+            }
+
+            if ($pkgChanges !== []) {
+                $changes['packages'][$tier] = $pkgChanges;
+            }
+        }
+
+        return $changes;
     }
 
     private function needsReapproval(Gig $gig, array $data, array $normalizedTags): bool

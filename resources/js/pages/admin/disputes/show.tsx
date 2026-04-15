@@ -127,11 +127,19 @@ export default function AdminDisputeShow({ dispute }: Props) {
 
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!msgForm.data.body.trim() && !msgForm.data.attachment) return;
         msgForm.post(`/admin/disputes/${dispute.id}/messages`, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => msgForm.reset(),
         });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage(e as unknown as React.FormEvent);
+        }
     };
 
     const submitResolve = (e: React.FormEvent) => {
@@ -690,7 +698,8 @@ export default function AdminDisputeShow({ dispute }: Props) {
                                     onChange={(e) =>
                                         msgForm.setData('body', e.target.value)
                                     }
-                                    placeholder="Write a message to both parties..."
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Write a message… (Enter to send, Shift+Enter for new line)"
                                     className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 />
                                 <InputError message={msgForm.errors.body} />

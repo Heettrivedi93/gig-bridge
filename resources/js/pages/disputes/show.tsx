@@ -85,11 +85,19 @@ export default function DisputeShow({ dispute }: Props) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!form.data.body.trim() && !form.data.attachment) return;
         form.post(`/disputes/${dispute.id}/messages`, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => form.reset(),
         });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submit(e as unknown as React.FormEvent);
+        }
     };
 
     return (
@@ -297,7 +305,8 @@ export default function DisputeShow({ dispute }: Props) {
                                     onChange={(e) =>
                                         form.setData('body', e.target.value)
                                     }
-                                    placeholder="Write a message..."
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Write a message… (Enter to send, Shift+Enter for new line)"
                                     className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
                                 />
                                 <InputError message={form.errors.body} />

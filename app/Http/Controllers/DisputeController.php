@@ -66,6 +66,12 @@ class DisputeController extends Controller
             ]);
         }
 
+        if ($order->payment_status === 'released') {
+            throw ValidationException::withMessages([
+                'reason' => 'Payment has already been released to the seller. Disputes cannot be raised after funds are released.',
+            ]);
+        }
+
         if ($order->disputes()->where('status', 'open')->exists()) {
             throw ValidationException::withMessages([
                 'reason' => 'An open dispute already exists for this order.',

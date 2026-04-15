@@ -152,6 +152,12 @@ class MessageController extends Controller
         $receiver = User::query()->findOrFail($data['receiver_id']);
         $order = $this->resolveAccessibleOrder($sender, $receiver, $data['order_id'] ?? null);
 
+        if ($order && $order->payment_status === 'released') {
+            throw ValidationException::withMessages([
+                'body' => 'Messaging is disabled for this order as payment has already been released.',
+            ]);
+        }
+
         Message::create([
             'sender_id' => $sender->id,
             'receiver_id' => $receiver->id,
@@ -209,6 +215,12 @@ class MessageController extends Controller
     {
         $sender = $this->ensureMessenger($request);
         $receiver = $this->counterpartForOrder($sender, $order);
+
+        if ($order->payment_status === 'released') {
+            return response()->json([
+                'message' => 'Messaging is disabled for this order as payment has already been released.',
+            ], 422);
+        }
 
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:5000'],
