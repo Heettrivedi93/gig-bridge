@@ -129,13 +129,15 @@ function CouponForm({
 
             <div className="grid gap-2">
                 <Label htmlFor="coupon-description">Description</Label>
-                <Input
+                <textarea
                     id="coupon-description"
+                    rows={3}
                     value={data.description}
                     onChange={(event) =>
                         setData('description', event.target.value)
                     }
                     placeholder="Spring launch discount"
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 />
                 <InputError message={errors.description} />
             </div>

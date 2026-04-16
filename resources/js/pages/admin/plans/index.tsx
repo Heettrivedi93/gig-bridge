@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
+import { Eye, Pencil, PlusIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -177,6 +177,7 @@ function PlanForm({
 export default function AdminPlansIndex({ plans }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<Plan | null>(null);
+    const [viewTarget, setViewTarget] = useState<Plan | null>(null);
     const confirm = useConfirm();
 
     const createForm = useForm<PlanFormData>({
@@ -333,6 +334,13 @@ export default function AdminPlansIndex({ plans }: Props) {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    onClick={() => setViewTarget(plan)}
+                                                >
+                                                    <Eye className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
                                                     onClick={() =>
                                                         openEdit(plan)
                                                     }
@@ -403,6 +411,57 @@ export default function AdminPlansIndex({ plans }: Props) {
                         onSubmit={handleEdit}
                         onCancel={() => setEditTarget(null)}
                     />
+                </DialogContent>
+            </Dialog>
+
+            {/* Plan Detail Dialog */}
+            <Dialog open={Boolean(viewTarget)} onOpenChange={(open) => { if (!open) setViewTarget(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{viewTarget?.name} — Plan Details</DialogTitle>
+                    </DialogHeader>
+                    {viewTarget && (
+                        <div className="space-y-4 pt-1">
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Price</p>
+                                    <p className="mt-1 font-semibold">${viewTarget.price}</p>
+                                </div>
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Duration</p>
+                                    <p className="mt-1 font-semibold">{viewTarget.duration_days} days</p>
+                                </div>
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Gig Limit</p>
+                                    <p className="mt-1 font-semibold">{viewTarget.gig_limit} gigs</p>
+                                </div>
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <p className="mt-1">
+                                        <Badge variant={viewTarget.status === 'active' ? 'default' : 'secondary'}>
+                                            {viewTarget.status}
+                                        </Badge>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="mb-2 text-sm font-medium">Features</p>
+                                {viewTarget.features.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No features defined.</p>
+                                ) : (
+                                    <ul className="space-y-1.5">
+                                        {viewTarget.features.map((feature, i) => (
+                                            <li key={i} className="flex items-start gap-2 text-sm">
+                                                <span className="mt-0.5 text-emerald-600">✓</span>
+                                                <span>{feature}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </>
