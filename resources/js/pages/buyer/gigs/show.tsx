@@ -1,7 +1,10 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
+    BadgePercent,
+    CalendarClock,
     Clock3,
+    Eye,
     FileText,
     Layers3,
     Link2,
@@ -9,14 +12,25 @@ import {
     Palette,
     ShoppingCart,
     Star,
+    User,
+    X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import type { BreadcrumbItem } from '@/types';
 
 type GigPackage = {
@@ -33,8 +47,16 @@ type GigDetail = {
     id: number;
     title: string;
     description: string;
+    seller_id: number | null;
     seller_name: string | null;
+    seller_is_available: boolean;
     seller_email: string | null;
+    seller_avatar: string | null;
+    seller_level: SellerLevelBadgeData;
+    seller_member_since: string | null;
+    seller_completed_orders: number;
+    seller_review_count: number;
+    seller_average_rating: number;
     category_name: string | null;
     subcategory_name: string | null;
     tags: string[];
@@ -43,6 +65,7 @@ type GigDetail = {
     delivery_days: number;
     rating: number;
     review_count: number;
+    views_count: number;
     packages: GigPackage[];
     reviews: {
         id: number;
@@ -53,8 +76,41 @@ type GigDetail = {
     }[];
 };
 
+type RecommendedGig = {
+    id: number;
+    title: string;
+    description: string;
+    seller_id: number | null;
+    seller_name: string | null;
+    seller_is_available: boolean;
+    category_name: string | null;
+    subcategory_name: string | null;
+    tags: string[];
+    cover_image_url: string | null;
+    starting_price: string;
+    delivery_days: number;
+    rating: number;
+    review_count: number;
+};
+
+type CouponOption = {
+    id: number;
+    code: string;
+    description: string | null;
+    discount_type: 'fixed' | 'percentage';
+    discount_value: string;
+    minimum_order_amount: string | null;
+    usage_limit: number | null;
+    used_count: number;
+    starts_at: string | null;
+    expires_at: string | null;
+};
+
 type Props = {
     gig: GigDetail;
+    similar_gigs: RecommendedGig[];
+    people_also_bought: RecommendedGig[];
+    coupons: CouponOption[];
 };
 
 type OrderFormData = {
@@ -69,7 +125,14 @@ type OrderFormData = {
     billing_email: string;
 };
 
-export default function BuyerGigShow({ gig }: Props) {
+export default function BuyerGigShow({
+    gig,
+    coupons,
+    similar_gigs,
+    people_also_bought,
+}: Props) {
+    const similarGigs = similar_gigs;
+    const peopleAlsoBought = people_also_bought;
     const { auth } = usePage<{
         auth: { user: { name: string; email: string } | null };
     }>().props;
@@ -83,7 +146,6 @@ export default function BuyerGigShow({ gig }: Props) {
             ) ?? gig.packages[0],
         [gig.packages, selectedPackageId],
     );
-
     const form = useForm<OrderFormData>({
         package_id: selectedPackageId,
         quantity: '1',
@@ -95,6 +157,65 @@ export default function BuyerGigShow({ gig }: Props) {
         billing_name: auth.user?.name ?? '',
         billing_email: auth.user?.email ?? '',
     });
+    const quantity = Math.max(
+        1,
+        Number.parseInt(form.data.quantity ?? '1', 10) || 1,
+    );
+    const subtotal = selectedPackage
+        ? (Number.parseFloat(selectedPackage.price) * quantity).toFixed(2)
+        : '0.00';
+    const subtotalNumber = Number.parseFloat(subtotal);
+    const selectedCoupon = coupons.find(
+        (coupon) => coupon.code === form.data.coupon_code,
+    );
+    const couponOptions = useMemo(
+        () =>
+            coupons.map((coupon) => {
+                const minimumOrderAmount = Number.parseFloat(
+                    coupon.minimum_order_amount ?? '0',
+                );
+                const estimatedDiscount =
+                    coupon.discount_type === 'percentage'
+                        ? Number(
+                              (
+                                  subtotalNumber *
+                                  (Number.parseFloat(coupon.discount_value) /
+                                      100)
+                              ).toFixed(2),
+                          )
+                        : Number.parseFloat(coupon.discount_value);
+                const boundedDiscount = Math.min(
+                    subtotalNumber,
+                    Math.max(0, estimatedDiscount),
+                );
+                const isEligible =
+                    minimumOrderAmount <= 0 ||
+                    subtotalNumber >= minimumOrderAmount;
+
+                return {
+                    ...coupon,
+                    minimumOrderAmount,
+                    estimatedDiscount: boundedDiscount.toFixed(2),
+                    isEligible,
+                };
+            }),
+        [coupons, subtotalNumber],
+    );
+    const selectedCouponDiscount =
+        selectedCoupon &&
+        couponOptions.find((coupon) => coupon.id === selectedCoupon.id)
+            ?.isEligible
+            ? (couponOptions.find((coupon) => coupon.id === selectedCoupon.id)
+                  ?.estimatedDiscount ?? '0.00')
+            : '0.00';
+    const estimatedTotal = Math.max(
+        0,
+        Number(
+            (
+                subtotalNumber - Number.parseFloat(selectedCouponDiscount)
+            ).toFixed(2),
+        ),
+    ).toFixed(2);
 
     const submitOrder = (event: React.FormEvent) => {
         event.preventDefault();
@@ -123,10 +244,11 @@ export default function BuyerGigShow({ gig }: Props) {
                         <ArrowLeft className="size-4" />
                         Back to gigs
                     </Link>
-                    <Heading
-                        title={gig.title}
-                        description={`By ${gig.seller_name ?? 'Seller'} in ${gig.category_name ?? 'General'} / ${gig.subcategory_name ?? 'General'}`}
-                    />
+                    <Heading title={gig.title} />
+                    <p className="text-sm text-muted-foreground">
+                        in {gig.category_name ?? 'General'} /{' '}
+                        {gig.subcategory_name ?? 'General'}
+                    </p>
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
@@ -173,6 +295,12 @@ export default function BuyerGigShow({ gig }: Props) {
                                         ? `${gig.review_count} buyer review${gig.review_count === 1 ? '' : 's'}`
                                         : 'No buyer reviews yet'}
                                 </span>
+                                <div className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-muted-foreground">
+                                    <Eye className="size-4" />
+                                    <span className="font-medium">
+                                        {gig.views_count.toLocaleString()} views
+                                    </span>
+                                </div>
                             </div>
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {gig.tags.map((tag) => (
@@ -301,9 +429,197 @@ export default function BuyerGigShow({ gig }: Props) {
                                 </div>
                             )}
                         </div>
+
+                        <div className="rounded-3xl border border-border/70 bg-card p-6">
+                            <div className="flex items-center gap-2">
+                                <Layers3 className="size-4 text-muted-foreground" />
+                                <h2 className="text-lg font-semibold">
+                                    Similar gigs
+                                </h2>
+                            </div>
+                            {similarGigs.length === 0 ? (
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    We will show similar gigs here once more
+                                    matching services are available.
+                                </p>
+                            ) : (
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                    {similarGigs.map((item) => (
+                                        <Link
+                                            key={`similar-${item.id}`}
+                                            href={`/buyer/gigs/${item.id}`}
+                                            className="overflow-hidden rounded-2xl border border-border/70 bg-background transition hover:border-primary/40"
+                                        >
+                                            <div className="aspect-[16/9] bg-muted">
+                                                {item.cover_image_url ? (
+                                                    <img
+                                                        src={
+                                                            item.cover_image_url
+                                                        }
+                                                        alt={item.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                        No preview image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2 p-4">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <Badge variant="secondary">
+                                                        {item.category_name ??
+                                                            'General'}
+                                                    </Badge>
+                                                    <span className="text-sm font-semibold">
+                                                        USD{' '}
+                                                        {item.starting_price}
+                                                    </span>
+                                                </div>
+                                                <p className="line-clamp-2 font-medium">
+                                                    {item.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    by{' '}
+                                                    {item.seller_name ??
+                                                        'Seller'}{' '}
+                                                    • {item.delivery_days} days
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="rounded-3xl border border-border/70 bg-card p-6">
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="size-4 text-muted-foreground" />
+                                <h2 className="text-lg font-semibold">
+                                    People also bought
+                                </h2>
+                            </div>
+                            {peopleAlsoBought.length === 0 ? (
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    We will show related buyer picks here as
+                                    order history grows.
+                                </p>
+                            ) : (
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                    {peopleAlsoBought.map((item) => (
+                                        <Link
+                                            key={`also-${item.id}`}
+                                            href={`/buyer/gigs/${item.id}`}
+                                            className="overflow-hidden rounded-2xl border border-border/70 bg-background transition hover:border-primary/40"
+                                        >
+                                            <div className="aspect-[16/9] bg-muted">
+                                                {item.cover_image_url ? (
+                                                    <img
+                                                        src={
+                                                            item.cover_image_url
+                                                        }
+                                                        alt={item.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                        No preview image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2 p-4">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <Badge variant="secondary">
+                                                        {item.subcategory_name ??
+                                                            item.category_name ??
+                                                            'General'}
+                                                    </Badge>
+                                                    <span className="text-sm font-semibold">
+                                                        USD{' '}
+                                                        {item.starting_price}
+                                                    </span>
+                                                </div>
+                                                <p className="line-clamp-2 font-medium">
+                                                    {item.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {item.review_count > 0
+                                                        ? `${item.rating.toFixed(1)} stars (${item.review_count})`
+                                                        : 'New service'}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </section>
 
                     <aside className="space-y-6">
+                        {/* Seller card */}
+                        {gig.seller_id && (
+                            <Link
+                                href={`/sellers/${gig.seller_id}`}
+                                className="group flex items-center gap-4 rounded-3xl border border-border/70 bg-card p-5 transition hover:border-primary/50 hover:shadow-sm"
+                            >
+                                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-muted text-lg font-bold text-muted-foreground">
+                                    {gig.seller_avatar ? (
+                                        <img
+                                            src={gig.seller_avatar}
+                                            alt={gig.seller_name ?? ''}
+                                            className="size-14 rounded-2xl object-cover"
+                                        />
+                                    ) : (
+                                        <User className="size-6 text-muted-foreground" />
+                                    )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-semibold">
+                                        {gig.seller_name ?? 'Seller'}
+                                    </p>
+                                    {!gig.seller_is_available && (
+                                        <Badge
+                                            variant="destructive"
+                                            className="mt-1"
+                                        >
+                                            Unavailable
+                                        </Badge>
+                                    )}
+                                    <SellerLevelBadge
+                                        level={gig.seller_level}
+                                        className="mt-1"
+                                    />
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        {gig.seller_average_rating > 0 && (
+                                            <span className="flex items-center gap-1">
+                                                <Star className="size-3 fill-amber-400 text-amber-400" />
+                                                {gig.seller_average_rating.toFixed(
+                                                    1,
+                                                )}
+                                                <span>
+                                                    ({gig.seller_review_count})
+                                                </span>
+                                            </span>
+                                        )}
+                                        {gig.seller_completed_orders > 0 && (
+                                            <span>
+                                                {gig.seller_completed_orders}{' '}
+                                                orders done
+                                            </span>
+                                        )}
+                                        {gig.seller_member_since && (
+                                            <span>
+                                                Since {gig.seller_member_since}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <span className="shrink-0 text-xs font-medium text-primary underline-offset-4 group-hover:underline">
+                                    View profile →
+                                </span>
+                            </Link>
+                        )}
+
                         <section className="rounded-3xl border border-border/70 bg-card p-6">
                             <div className="flex items-center gap-2">
                                 <ShoppingCart className="size-4" />
@@ -360,7 +676,7 @@ export default function BuyerGigShow({ gig }: Props) {
                                     />
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="reference_link">
                                             Reference link
@@ -384,26 +700,6 @@ export default function BuyerGigShow({ gig }: Props) {
                                             message={form.errors.reference_link}
                                         />
                                     </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="coupon_code">
-                                            Coupon
-                                        </Label>
-                                        <Input
-                                            id="coupon_code"
-                                            value={form.data.coupon_code}
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'coupon_code',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            placeholder="Optional coupon code"
-                                        />
-                                        <InputError
-                                            message={form.errors.coupon_code}
-                                        />
-                                    </div>
                                 </div>
 
                                 <div className="grid gap-2">
@@ -422,7 +718,7 @@ export default function BuyerGigShow({ gig }: Props) {
                                                     event.target.value,
                                                 )
                                             }
-                                            className="min-h-24 rounded-md border border-input bg-transparent py-2 pr-3 pl-9 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                            className="min-h-24 w-full rounded-md border border-input bg-transparent py-2 pr-3 pl-9 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                             placeholder="Preferred tone, color direction, examples to avoid, or anything style-specific."
                                         />
                                     </div>
@@ -456,6 +752,152 @@ export default function BuyerGigShow({ gig }: Props) {
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="grid gap-3 md:col-span-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="coupon_select">
+                                                <BadgePercent className="mr-1.5 inline size-4 text-muted-foreground" />
+                                                Coupon
+                                            </Label>
+                                            {form.data.coupon_code && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        form.setData(
+                                                            'coupon_code',
+                                                            '',
+                                                        )
+                                                    }
+                                                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <X className="size-3" />
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {couponOptions.length === 0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                No coupons available for your
+                                                account.
+                                            </p>
+                                        ) : (
+                                            <Select
+                                                value={
+                                                    form.data.coupon_code ||
+                                                    '__none__'
+                                                }
+                                                onValueChange={(v) =>
+                                                    form.setData(
+                                                        'coupon_code',
+                                                        v === '__none__'
+                                                            ? ''
+                                                            : v,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    id="coupon_select"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue placeholder="Select a coupon..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="__none__">
+                                                        No coupon
+                                                    </SelectItem>
+                                                    {couponOptions.map(
+                                                        (coupon) => (
+                                                            <SelectItem
+                                                                key={coupon.id}
+                                                                value={
+                                                                    coupon.code
+                                                                }
+                                                                disabled={
+                                                                    !coupon.isEligible
+                                                                }
+                                                            >
+                                                                <span className="flex items-center gap-2">
+                                                                    <span className="font-medium">
+                                                                        {
+                                                                            coupon.code
+                                                                        }
+                                                                    </span>
+                                                                    <span className="text-muted-foreground">
+                                                                        —
+                                                                    </span>
+                                                                    <span className="text-emerald-600">
+                                                                        {coupon.discount_type ===
+                                                                        'percentage'
+                                                                            ? `${coupon.discount_value}% off`
+                                                                            : `USD ${coupon.discount_value} off`}
+                                                                    </span>
+                                                                    {!coupon.isEligible && (
+                                                                        <span className="text-xs text-amber-600">
+                                                                            (min
+                                                                            USD{' '}
+                                                                            {coupon.minimumOrderAmount.toFixed(
+                                                                                2,
+                                                                            )}
+                                                                            )
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+
+                                        {/* Selected coupon detail pill */}
+                                        {form.data.coupon_code &&
+                                            (() => {
+                                                const c = couponOptions.find(
+                                                    (o) =>
+                                                        o.code ===
+                                                        form.data.coupon_code,
+                                                );
+
+                                                if (!c) {
+                                                    return null;
+                                                }
+
+                                                return (
+                                                    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                                        <BadgePercent className="size-3.5" />
+                                                        <span className="font-medium">
+                                                            {c.code}
+                                                        </span>
+                                                        {c.description && (
+                                                            <span>
+                                                                —{' '}
+                                                                {c.description}
+                                                            </span>
+                                                        )}
+                                                        <span className="ml-auto font-semibold">
+                                                            Est. save USD{' '}
+                                                            {
+                                                                c.estimatedDiscount
+                                                            }
+                                                        </span>
+                                                        {c.expires_at && (
+                                                            <span className="flex items-center gap-1 text-emerald-700">
+                                                                <CalendarClock className="size-3" />
+                                                                Expires{' '}
+                                                                {new Date(
+                                                                    c.expires_at,
+                                                                ).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                        <InputError
+                                            message={form.errors.coupon_code}
+                                        />
+                                    </div>
+
                                     <div className="grid gap-2">
                                         <Label htmlFor="billing_name">
                                             Billing name
@@ -512,6 +954,14 @@ export default function BuyerGigShow({ gig }: Props) {
                                     </div>
                                     <div className="mt-2 flex items-center justify-between">
                                         <span className="text-muted-foreground">
+                                            Subtotal
+                                        </span>
+                                        <span className="font-medium">
+                                            USD {subtotal}
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <span className="text-muted-foreground">
                                             Delivery
                                         </span>
                                         <span className="flex items-center gap-1 font-medium">
@@ -522,34 +972,67 @@ export default function BuyerGigShow({ gig }: Props) {
                                         </span>
                                     </div>
                                     <div className="mt-3 flex items-center justify-between border-t border-border/70 pt-3 text-base font-semibold">
-                                        <span>Total</span>
+                                        <span>Coupon</span>
                                         <span>
-                                            USD{' '}
-                                            {(
-                                                (Number(
-                                                    selectedPackage?.price ?? 0,
-                                                ) || 0) *
-                                                Number(
-                                                    form.data.quantity || '1',
-                                                )
-                                            ).toFixed(2)}
+                                            {form.data.coupon_code || 'None'}
                                         </span>
                                     </div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <span className="text-muted-foreground">
+                                            Estimated discount
+                                        </span>
+                                        <span className="font-medium text-emerald-600">
+                                            -USD {selectedCouponDiscount}
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <span className="text-muted-foreground">
+                                            Estimated total
+                                        </span>
+                                        <span className="font-semibold">
+                                            USD {estimatedTotal}
+                                        </span>
+                                    </div>
+                                    {selectedCoupon && (
+                                        <div className="mt-3 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+                                            <div className="flex items-center gap-2">
+                                                <CalendarClock className="size-3.5" />
+                                                <span>
+                                                    {selectedCoupon.expires_at
+                                                        ? `Expires ${new Date(selectedCoupon.expires_at).toLocaleDateString()}`
+                                                        : 'No expiry'}
+                                                </span>
+                                            </div>
+                                            <p className="mt-2">
+                                                Final coupon validation happens
+                                                when the order is created,
+                                                including expiry and usage
+                                                limit.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={form.processing}
+                                    disabled={
+                                        form.processing ||
+                                        !gig.seller_is_available
+                                    }
                                 >
                                     {form.processing
                                         ? 'Creating order...'
-                                        : 'Create order & continue'}
+                                        : gig.seller_is_available
+                                          ? 'Create order & continue'
+                                          : 'Seller unavailable'}
                                 </Button>
+                                <InputError message={form.errors.order} />
 
                                 <p className="text-xs text-muted-foreground">
-                                    This creates your order and sends you to the
-                                    buyer orders list for PayPal checkout.
+                                    {gig.seller_is_available
+                                        ? 'This creates your order and sends you to the buyer orders list for PayPal checkout.'
+                                        : 'This seller is currently on a break and not accepting new orders.'}
                                 </p>
                             </form>
                         </section>
@@ -562,9 +1045,7 @@ export default function BuyerGigShow({ gig }: Props) {
 
 BuyerGigShow.layout = {
     breadcrumbs: [
-        {
-            title: 'Explore Gigs',
-            href: '/buyer/gigs',
-        },
+        { title: 'Explore Gigs', href: '/buyer/gigs' },
+        { title: 'Gig Details', href: '#' },
     ] satisfies BreadcrumbItem[],
 };

@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Gig;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\User;
 use App\Models\WithdrawalRequest;
 use App\Services\PaypalCheckoutService;
+use App\Services\SystemNotificationService;
 use App\Services\WalletService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +27,7 @@ class SellerPlanController extends Controller
     public function __construct(
         private readonly PaypalCheckoutService $paypal,
         private readonly WalletService $wallets,
+        private readonly SystemNotificationService $notifications,
     ) {}
 
     public function index(Request $request): Response
@@ -132,6 +136,27 @@ class SellerPlanController extends Controller
         ]);
     }
 
+    public function downloadInvoicePdf(Request $request, SubscriptionPayment $payment)
+    {
+        $seller = $this->ensureSeller($request);
+        abort_unless($payment->user_id === $seller->id, 403);
+
+        $payment->load(['plan:id,name,duration_days,gig_limit', 'subscription:id,starts_at,ends_at,status']);
+
+        $invoiceNumber = $payment->provider_capture_id
+            ? 'INV-'.$payment->provider_capture_id
+            : 'INV-'.$payment->provider_order_id;
+
+        $pdf = Pdf::loadView('invoices.seller-payment', [
+            'invoiceNumber' => $invoiceNumber,
+            'seller' => $seller,
+            'payment' => $payment,
+            'generatedAt' => now(),
+        ])->setPaper('a4');
+
+        return $pdf->download(sprintf('seller-invoice-%s.pdf', strtolower($invoiceNumber)));
+    }
+
     public function wallet(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
@@ -148,25 +173,39 @@ class SellerPlanController extends Controller
                 'escrow_balance' => (string) $wallet->escrow_balance,
                 'currency' => $wallet->currency,
             ],
-            'revenue' => [
-                'gross_sales' => number_format((float) Order::query()
+            'revenue' => (function () use ($seller) {
+                $orders = Order::query()
                     ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
-                    ->sum('gross_amount'), 2, '.', ''),
-                'platform_fees' => number_format((float) Order::query()
-                    ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
-                    ->sum('platform_fee_amount'), 2, '.', ''),
-                'net_revenue' => number_format((float) Order::query()
-                    ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
-                    ->sum('seller_net_amount'), 2, '.', ''),
-                'pending_release' => number_format((float) Order::query()
-                    ->where('seller_id', $seller->id)
-                    ->whereIn('payment_status', ['paid', 'released'])
+                    ->whereIn('payment_status', ['paid', 'released', 'refunded'])
+                    ->get(['gross_amount', 'refunded_amount', 'platform_fee_percentage', 'fund_status']);
+
+                $grossSales    = $orders->reduce(fn (float $c, Order $o) => $c + (float) $o->gross_amount, 0.0);
+                $totalRefunds  = $orders->reduce(fn (float $c, Order $o) => $c + (float) ($o->refunded_amount ?? 0), 0.0);
+                $netSales      = $grossSales - $totalRefunds;
+                $platformFees  = $orders->reduce(function (float $c, Order $o) {
+                    $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                    return $c + round($net * ((float) $o->platform_fee_percentage / 100), 2);
+                }, 0.0);
+                $netRevenue    = $orders->reduce(function (float $c, Order $o) {
+                    $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                    return $c + round($net * (1 - (float) $o->platform_fee_percentage / 100), 2);
+                }, 0.0);
+                $pendingRelease = $orders
                     ->whereIn('fund_status', ['escrow', 'releasable'])
-                    ->sum('seller_net_amount'), 2, '.', ''),
-            ],
+                    ->reduce(function (float $c, Order $o) {
+                        $net = max(0, (float) $o->gross_amount - (float) ($o->refunded_amount ?? 0));
+                        return $c + round($net * (1 - (float) $o->platform_fee_percentage / 100), 2);
+                    }, 0.0);
+
+                return [
+                    'gross_sales'    => number_format($grossSales, 2, '.', ''),
+                    'total_refunds'  => number_format($totalRefunds, 2, '.', ''),
+                    'net_sales'      => number_format($netSales, 2, '.', ''),
+                    'platform_fees'  => number_format($platformFees, 2, '.', ''),
+                    'net_revenue'    => number_format($netRevenue, 2, '.', ''),
+                    'pending_release' => number_format($pendingRelease, 2, '.', ''),
+                ];
+            })(),
             'withdrawals' => $this->mapWithdrawals($seller),
         ]);
     }
@@ -209,7 +248,7 @@ class SellerPlanController extends Controller
                 sprintf('Withdrawal request reserved for seller #%d', $seller->id),
             );
 
-            WithdrawalRequest::create([
+            $withdrawalRequest = WithdrawalRequest::create([
                 'seller_id' => $seller->id,
                 'wallet_id' => $wallet->id,
                 'amount' => $amount,
@@ -219,6 +258,16 @@ class SellerPlanController extends Controller
                 'note' => $data['details'] ?: null,
             ]);
         });
+
+        $latestRequest = WithdrawalRequest::query()
+            ->where('seller_id', $seller->id)
+            ->with('wallet')
+            ->latest('id')
+            ->first();
+
+        if ($latestRequest) {
+            $this->notifications->withdrawalRequested($latestRequest);
+        }
 
         return back()->with('success', 'Withdrawal request submitted successfully.');
     }
@@ -371,40 +420,65 @@ class SellerPlanController extends Controller
     {
         $current = $seller->activeSubscription();
         $now = now();
-        $shouldActivateImmediately = $current
-            && $current->plan
-            && (float) $current->plan->price <= 0
-            && (float) $plan->price > 0;
 
-        $startsAt = $shouldActivateImmediately
-            ? $now->copy()
-            : ($current && $current->ends_at && $current->ends_at->isFuture()
-                ? $current->ends_at->copy()
-                : $now->copy());
-        $endsAt = $startsAt->copy()->addDays($plan->duration_days);
+        // Always activate immediately if:
+        // 1. No current subscription, OR
+        // 2. New plan has higher or equal gig limit (upgrade), OR
+        // 3. Current plan is free
+        $shouldActivateImmediately = ! $current
+            || ! $current->plan
+            || (int) $plan->gig_limit >= (int) $current->plan->gig_limit
+            || (float) $current->plan->price <= 0;
 
+        $startsAt = $now->copy();
+        $endsAt   = $startsAt->copy()->addDays($plan->duration_days);
+
+        // Cancel all queued (future) subscriptions
         Subscription::query()
             ->where('user_id', $seller->id)
             ->where('status', 'active')
             ->where('starts_at', '>', $now)
-            ->update([
-                'status' => 'replaced',
-            ]);
+            ->update(['status' => 'replaced']);
 
-        if ($shouldActivateImmediately) {
+        // Override current active plan immediately if upgrading
+        if ($shouldActivateImmediately && $current) {
             $current->update([
                 'status' => 'replaced',
                 'ends_at' => $now,
             ]);
         }
 
+        // If downgrading (lower gig_limit), queue after current ends
+        if (! $shouldActivateImmediately && $current?->ends_at?->isFuture()) {
+            $startsAt = $current->ends_at->copy();
+            $endsAt   = $startsAt->copy()->addDays($plan->duration_days);
+        }
+
         $subscription = Subscription::create([
-            'user_id' => $seller->id,
-            'plan_id' => $plan->id,
+            'user_id'   => $seller->id,
+            'plan_id'   => $plan->id,
             'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'status' => 'active',
+            'ends_at'   => $endsAt,
+            'status'    => 'active',
         ]);
+
+        // Reactivate deactivated gigs up to the new plan limit
+        $currentActiveCount = Gig::query()
+            ->where('user_id', $seller->id)
+            ->where('status', 'active')
+            ->count();
+
+        $slotsAvailable = $plan->gig_limit - $currentActiveCount;
+
+        if ($slotsAvailable > 0) {
+            Gig::query()
+                ->where('user_id', $seller->id)
+                ->where('status', 'inactive')
+                ->orderBy('id')
+                ->limit($slotsAvailable)
+                ->get()
+                ->each(fn (Gig $gig) => $gig->update(['status' => 'active']));
+        }
 
         if ($payment) {
             $payment->subscription_id = $subscription->id;

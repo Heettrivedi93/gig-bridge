@@ -1,10 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Bell,
+    Bookmark,
     CreditCard,
     LayoutGrid,
     ReceiptText,
     Search,
+    ShieldAlert,
     ShoppingBag,
     Store,
     Wallet2,
@@ -27,16 +29,21 @@ import type { NavItem } from '@/types';
 export function AppSidebar() {
     const { auth, notifications } = usePage<{
         auth: { user: { roles?: string[]; permissions?: string[] } | null };
-        notifications?: { enabled?: boolean; unread_count?: number };
+        notifications?: { enabled?: boolean; unread_count?: number; items?: { read_at?: string | null }[] };
     }>().props;
     const isSeller = auth.user?.roles?.includes('seller') ?? false;
     const isBuyer = auth.user?.roles?.includes('buyer') ?? false;
     const permissions = auth.user?.permissions ?? [];
     const canAccess = (permission: string) => permissions.includes(permission);
-    const notificationBadge =
-        notifications?.enabled && (notifications.unread_count ?? 0) > 0
-            ? String(notifications.unread_count)
-            : null;
+
+    // Derive unread count from items array — always in sync with actual data
+    const unreadCount = notifications?.enabled
+        ? (notifications.items ?? []).filter((n) => !n.read_at).length
+        : 0;
+    const notificationBadge = unreadCount > 0
+        ? unreadCount > 99 ? '99+' : String(unreadCount)
+        : undefined;
+
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
@@ -76,6 +83,15 @@ export function AppSidebar() {
                   } satisfies NavItem,
               ]
             : []),
+        ...(isSeller && canAccess('seller.orders.access')
+            ? [
+                  {
+                      title: 'My Disputes',
+                      href: '/disputes',
+                      icon: ShieldAlert,
+                  } satisfies NavItem,
+              ]
+            : []),
         ...(isSeller && canAccess('seller.wallet.access')
             ? [
                   {
@@ -103,12 +119,30 @@ export function AppSidebar() {
                   } satisfies NavItem,
               ]
             : []),
+        ...(isBuyer && canAccess('buyer.gigs.access')
+            ? [
+                  {
+                      title: 'Saved Gigs',
+                      href: '/buyer/favourites',
+                      icon: Bookmark,
+                  } satisfies NavItem,
+              ]
+            : []),
         ...(isBuyer && canAccess('buyer.orders.access')
             ? [
                   {
                       title: 'Orders',
                       href: '/buyer/orders',
                       icon: ShoppingBag,
+                  } satisfies NavItem,
+              ]
+            : []),
+        ...(isBuyer && canAccess('buyer.orders.access')
+            ? [
+                  {
+                      title: 'My Disputes',
+                      href: '/disputes',
+                      icon: ShieldAlert,
                   } satisfies NavItem,
               ]
             : []),
@@ -129,7 +163,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={dashboard()}>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

@@ -39,12 +39,15 @@ class AdminOrderController extends Controller
             ->latest('id')
             ->get();
 
-        $grossVolume = $orders
-            ->whereIn('payment_status', ['paid', 'released'])
-            ->sum(fn (Order $order) => (float) $order->price);
-
-        $platformRevenue = round($grossVolume * ($platformFeePercentage / 100), 2);
-        $sellerNet = round($grossVolume - $platformRevenue, 2);
+        $paidOrdersCollection = $orders->whereIn('payment_status', ['paid', 'released', 'refunded']);
+        $grossVolume     = round($paidOrdersCollection->sum(fn (Order $o) => (float) $o->price), 2);
+        $totalRefunds    = round($paidOrdersCollection->sum(fn (Order $o) => (float) ($o->refunded_amount ?? 0)), 2);
+        $netVolume       = round($grossVolume - $totalRefunds, 2);
+        $platformRevenue = round($paidOrdersCollection->reduce(function (float $c, Order $o) {
+            $net = max(0, (float) $o->price - (float) ($o->refunded_amount ?? 0));
+            return $c + round($net * ((float) $o->platform_fee_percentage / 100), 2);
+        }, 0.0), 2);
+        $sellerNet = round($netVolume - $platformRevenue, 2);
 
         return Inertia::render('admin/orders/index', [
             'stats' => [
@@ -61,7 +64,7 @@ class AdminOrderController extends Controller
                 [
                     'label' => 'Gross Volume',
                     'value' => number_format($grossVolume, 2, '.', ''),
-                    'detail' => sprintf('Fee %.2f%%', $platformFeePercentage),
+                    'detail' => sprintf('Refunds USD %s · Net USD %s', number_format($totalRefunds, 2, '.', ''), number_format($netVolume, 2, '.', '')),
                 ],
                 [
                     'label' => 'Platform Revenue',
@@ -69,9 +72,11 @@ class AdminOrderController extends Controller
                     'detail' => sprintf('Seller net %s', number_format($sellerNet, 2, '.', '')),
                 ],
             ],
-            'orders' => $orders->map(function (Order $order) use ($platformFeePercentage) {
-                $price = (float) $order->price;
-                $platformFee = round($price * ($platformFeePercentage / 100), 2);
+            'orders' => $orders->map(function (Order $order) {
+                $gross      = (float) $order->price;
+                $refunded   = (float) ($order->refunded_amount ?? 0);
+                $netPrice   = max(0, $gross - $refunded);
+                $platformFee = round($netPrice * ((float) $order->platform_fee_percentage / 100), 2);
 
                 return [
                     'id' => $order->id,
@@ -96,9 +101,13 @@ class AdminOrderController extends Controller
                     'style_notes' => $order->style_notes,
                     'coupon_code' => $order->coupon_code,
                     'brief_file_url' => $order->brief_file_path ? Storage::disk('public')->url($order->brief_file_path) : null,
-                    'price' => (string) $order->price,
+                    'subtotal_amount' => (string) $order->subtotal_amount,
+                    'discount_amount' => (string) $order->discount_amount,
+                    'price' => number_format($gross, 2, '.', ''),
+                    'refunded_amount' => number_format($refunded, 2, '.', ''),
+                    'net_price' => number_format($netPrice, 2, '.', ''),
                     'platform_fee' => number_format($platformFee, 2, '.', ''),
-                    'seller_net' => number_format($price - $platformFee, 2, '.', ''),
+                    'seller_net' => number_format($netPrice - $platformFee, 2, '.', ''),
                     'status' => $order->status,
                     'payment_status' => $order->payment_status,
                     'fund_status' => $order->fund_status,

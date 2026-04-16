@@ -1,8 +1,10 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { ImagePlus, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ImagePlus, Eye, Lock, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,6 +65,12 @@ type GigItem = {
     subcategory_name: string | null;
     tags: string;
     status: GigStatus;
+    approval_status: 'pending' | 'approved' | 'rejected';
+    rejection_reason: string | null;
+    approved_at: string | null;
+    rejected_at: string | null;
+    views_count: number;
+    is_locked: boolean;
     images: { id: number; url: string }[];
     packages: Record<PackageTier, PackageForm>;
 };
@@ -70,10 +78,13 @@ type GigItem = {
 type Props = {
     gigs: GigItem[];
     categories: CategoryOption[];
+    seller_level: SellerLevelBadgeData;
+    seller_is_available: boolean;
     subscription: {
         plan_name: string;
         gig_limit: number;
         active_gig_count: number;
+        total_gig_count: number;
         ends_at?: string | null;
     };
 };
@@ -567,11 +578,15 @@ function GigForm({
 export default function SellerGigsIndex({
     gigs,
     categories,
+    seller_level,
+    seller_is_available,
     subscription,
 }: Props) {
     const confirm = useConfirm();
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<GigItem | null>(null);
+    const [isAvailable, setIsAvailable] = useState(seller_is_available);
+    const [isAvailabilityUpdating, setIsAvailabilityUpdating] = useState(false);
 
     const createForm = useForm<GigFormState>(emptyGigForm());
     const editForm = useForm<GigFormState>(emptyGigForm());
@@ -580,10 +595,40 @@ export default function SellerGigsIndex({
         subscription.gig_limit - subscription.active_gig_count,
         0,
     );
+    const canCreateGig = subscription.total_gig_count < subscription.gig_limit;
 
     const subscriptionEndsText = useMemo(() => {
         return formatDisplayDate(subscription.ends_at);
     }, [subscription.ends_at]);
+
+    useEffect(() => {
+        setIsAvailable(seller_is_available);
+    }, [seller_is_available]);
+
+    const toggleAvailability = () => {
+        if (isAvailabilityUpdating) {
+            return;
+        }
+
+        const previous = isAvailable;
+        const next = !isAvailable;
+        setIsAvailable(next);
+        setIsAvailabilityUpdating(true);
+
+        router.put(
+            '/seller/availability',
+            { is_available: next },
+            {
+                preserveScroll: true,
+                onError: () => {
+                    setIsAvailable(previous);
+                },
+                onFinish: () => {
+                    setIsAvailabilityUpdating(false);
+                },
+            },
+        );
+    };
 
     const openEdit = (gig: GigItem) => {
         setEditTarget(gig);
@@ -659,13 +704,16 @@ export default function SellerGigsIndex({
                         description="Create, price, activate, and maintain the services you sell."
                     />
 
-                    <Button onClick={() => setShowCreate(true)} size="sm">
-                        <PlusIcon />
-                        Create Gig
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <SellerLevelBadge level={seller_level} />
+                        <Button onClick={() => setShowCreate(true)} size="sm" disabled={!canCreateGig} title={!canCreateGig ? 'Gig limit reached. Upgrade your plan to create more gigs.' : undefined}>
+                            <PlusIcon />
+                            Create Gig
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-3">
+                <div className="grid gap-4 xl:grid-cols-4">
                     <div className="rounded-2xl border border-border/70 bg-card p-5">
                         <p className="text-sm text-muted-foreground">
                             Active plan
@@ -704,6 +752,42 @@ export default function SellerGigsIndex({
                             plans.
                         </p>
                     </div>
+
+                    <div className="rounded-2xl border border-border/70 bg-card p-5">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                Availability
+                            </p>
+                            <Badge
+                                variant={
+                                    isAvailable
+                                        ? 'default'
+                                        : 'destructive'
+                                }
+                            >
+                                {isAvailable
+                                    ? 'Accepting orders'
+                                    : 'On a break'}
+                            </Badge>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Toggle this when you are away. Buyers can still view
+                            your gigs, but new orders will be blocked.
+                        </p>
+                        <Button
+                            type="button"
+                            variant={isAvailable ? 'outline' : 'default'}
+                            className="mt-4 w-full"
+                            onClick={toggleAvailability}
+                            disabled={isAvailabilityUpdating}
+                        >
+                            {isAvailabilityUpdating
+                                ? 'Updating...'
+                                : isAvailable
+                                ? 'Pause new orders'
+                                : 'Resume new orders'}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="rounded-2xl border border-border/70 bg-card">
@@ -727,7 +811,7 @@ export default function SellerGigsIndex({
                                     and gallery images.
                                 </p>
                             </div>
-                            <Button onClick={() => setShowCreate(true)}>
+                            <Button onClick={() => setShowCreate(true)} disabled={!canCreateGig}>
                                 <PlusIcon />
                                 Create your first gig
                             </Button>
@@ -737,8 +821,20 @@ export default function SellerGigsIndex({
                             {gigs.map((gig) => (
                                 <article
                                     key={gig.id}
-                                    className="overflow-hidden rounded-2xl border border-border/70 bg-background"
+                                    className={`relative overflow-hidden rounded-2xl border bg-background ${
+                                        gig.is_locked
+                                            ? 'border-destructive/40 opacity-60'
+                                            : 'border-border/70'
+                                    }`}
                                 >
+                                    {gig.is_locked && (
+                                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-background/20">
+                                            <Lock className="size-6 text-destructive" />
+                                            <p className="px-4 text-center text-sm font-medium text-destructive">
+                                                Locked — upgrade your plan to manage this gig
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="aspect-[16/9] bg-muted">
                                         {gig.images[0] ? (
                                             <img
@@ -775,6 +871,35 @@ export default function SellerGigsIndex({
                                             </Badge>
                                         </div>
 
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge
+                                                variant={
+                                                    gig.approval_status ===
+                                                    'approved'
+                                                        ? 'default'
+                                                        : gig.approval_status ===
+                                                            'rejected'
+                                                          ? 'destructive'
+                                                          : 'secondary'
+                                                }
+                                            >
+                                                {gig.approval_status}
+                                            </Badge>
+                                        </div>
+
+                                        {gig.rejection_reason ? (
+                                            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                                                Rejected: {gig.rejection_reason}
+                                            </p>
+                                        ) : gig.approval_status ===
+                                          'pending' ? (
+                                            <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                                                Pending admin review. This gig
+                                                is not visible to buyers until
+                                                approved.
+                                            </p>
+                                        ) : null}
+
                                         <p className="line-clamp-3 text-sm text-muted-foreground">
                                             {gig.description}
                                         </p>
@@ -793,6 +918,15 @@ export default function SellerGigsIndex({
                                                     </span>
                                                 </div>
                                             ))}
+                                            <div className="flex items-center justify-between border-t border-border/50 pt-2 text-sm">
+                                                <span className="flex items-center gap-1 text-muted-foreground">
+                                                    <Eye className="size-3.5" />
+                                                    Views
+                                                </span>
+                                                <span className="font-medium">
+                                                    {gig.views_count.toLocaleString()}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div className="flex flex-wrap gap-2">

@@ -217,3 +217,85 @@ test('in app notifications are not sent when disabled in settings', function () 
 
     expect($seller->fresh()->notifications)->toHaveCount(0);
 });
+
+test('in app notifications are not sent when user disables order updates', function () {
+    Setting::setValue('notifications_in_app_enabled', true);
+    Setting::setValue('notifications_in_app_events', ['orders']);
+    Setting::setMany([
+        'payment_paypal_mode' => 'sandbox',
+        'payment_paypal_client_id' => 'test-client-id',
+        'payment_paypal_client_secret' => 'test-client-secret',
+        'payment_currency' => 'USD',
+    ]);
+
+    Http::fake([
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+            'id' => 'ORDER-NOTIFY-2',
+            'status' => 'CREATED',
+        ], 201),
+        'https://api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-NOTIFY-2/capture' => Http::response([
+            'status' => 'COMPLETED',
+            'payer' => [
+                'payer_id' => 'PAYER-NOTIFY-2',
+            ],
+        ]),
+    ]);
+
+    [$category, $subcategory] = notificationCategory();
+    $seller = notificationUser('seller');
+    $seller->update([
+        'notification_preferences' => [
+            'email_enabled' => true,
+            'email_events' => [
+                'registration',
+                'order_placed',
+                'order_delivered',
+                'revision_requested',
+                'order_completed',
+                'order_cancelled',
+                'messages',
+                'payment_released',
+            ],
+            'in_app_enabled' => true,
+            'in_app_events' => ['messages'],
+        ],
+    ]);
+
+    $buyer = notificationUser('buyer');
+    $gig = notificationGig($seller, $category, $subcategory);
+    $package = $gig->packages()->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->post(route('buyer.orders.store', $gig), [
+            'package_id' => $package->id,
+            'quantity' => 1,
+            'requirements' => 'Need this completed quickly.',
+            'billing_name' => 'Buyer Example',
+            'billing_email' => 'buyer@example.com',
+        ])
+        ->assertRedirect(route('buyer.orders.index'));
+
+    $order = Order::query()->firstOrFail();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.order', $order))
+        ->assertOk();
+
+    $this->actingAs($buyer)
+        ->postJson(route('buyer.orders.paypal.capture', $order), [
+            'order_id' => 'ORDER-NOTIFY-2',
+        ])
+        ->assertOk();
+
+    expect($seller->fresh()->notifications)->toHaveCount(0);
+
+    $this->actingAs($seller)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('notifications.enabled', true)
+            ->where('notifications.unread_count', 0));
+});

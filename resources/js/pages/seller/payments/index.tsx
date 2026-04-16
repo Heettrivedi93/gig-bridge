@@ -80,10 +80,6 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
         [completedPayments],
     );
 
-    const printInvoice = () => {
-        window.print();
-    };
-
     return (
         <>
             <Head title="Payment History" />
@@ -347,12 +343,15 @@ export default function SellerPaymentsIndex({ payments, seller }: Props) {
                             </div>
 
                             <div className="flex justify-end">
-                                <Button
-                                    variant="outline"
-                                    onClick={printInvoice}
-                                >
-                                    <Download className="mr-2 size-4" />
-                                    Print invoice
+                                <Button asChild variant="outline">
+                                    <a
+                                        href={`/seller/payments/${selectedPayment.id}/invoice.pdf`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <Download className="mr-2 size-4" />
+                                        Download PDF
+                                    </a>
                                 </Button>
                             </div>
                         </div>

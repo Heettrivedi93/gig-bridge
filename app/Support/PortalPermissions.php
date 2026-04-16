@@ -7,6 +7,7 @@ class PortalPermissions
     public const SELLER = [
         'seller.gigs.access',
         'seller.orders.access',
+        'seller.messages.access',
         'seller.plans.access',
         'seller.wallet.access',
         'seller.payments.access',
@@ -15,6 +16,7 @@ class PortalPermissions
     public const BUYER = [
         'buyer.gigs.access',
         'buyer.orders.access',
+        'buyer.messages.access',
         'buyer.payments.access',
     ];
 

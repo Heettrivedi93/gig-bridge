@@ -1,0 +1,150 @@
+so now all check this project and give me suggestion to improve in that area where we need to improve.
+
+
+Context
+I will scan the entire codebase for a full review.
+
+I will scan the entire code for the following files/folders:
+
+I've completed a full scan of the entire codebase. Since there were more than 30 findings, you'll need to use the Code Issues Panel to see all the details and fixes.
+
+That said, based on everything I've built and reviewed throughout this project, here are my broader architectural and quality suggestions grouped by area:
+
+🔐 Security
+Rate limiting — Add throttle middleware on login, register, PayPal capture, and dispute message endpoints. Currently none of these are rate-limited.
+
+File upload validation — Delivery files, dispute attachments, and brief files only check max:8192 but don't restrict MIME types. A malicious file could be uploaded. Add mimes:pdf,jpg,jpeg,png,zip,doc,docx.
+
+Authorization gaps — Some admin routes only check EnsureSuperAdmin middleware but individual resource ownership isn't always verified (e.g. admin can release funds on any order without checking it belongs to the platform).
+
+Mass assignment — Several models have broad $fillable arrays. Consider using $guarded = [] carefully or tightening fillable lists.
+
+⚡ Performance
+N+1 queries — The dashboard controller runs many separate count() queries in loops. These should be batched with withCount() or a single grouped query.
+
+No pagination — Orders, gigs, messages, and wallet transactions all load the full collection with ->get(). On a real platform with thousands of records this will be slow. Add paginate(20) or cursor pagination.
+
+No caching — Settings like payment_platform_fee_percentage are fetched from DB on every request. These should be cached with Cache::remember() since they rarely change.
+
+Missing database indexes — orders.buyer_id, orders.seller_id, orders.payment_status, disputes.status, coupon_user.user_id should all have indexes for query performance.
+
+🏗️ Architecture
+Fat controllers — BuyerOrderController and DashboardController are very large. Business logic like order completion, fund release decisions, and dashboard metric calculations should move into dedicated Service classes.
+
+No queue usage for notifications — SystemNotificationService sends emails synchronously during the request cycle. This blocks the response. All notifications should be dispatched as queued jobs.
+
+No events/listeners — The README mentions events but they aren't implemented. Order state transitions (placed, delivered, completed, cancelled) should fire events that listeners handle — notifications, wallet updates, Trello cards — instead of calling services directly in controllers.
+
+Dispute resolution doesn't update order status atomically — The DisputeService updates wallet and order in a transaction but the order status update happens after wallet operations. If something fails mid-way the order could be in an inconsistent state.
+
+🧪 Testing
+Several test files exist but coverage is incomplete for the dispute system, coupon per-user tracking, and wallet clawback scenarios. These are the most financially sensitive areas and need thorough test coverage.
+
+🎨 Frontend
+No loading states — Most forms show processing on the submit button but table data has no skeleton loaders. On slow connections the page appears blank briefly.
+
+No error boundaries — A single React component crash takes down the whole page. Add ErrorBoundary wrappers around major sections.
+
+window.location.href for navigation — Several dispute buttons use window.location.href instead of Inertia's router.visit() or <Link>. This causes a full page reload losing Inertia state.
+
+Inline styles and magic numbers — Some components have hardcoded pixel values like max-h-[480px]. These should use design tokens or Tailwind config values.
+
+💼 Business Logic
+No auto-release scheduler — The README mentions auto_release_days but the scheduler/cron job that auto-completes orders after delivery timeout is not implemented.
+
+Withdrawal balance check — When a dispute clawback happens on a seller wallet, there's no check whether the seller has already requested a withdrawal of those funds. This could result in negative balances.
+
+Coupon expiry on order creation — Coupon is validated at order creation but PayPal capture can happen minutes/hours later. The coupon could expire between order creation and payment capture. The capture should re-validate the coupon.
+
+No refund via PayPal API — Cancellations and dispute refunds mark payment_status = refunded in the DB but don't actually call the PayPal Refunds API. The buyer never gets their money back in reality.
+
+📋 Top 5 priorities I'd fix first
+PayPal refund API integration — most critical, real money is involved
+
+Pagination on all list endpoints — scalability blocker
+
+Queue notifications — user experience and server performance
+
+Auto-release scheduler — core business feature mentioned in README
+
+window.location.href → router.visit() — quick frontend fix
+
+account:trivedi.workdo1@gmail.com limit resets on Apr 17, 2026 at 4.11 PM
+account:heettrivedi93@gmail.com limit resets on Apr 21, 2026, 9:19 AM
+account:heettrivedi82@gmail.com limit resets on Apr 21, 2026, 2:16 PM
+account:heetwork93@gmail.com limit resets on Apr 20, 2026, 9:21 AM
+hi
+
+
+New Features
+1. Seller public profile page
+Right now buyers can see a seller's name on a gig but can't click through to see all their gigs, bio, ratings, or reviews in one place. A /sellers/{user} public page showing their active gigs, average rating, review count, bio, skills, and location would significantly improve buyer trust and discovery. The data is all already in the DB.
+
+2. Gig favourites / wishlist (buyer)
+A simple gig_favourites table (user_id, gig_id). Buyers can heart a gig from the catalog. A "Saved Gigs" page lets them come back to shortlisted services. Zero backend complexity, high buyer engagement value.
+
+3. Order deadline tracking
+Orders have delivery_days on the package but no due_at timestamp is stored or shown. Add a due_at column computed at order activation (activated_at + delivery_days). Show a countdown or "overdue" badge on both buyer and seller order lists. The auto-release scheduler already exists — this is a natural extension.
+
+4. Seller availability toggle
+A simple is_available boolean on the user. When off, the seller's gigs show an "Unavailable" badge in the catalog and new orders are blocked. Sellers going on holiday can flip it without deactivating every gig.
+
+5. Admin broadcast announcement
+A simple announcements table. Admin creates a message with a target audience (all / buyers / sellers) and an expiry. Users see a dismissible banner at the top of their dashboard. Useful for maintenance notices, feature announcements, or policy changes.
+
+6. Invoice download for buyers
+Sellers already have invoice PDF download. Buyers have a payments page but no invoice. Reuse the existing DomPDF setup to generate a buyer-facing invoice PDF per order showing gig, package, amount paid, PayPal transaction ID, and platform details.
+
+Existing Feature Improvements
+7. Messages — real-time (missing)
+The order chat modal uses Echo/WebSockets for real-time updates. The main /messages page does not — it still requires a full page reload to see new messages. The OrderMessageSent event and channel are already wired; the messages index just needs the same Echo listener pattern applied to it.
+
+8. Buyer orders — useMemo missing import
+The TypeScript compiler has been flagging useMemo as undefined in buyer/orders/index.tsx since before our changes. It's imported from React but the import line is missing it. One-line fix.
+
+9. Gig search — subcategory filter missing
+The catalog filter panel has category but not subcategory. When a buyer picks "Design & Creative" they can't narrow to "Logo Design". The subcategory data is already in the DB and the category select already loads subcategories in the seller gig form — it just needs wiring into the buyer catalog filter.
+
+10. Seller dashboard — messages link missing from sidebar
+app-sidebar.tsx has no Messages nav item for buyers or sellers. Users have to know the /messages URL. This was flagged in the original UI audit and is a one-line fix.
+
+11. Admin disputes — bulk status filter
+The admin disputes list has no search or filter at all — it just renders all disputes. With volume it becomes unusable. Adding the same search + status filter pattern already used on the buyer/seller dispute pages would take 20 minutes.
+
+12. Withdrawal requests — seller can't see status history
+The wallet page shows withdrawal status but there's no detail view. If a withdrawal is rejected or has an admin note, the seller sees the badge but not the reason. Expanding the row or adding a detail modal with note and reviewed_at would close this gap.
+
+13. Notification preferences — Trello toggle is shown but does nothing
+settings/notifications.tsx renders a Trello toggle in the user preferences UI, but Trello is a system-level setting (admin only per the README). The user-facing toggle should either be removed or clearly labelled as "admin-controlled" to avoid confusion.
+
+14. Admin settings — email test button
+The SMTP settings page has no "Send test email" button. Admins configure SMTP credentials but have no way to verify they work without triggering a real event. A single test endpoint that sends a test email to the admin's address would save a lot of debugging time.
+
+Performance / Technical Debt
+15. N+1 queries in MessageController::index
+The thread-building logic loads all messages then groups them in PHP. With a large message volume this will be slow. The threads should be built with a subquery (latestOfMany or a raw GROUP BY) rather than loading every message into memory.
+
+16. BuyerCatalogController — no pagination
+The gig catalog loads all matching gigs into memory and returns them as a single array. With 100+ gigs this will be slow and the page will be heavy. Server-side pagination with paginate() and cursor-based loading on the frontend would fix this.
+
+17. Missing Messages route in web.php
+The general /messages route exists but there's no route for the standalone messages page accessible from the sidebar. The MessageController::index and store routes are registered under the auth middleware but there's no named route for the sidebar link — it relies on a hardcoded /messages href.
+
+Want me to implement any of these? I'd suggest starting with 7 (messages real-time), 8 (useMemo fix), and 10 (messages sidebar link) since they're quick wins that close gaps in already-built features.
+
+13-04-26 work
+1.do realtime chat in request raised sections
+2.add user specific notification preferences
+3.make new landing page 
+4.add sellers profile view in gigs
+5.buyer can save gigs 
+6.add gigs views
+7.add order deadline tracking
+
+
+14-04-26 work
+1.implement admin broadcast announcement feature
+2.implement seller ranking system 
+3.implement next level reach milestone Improvements
+4.seller availability option implemented
+5.smart recommendation in gigs

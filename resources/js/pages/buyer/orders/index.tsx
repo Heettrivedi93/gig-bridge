@@ -1,8 +1,22 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { FileText, Star } from 'lucide-react';
+import {
+    AlertTriangle,
+    CreditCard,
+    Download,
+    Eye,
+    FileText,
+    MessageCircle,
+    RefreshCcw,
+    ShoppingBag,
+    SlidersHorizontal,
+    Star,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import OrderChatModal from '@/components/order-chat-modal';
+import OrderDueDate from '@/components/order-due-date';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +26,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useClientPagination } from '@/hooks/use-client-pagination';
+import EmptyState from '@/components/empty-state';
 import type { BreadcrumbItem } from '@/types';
 
 type OrderItem = {
@@ -24,6 +53,7 @@ type OrderItem = {
         revision_count: number;
     } | null;
     seller: {
+        id: number;
         name: string;
         email: string;
     } | null;
@@ -32,6 +62,8 @@ type OrderItem = {
     reference_link: string | null;
     style_notes: string | null;
     coupon_code: string | null;
+    subtotal_amount: string;
+    discount_amount: string;
     brief_file_url: string | null;
     price: string;
     unit_price: string;
@@ -40,6 +72,7 @@ type OrderItem = {
     paypal_order_id: string | null;
     created_at: string | null;
     delivered_at: string | null;
+    due_at: string | null;
     completed_at: string | null;
     cancelled_at: string | null;
     used_revisions: number;
@@ -69,6 +102,7 @@ type OrderItem = {
         comment: string;
         created_at: string | null;
     } | null;
+    open_dispute_id: number | null;
 };
 
 type PaypalConfig = {
@@ -82,6 +116,7 @@ type PaypalConfig = {
 type Props = {
     orders: OrderItem[];
     paypal: PaypalConfig;
+    refund_policy: string;
 };
 
 type PaypalButtonsProps = {
@@ -128,6 +163,33 @@ function shortDate(value: string | null) {
     return new Date(value).toLocaleDateString();
 }
 
+function normalizeSearch(value: string | null | undefined) {
+    return value?.toLowerCase().trim() ?? '';
+}
+
+function ActionIconButton({
+    label,
+    children,
+    className,
+    ...props
+}: { label: string } & React.ComponentProps<typeof Button>) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${className ?? ''}`}
+                    {...props}
+                >
+                    {children}
+                    <span className="sr-only">{label}</span>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
 function getCsrfToken() {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content;
@@ -161,13 +223,27 @@ async function requestJson<T>(
     return payload as T;
 }
 
-export default function BuyerOrdersIndex({ orders, paypal }: Props) {
+export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Props) {
     const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
+    const [messageOrder, setMessageOrder] = useState<OrderItem | null>(() => {
+        const messageOrderId = new URLSearchParams(window.location.search).get(
+            'message_order',
+        );
+
+        if (!messageOrderId) {
+            return null;
+        }
+
+        const parsedOrderId = Number(messageOrderId);
+
+        return orders.find((item) => item.id === parsedOrderId) ?? null;
+    });
     const [revisionTarget, setRevisionTarget] = useState<OrderItem | null>(
         null,
     );
     const [cancelTarget, setCancelTarget] = useState<OrderItem | null>(null);
     const [reviewTarget, setReviewTarget] = useState<OrderItem | null>(null);
+    const [disputeTarget, setDisputeTarget] = useState<OrderItem | null>(null);
     const [checkoutOrder, setCheckoutOrder] = useState<OrderItem | null>(null);
     const [checkoutPaypalOrderId, setCheckoutPaypalOrderId] = useState<
         string | null
@@ -187,6 +263,9 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
     }>({
         cancellation_reason: '',
     });
+    const disputeForm = useForm<{ reason: string }>({
+        reason: '',
+    });
     const reviewForm = useForm<{
         rating: string;
         comment: string;
@@ -194,6 +273,39 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
         rating: '5',
         comment: '',
     });
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [paymentFilter, setPaymentFilter] = useState('all');
+    const filteredOrders = useMemo(() => {
+        const searchTerm = normalizeSearch(search);
+
+        return orders.filter((order) => {
+            const matchesSearch =
+                searchTerm.length === 0 ||
+                [
+                    order.id.toString(),
+                    order.gig_title,
+                    order.package?.title,
+                    order.package?.tier,
+                    order.seller?.name,
+                    order.seller?.email,
+                ].some((value) => normalizeSearch(value).includes(searchTerm));
+            const matchesStatus =
+                statusFilter === 'all' || order.status === statusFilter;
+            const matchesPayment =
+                paymentFilter === 'all' ||
+                order.payment_status === paymentFilter;
+
+            return matchesSearch && matchesStatus && matchesPayment;
+        });
+    }, [orders, paymentFilter, search, statusFilter]);
+    const paginatedOrders = useClientPagination(filteredOrders);
+    const statusOptions = Array.from(
+        new Set(orders.map((order) => order.status)),
+    );
+    const paymentOptions = Array.from(
+        new Set(orders.map((order) => order.payment_status)),
+    );
 
     useEffect(() => {
         if (
@@ -417,6 +529,23 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
         });
     };
 
+    const submitDispute = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        if (!disputeTarget) {
+            return;
+        }
+
+        disputeForm.post(`/orders/${disputeTarget.id}/disputes`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setDisputeTarget(null);
+                setSelectedOrder(null);
+                disputeForm.reset();
+            },
+        });
+    };
+
     return (
         <>
             <Head title="Orders" />
@@ -427,22 +556,108 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                     description="A simpler view of your purchases, payments, and deliveries."
                 />
 
-                {orders.length === 0 ? (
-                    <section className="rounded-3xl border border-dashed border-border/70 bg-card px-6 py-16 text-center">
-                        <h2 className="text-lg font-semibold">No orders yet</h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Browse the catalog, pick a package, and your first
-                            buyer order will show up here.
-                        </p>
-                        <div className="mt-5">
-                            <Button asChild>
-                                <Link href="/buyer/gigs">Explore gigs</Link>
+                <section className="rounded-2xl border border-border/70 bg-card p-4">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.7fr)_minmax(180px,0.7fr)_auto]">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Search orders
+                            </label>
+                            <Input
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                placeholder="Search by order ID, seller, or gig"
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Status
+                            </label>
+                            <Select
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                    <SelectItem value="all">
+                                        All statuses
+                                    </SelectItem>
+                                    {statusOptions.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {status}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">
+                                Payment
+                            </label>
+                            <Select
+                                value={paymentFilter}
+                                onValueChange={setPaymentFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent align="start">
+                                    <SelectItem value="all">
+                                        All payments
+                                    </SelectItem>
+                                    {paymentOptions.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {status}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setSearch('');
+                                    setStatusFilter('all');
+                                    setPaymentFilter('all');
+                                }}
+                                className="w-full lg:w-auto"
+                            >
+                                Clear
                             </Button>
                         </div>
-                    </section>
+                    </div>
+
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        {filteredOrders.length} matching order
+                        {filteredOrders.length === 1 ? '' : 's'} found.
+                    </p>
+                </section>
+
+                {orders.length === 0 ? (
+                    <EmptyState
+                        icon={ShoppingBag}
+                        title="No orders yet"
+                        description="Browse the catalog, pick a package, and your first buyer order will show up here."
+                        action={{ label: 'Explore gigs', onClick: () => { window.location.href = '/buyer/gigs'; } }}
+                    />
+                ) : filteredOrders.length === 0 ? (
+                    <EmptyState
+                        icon={SlidersHorizontal}
+                        title="No matching orders"
+                        description="Try changing your search term or clearing one of the filters."
+                        action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all'); setPaymentFilter('all'); } }}
+                    />
                 ) : (
                     <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-                        <div className="hidden overflow-x-auto lg:block">
+                        <div className="hidden max-w-full overflow-x-auto lg:block">
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/30 text-left text-xs tracking-[0.16em] text-muted-foreground uppercase">
                                     <tr>
@@ -470,192 +685,267 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {orders.map((order) => (
-                                        <tr
-                                            key={order.id}
-                                            className="border-t border-border/70 align-top"
-                                        >
-                                            <td className="px-4 py-4">
-                                                <p className="font-medium">
-                                                    {order.gig_title ?? 'Order'}
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    #{order.id} •{' '}
-                                                    {order.package?.title ??
-                                                        'Custom'}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    <Badge variant="outline">
-                                                        {order.package?.tier ??
-                                                            'package'}
-                                                    </Badge>
-                                                    <Badge
-                                                        variant={
-                                                            order.status ===
-                                                            'delivered'
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                    >
-                                                        {order.status}
-                                                    </Badge>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p className="font-medium">
-                                                    {order.seller?.name ??
-                                                        'Seller'}
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    {order.seller?.email ??
-                                                        'No email'}
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p className="text-foreground">
-                                                    {summarizeText(
-                                                        order.requirements,
-                                                        90,
-                                                    )}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                                    <span>
-                                                        Qty {order.quantity}
-                                                    </span>
-                                                    <span>
-                                                        Unit USD{' '}
-                                                        {order.unit_price}
-                                                    </span>
-                                                    {order.brief_file_url && (
-                                                        <a
-                                                            href={
-                                                                order.brief_file_url
+                                    {paginatedOrders.paginatedItems.map(
+                                        (order) => (
+                                            <tr
+                                                key={order.id}
+                                                className="border-t border-border/70 align-top"
+                                            >
+                                                <td className="px-4 py-4">
+                                                    <p className="font-medium">
+                                                        {order.gig_title ??
+                                                            'Order'}
+                                                    </p>
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        #{order.id} •{' '}
+                                                        {order.package?.title ??
+                                                            'Custom'}
+                                                    </p>
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        <Badge variant="outline">
+                                                            {order.package
+                                                                ?.tier ??
+                                                                'package'}
+                                                        </Badge>
+                                                        <Badge
+                                                            variant={
+                                                                order.status ===
+                                                                'delivered'
+                                                                    ? 'default'
+                                                                    : 'secondary'
                                                             }
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
                                                         >
-                                                            <FileText className="size-3.5" />
-                                                            File
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p>
-                                                    {order.deliveries.length}{' '}
-                                                    file(s)
-                                                </p>
-                                                <p className="text-muted-foreground">
-                                                    {shortDate(
-                                                        order.delivered_at,
-                                                    )}
-                                                </p>
-                                                <p className="mt-1 text-muted-foreground">
-                                                    {order.package
-                                                        ?.delivery_days ??
-                                                        0}{' '}
-                                                    days •{' '}
-                                                    {order.package
-                                                        ?.revision_count ??
-                                                        0}{' '}
-                                                    revisions
-                                                </p>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-2">
-                                                    <Badge
-                                                        variant={
-                                                            order.payment_status ===
-                                                            'paid'
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                    >
-                                                        {order.payment_status}
-                                                    </Badge>
-                                                    <span className="text-muted-foreground">
-                                                        {shortDate(
-                                                            order.created_at,
+                                                            {order.status}
+                                                        </Badge>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p className="font-medium">
+                                                        {order.seller?.name ??
+                                                            'Seller'}
+                                                    </p>
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        {order.seller?.email ??
+                                                            'No email'}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p className="text-foreground">
+                                                        {summarizeText(
+                                                            order.requirements,
+                                                            90,
                                                         )}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4 font-medium">
-                                                USD {order.price}
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex flex-col gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            setSelectedOrder(
-                                                                order,
-                                                            )
-                                                        }
-                                                    >
-                                                        View
-                                                    </Button>
-                                                    {order.payment_status ===
-                                                        'pending' && (
-                                                        <Button
-                                                            size="sm"
+                                                    </p>
+                                                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                        <span>
+                                                            Qty {order.quantity}
+                                                        </span>
+                                                        <span>
+                                                            Unit USD{' '}
+                                                            {order.unit_price}
+                                                        </span>
+                                                        {order.brief_file_url && (
+                                                            <>
+                                                                <a
+                                                                    href={order.brief_file_url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                                >
+                                                                    <Eye className="size-3.5" />
+                                                                    View
+                                                                </a>
+                                                                <a
+                                                                    href={order.brief_file_url}
+                                                                    download
+                                                                    className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
+                                                                >
+                                                                    <Download className="size-3.5" />
+                                                                    Download
+                                                                </a>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p>
+                                                        {
+                                                            order.deliveries
+                                                                .length
+                                                        }{' '}
+                                                        file(s)
+                                                    </p>
+                                                    <p className="text-muted-foreground">
+                                                        {shortDate(
+                                                            order.delivered_at,
+                                                        )}
+                                                    </p>
+                                                    <div className="mt-1">
+                                                        <OrderDueDate dueAt={order.due_at} status={order.status} />
+                                                    </div>
+                                                    <p className="mt-1 text-muted-foreground">
+                                                        {order.package
+                                                            ?.delivery_days ??
+                                                            0}{' '}
+                                                        days •{' '}
+                                                        {order.package
+                                                            ?.revision_count ??
+                                                            0}{' '}
+                                                        revisions
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <Badge
+                                                            variant={
+                                                                order.payment_status ===
+                                                                'paid'
+                                                                    ? 'default'
+                                                                    : 'secondary'
+                                                            }
+                                                        >
+                                                            {
+                                                                order.payment_status
+                                                            }
+                                                        </Badge>
+                                                        <span className="text-muted-foreground">
+                                                            {shortDate(
+                                                                order.created_at,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 font-medium">
+                                                    USD {order.price}
+                                                    {Number(
+                                                        order.discount_amount,
+                                                    ) > 0 && (
+                                                        <p className="mt-1 text-xs font-normal text-emerald-600">
+                                                            Saved USD{' '}
+                                                            {
+                                                                order.discount_amount
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <ActionIconButton
+                                                            label="View"
+                                                            variant="outline"
                                                             onClick={() =>
-                                                                openCheckout(
+                                                                setSelectedOrder(
                                                                     order,
                                                                 )
                                                             }
-                                                            disabled={
-                                                                !paypal.enabled
-                                                            }
                                                         >
-                                                            Pay
-                                                        </Button>
-                                                    )}
-                                                    {order.status ===
-                                                        'delivered' &&
-                                                        order.payment_status ===
-                                                            'paid' &&
-                                                        order.remaining_revisions >
-                                                            0 && (
-                                                            <Button
-                                                                size="sm"
+                                                            <Eye className="size-4" />
+                                                        </ActionIconButton>
+                                                        {order.seller && (
+                                                            <ActionIconButton
+                                                                label="Message"
                                                                 variant="outline"
                                                                 onClick={() =>
-                                                                    setRevisionTarget(
+                                                                    setMessageOrder(
                                                                         order,
                                                                     )
                                                                 }
                                                             >
-                                                                Revision
-                                                            </Button>
+                                                                <MessageCircle className="size-4" />
+                                                            </ActionIconButton>
                                                         )}
-                                                    {order.status ===
-                                                        'completed' &&
-                                                        !order.review && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
+                                                        {order.payment_status ===
+                                                            'pending' && (
+                                                            <ActionIconButton
+                                                                label="Pay"
                                                                 onClick={() =>
-                                                                    setReviewTarget(
+                                                                    openCheckout(
                                                                         order,
                                                                     )
                                                                 }
+                                                                disabled={
+                                                                    !paypal.enabled
+                                                                }
                                                             >
-                                                                Review
-                                                            </Button>
+                                                                <CreditCard className="size-4" />
+                                                            </ActionIconButton>
                                                         )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                        {order.status ===
+                                                            'delivered' &&
+                                                            order.payment_status ===
+                                                                'paid' &&
+                                                            order.remaining_revisions >
+                                                                0 && (
+                                                                <ActionIconButton
+                                                                    label="Revision"
+                                                                    variant="outline"
+                                                                    onClick={() =>
+                                                                        setRevisionTarget(
+                                                                            order,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <RefreshCcw className="size-4" />
+                                                                </ActionIconButton>
+                                                            )}
+                                                        {order.status ===
+                                                            'completed' &&
+                                                            !order.review && (
+                                                                <ActionIconButton
+                                                                    label="Review"
+                                                                    variant="outline"
+                                                                    onClick={() =>
+                                                                        setReviewTarget(
+                                                                            order,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Star className="size-4" />
+                                                                </ActionIconButton>
+                                                            )}
+                                                        {[
+                                                            'delivered',
+                                                            'completed',
+                                                        ].includes(
+                                                            order.status,
+                                                        ) &&
+                                                            order.payment_status ===
+                                                                'paid' &&
+                                                            !order.open_dispute_id && (
+                                                                <ActionIconButton
+                                                                    label="Raise Dispute"
+                                                                    variant="outline"
+                                                                    onClick={() =>
+                                                                        setDisputeTarget(
+                                                                            order,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <AlertTriangle className="size-4" />
+                                                                </ActionIconButton>
+                                                            )}
+                                                        {order.open_dispute_id && (
+                                                            <ActionIconButton
+                                                                label="View Dispute"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    (window.location.href = `/disputes/${order.open_dispute_id}`)
+                                                                }
+                                                            >
+                                                                <AlertTriangle className="size-4 text-amber-500" />
+                                                            </ActionIconButton>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )}
                                 </tbody>
                             </table>
                         </div>
 
                         <div className="space-y-3 p-4 lg:hidden">
-                            {orders.map((order) => (
+                            {paginatedOrders.paginatedItems.map((order) => (
                                 <div
                                     key={order.id}
                                     className="rounded-xl border border-border/70 p-4"
@@ -674,6 +964,11 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                             USD {order.price}
                                         </p>
                                     </div>
+                                    {Number(order.discount_amount) > 0 && (
+                                        <p className="mt-2 text-xs text-emerald-600">
+                                            Saved USD {order.discount_amount}
+                                        </p>
+                                    )}
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         <Badge variant="outline">
                                             {order.package?.tier ?? 'package'}
@@ -696,60 +991,110 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         >
                                             {order.payment_status}
                                         </Badge>
+                                        <OrderDueDate dueAt={order.due_at} status={order.status} />
                                     </div>
                                     <p className="mt-3 text-sm text-muted-foreground">
                                         {summarizeText(order.requirements, 100)}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <Button
-                                            size="sm"
+                                        <ActionIconButton
+                                            label="View"
                                             variant="outline"
                                             onClick={() =>
                                                 setSelectedOrder(order)
                                             }
                                         >
-                                            View
-                                        </Button>
+                                            <Eye className="size-4" />
+                                        </ActionIconButton>
+                                        {order.seller && (
+                                            <ActionIconButton
+                                                label="Message"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setMessageOrder(order)
+                                                }
+                                            >
+                                                <MessageCircle className="size-4" />
+                                            </ActionIconButton>
+                                        )}
                                         {order.payment_status === 'pending' && (
-                                            <Button
-                                                size="sm"
+                                            <ActionIconButton
+                                                label="Pay"
                                                 onClick={() =>
                                                     openCheckout(order)
                                                 }
                                                 disabled={!paypal.enabled}
                                             >
-                                                Pay
-                                            </Button>
+                                                <CreditCard className="size-4" />
+                                            </ActionIconButton>
                                         )}
                                         {order.status === 'delivered' &&
                                             order.payment_status === 'paid' &&
                                             order.remaining_revisions > 0 && (
-                                                <Button
-                                                    size="sm"
+                                                <ActionIconButton
+                                                    label="Revision"
                                                     variant="outline"
                                                     onClick={() =>
                                                         setRevisionTarget(order)
                                                     }
                                                 >
-                                                    Revision
-                                                </Button>
+                                                    <RefreshCcw className="size-4" />
+                                                </ActionIconButton>
                                             )}
                                         {order.status === 'completed' &&
                                             !order.review && (
-                                                <Button
-                                                    size="sm"
+                                                <ActionIconButton
+                                                    label="Review"
                                                     variant="outline"
                                                     onClick={() =>
                                                         setReviewTarget(order)
                                                     }
                                                 >
-                                                    Review
-                                                </Button>
+                                                    <Star className="size-4" />
+                                                </ActionIconButton>
                                             )}
+                                        {['delivered', 'completed'].includes(
+                                            order.status,
+                                        ) &&
+                                            order.payment_status === 'paid' &&
+                                            !order.open_dispute_id && (
+                                                <ActionIconButton
+                                                    label="Raise Dispute"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setDisputeTarget(order)
+                                                    }
+                                                >
+                                                    <AlertTriangle className="size-4" />
+                                                </ActionIconButton>
+                                            )}
+                                        {order.open_dispute_id && (
+                                            <ActionIconButton
+                                                label="View Dispute"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    (window.location.href = `/disputes/${order.open_dispute_id}`)
+                                                }
+                                            >
+                                                <AlertTriangle className="size-4 text-amber-500" />
+                                            </ActionIconButton>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
+                        <TablePagination
+                            page={paginatedOrders.page}
+                            pageSize={paginatedOrders.pageSize}
+                            totalItems={paginatedOrders.totalItems}
+                            totalPages={paginatedOrders.totalPages}
+                            startItem={paginatedOrders.startItem}
+                            endItem={paginatedOrders.endItem}
+                            hasPreviousPage={paginatedOrders.hasPreviousPage}
+                            hasNextPage={paginatedOrders.hasNextPage}
+                            onPageChange={paginatedOrders.setPage}
+                            onPageSizeChange={paginatedOrders.setPageSize}
+                        />
                     </section>
                 )}
             </div>
@@ -758,282 +1103,273 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                 open={Boolean(selectedOrder)}
                 onOpenChange={(open) => !open && setSelectedOrder(null)}
             >
-                <DialogContent className="sm:max-w-3xl">
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle>Buyer order detail</DialogTitle>
+                        <DialogTitle>Order #{selectedOrder?.id} — {selectedOrder?.gig_title}</DialogTitle>
                         <DialogDescription>
-                            Review delivery files, seller notes, revision
-                            history, and any cancellation updates for this
-                            order.
+                            Full order details, your brief, delivery files, revision history, and actions.
                         </DialogDescription>
                     </DialogHeader>
 
                     {selectedOrder && (
-                        <div className="space-y-6">
-                            <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Order #{selectedOrder.id}
-                                        </p>
-                                        <p className="mt-1 text-xl font-semibold">
-                                            {selectedOrder.gig_title}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Badge variant="outline">
-                                            {selectedOrder.package?.tier}
-                                        </Badge>
-                                        <Badge>{selectedOrder.status}</Badge>
-                                    </div>
-                                </div>
-                                <div className="mt-4 flex flex-wrap gap-3">
-                                    <Badge variant="outline">
-                                        {selectedOrder.remaining_revisions}{' '}
-                                        revision
-                                        {selectedOrder.remaining_revisions === 1
-                                            ? ''
-                                            : 's'}{' '}
-                                        left
-                                    </Badge>
-                                    {selectedOrder.payment_status ===
-                                        'pending' && (
-                                        <Button
-                                            onClick={() =>
-                                                openCheckout(selectedOrder)
-                                            }
-                                            disabled={!paypal.enabled}
-                                        >
-                                            Pay with PayPal
-                                        </Button>
-                                    )}
-                                    {selectedOrder.status === 'delivered' &&
-                                        selectedOrder.payment_status ===
-                                            'paid' &&
-                                        selectedOrder.remaining_revisions >
-                                            0 && (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setRevisionTarget(
-                                                        selectedOrder,
-                                                    )
-                                                }
-                                            >
-                                                Request revision
-                                            </Button>
-                                        )}
-                                    {selectedOrder.status === 'delivered' &&
-                                        selectedOrder.payment_status ===
-                                            'paid' && (
-                                            <Button
-                                                onClick={() =>
-                                                    completeOrder(selectedOrder)
-                                                }
-                                            >
-                                                Mark complete
-                                            </Button>
-                                        )}
-                                    {selectedOrder.status === 'completed' &&
-                                        !selectedOrder.review && (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setReviewTarget(
-                                                        selectedOrder,
-                                                    )
-                                                }
-                                            >
-                                                Leave review
-                                            </Button>
-                                        )}
-                                    {[
-                                        'pending',
-                                        'active',
-                                        'delivered',
-                                    ].includes(selectedOrder.status) && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() =>
-                                                setCancelTarget(selectedOrder)
-                                            }
-                                        >
-                                            Cancel order
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
+                        <div className="space-y-5">
 
-                            <div className="grid gap-6 lg:grid-cols-2">
-                                <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                    <h3 className="text-base font-semibold">
-                                        Delivered files
-                                    </h3>
-                                    {selectedOrder.deliveries.length === 0 ? (
-                                        <p className="mt-3 text-sm text-muted-foreground">
-                                            No delivery submitted yet.
-                                        </p>
-                                    ) : (
-                                        <div className="mt-4 space-y-4">
-                                            {selectedOrder.deliveries.map(
-                                                (delivery) => (
-                                                    <div
-                                                        key={delivery.id}
-                                                        className="rounded-2xl border border-border/70 p-4 text-sm"
-                                                    >
-                                                        <p className="font-medium">
-                                                            {formatDate(
-                                                                delivery.delivered_at,
-                                                            )}
-                                                        </p>
-                                                        <p className="mt-1 text-muted-foreground">
-                                                            By{' '}
-                                                            {delivery.delivered_by ??
-                                                                'Seller'}
-                                                        </p>
-                                                        {delivery.note && (
-                                                            <p className="mt-2 text-muted-foreground">
-                                                                {delivery.note}
-                                                            </p>
-                                                        )}
-                                                        <a
-                                                            href={
-                                                                delivery.file_url
-                                                            }
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="mt-3 inline-flex items-center gap-2 text-primary underline underline-offset-4"
-                                                        >
-                                                            <FileText className="size-4" />
-                                                            Download delivery
-                                                        </a>
-                                                    </div>
-                                                ),
-                                            )}
+                            {/* ── Top summary ── */}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {/* Order info */}
+                                <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm space-y-2">
+                                    <p className="font-semibold text-base mb-3">Order info</p>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Order ID</span>
+                                        <span className="font-medium">#{selectedOrder.id}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Package</span>
+                                        <span className="font-medium capitalize">{selectedOrder.package?.tier} — {selectedOrder.package?.title}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Quantity</span>
+                                        <span className="font-medium">{selectedOrder.quantity}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Delivery days</span>
+                                        <span className="font-medium">{selectedOrder.package?.delivery_days ?? 0} days</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Revisions left</span>
+                                        <span className="font-medium">{selectedOrder.remaining_revisions} / {selectedOrder.package?.revision_count ?? 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Status</span>
+                                        <Badge variant={selectedOrder.status === 'delivered' ? 'default' : 'secondary'}>{selectedOrder.status}</Badge>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Payment</span>
+                                        <Badge variant={selectedOrder.payment_status === 'paid' ? 'default' : 'secondary'}>{selectedOrder.payment_status}</Badge>
+                                    </div>
+                                </div>
+
+                                {/* Pricing + seller */}
+                                <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm space-y-2">
+                                    <p className="font-semibold text-base mb-3">Seller & pricing</p>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Seller</span>
+                                        <span className="font-medium">{selectedOrder.seller?.name ?? '—'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Email</span>
+                                        <span className="font-medium">{selectedOrder.seller?.email ?? '—'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Unit price</span>
+                                        <span className="font-medium">USD {selectedOrder.unit_price}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Subtotal</span>
+                                        <span className="font-medium">USD {selectedOrder.subtotal_amount}</span>
+                                    </div>
+                                    {Number(selectedOrder.discount_amount) > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Discount{selectedOrder.coupon_code ? ` (${selectedOrder.coupon_code})` : ''}</span>
+                                            <span className="font-medium text-emerald-600">−USD {selectedOrder.discount_amount}</span>
                                         </div>
                                     )}
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">
-                                            Revision history
-                                        </h3>
-                                        {selectedOrder.revisions.length ===
-                                        0 ? (
-                                            <p className="mt-3 text-sm text-muted-foreground">
-                                                No revision requests yet.
-                                            </p>
-                                        ) : (
-                                            <div className="mt-4 space-y-4">
-                                                {selectedOrder.revisions.map(
-                                                    (revision) => (
-                                                        <div
-                                                            key={revision.id}
-                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
-                                                        >
-                                                            <p className="font-medium">
-                                                                {revision.requested_by ??
-                                                                    'Buyer'}
-                                                            </p>
-                                                            <p className="mt-1 text-muted-foreground">
-                                                                {formatDate(
-                                                                    revision.created_at,
-                                                                )}
-                                                            </p>
-                                                            <p className="mt-2 text-muted-foreground">
-                                                                {revision.note}
-                                                            </p>
-                                                        </div>
-                                                    ),
-                                                )}
-                                            </div>
-                                        )}
+                                    <div className="flex justify-between border-t border-border/70 pt-2">
+                                        <span className="font-semibold">Total</span>
+                                        <span className="font-bold">USD {selectedOrder.price}</span>
                                     </div>
-
-                                    <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">
-                                            Cancellation trail
-                                        </h3>
-                                        {selectedOrder.cancellations.length ===
-                                        0 ? (
-                                            <p className="mt-3 text-sm text-muted-foreground">
-                                                No cancellation recorded.
-                                            </p>
-                                        ) : (
-                                            <div className="mt-4 space-y-4">
-                                                {selectedOrder.cancellations.map(
-                                                    (cancellation) => (
-                                                        <div
-                                                            key={
-                                                                cancellation.id
-                                                            }
-                                                            className="rounded-2xl border border-border/70 p-4 text-sm"
-                                                        >
-                                                            <p className="font-medium capitalize">
-                                                                {
-                                                                    cancellation.cancelled_by
-                                                                }
-                                                            </p>
-                                                            <p className="mt-1 text-muted-foreground">
-                                                                {formatDate(
-                                                                    cancellation.created_at,
-                                                                )}
-                                                            </p>
-                                                            <p className="mt-2 text-muted-foreground">
-                                                                {
-                                                                    cancellation.reason
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                    ),
-                                                )}
-                                            </div>
-                                        )}
+                                    <div className="flex justify-between pt-1">
+                                        <span className="text-muted-foreground">Delivered</span>
+                                        <span>{shortDate(selectedOrder.delivered_at)}</span>
                                     </div>
-
-                                    <div className="rounded-3xl border border-border/70 bg-card p-6">
-                                        <h3 className="text-base font-semibold">
-                                            Your review
-                                        </h3>
-                                        {!selectedOrder.review ? (
-                                            <p className="mt-3 text-sm text-muted-foreground">
-                                                {selectedOrder.status ===
-                                                'completed'
-                                                    ? 'This order is complete and ready for your review.'
-                                                    : 'You can leave a review after the order is completed.'}
-                                            </p>
-                                        ) : (
-                                            <div className="mt-4 rounded-2xl border border-border/70 p-4 text-sm">
-                                                <div className="flex items-center gap-2 font-medium text-amber-600">
-                                                    <Star className="size-4 fill-current" />
-                                                    {selectedOrder.review.rating.toFixed(
-                                                        1,
-                                                    )}{' '}
-                                                    out of 5
-                                                </div>
-                                                <p className="mt-2 text-muted-foreground">
-                                                    {
-                                                        selectedOrder.review
-                                                            .comment
-                                                    }
-                                                </p>
-                                                <p className="mt-3 text-xs text-muted-foreground">
-                                                    Submitted{' '}
-                                                    {formatDate(
-                                                        selectedOrder.review
-                                                            .created_at,
-                                                    )}
-                                                </p>
-                                            </div>
-                                        )}
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Completed</span>
+                                        <span>{shortDate(selectedOrder.completed_at)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Cancelled</span>
+                                        <span>{shortDate(selectedOrder.cancelled_at)}</span>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* ── Your brief ── */}
+                            <div className="rounded-2xl border border-border/70 bg-card p-4 text-sm">
+                                <p className="font-semibold mb-2">Your requirements</p>
+                                <p className="whitespace-pre-wrap text-muted-foreground leading-6">{selectedOrder.requirements}</p>
+                                <div className="mt-3 flex flex-wrap gap-4">
+                                    {selectedOrder.reference_link && (
+                                        <a href={selectedOrder.reference_link} target="_blank" rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                            <FileText className="size-3.5" /> Reference link
+                                        </a>
+                                    )}
+                                    {selectedOrder.brief_file_url && (
+                                        <>
+                                            <a href={selectedOrder.brief_file_url} target="_blank" rel="noreferrer"
+                                                className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                                <Eye className="size-3.5" /> View brief
+                                            </a>
+                                            <a href={selectedOrder.brief_file_url} download
+                                                className="inline-flex items-center gap-1.5 text-primary underline underline-offset-4">
+                                                <Download className="size-3.5" /> Download brief
+                                            </a>
+                                        </>
+                                    )}
+                                </div>
+                                {selectedOrder.style_notes && (
+                                    <div className="mt-3">
+                                        <p className="font-medium text-muted-foreground mb-1">Style notes</p>
+                                        <p className="whitespace-pre-wrap text-muted-foreground">{selectedOrder.style_notes}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Actions ── */}
+                            <div className="flex flex-wrap gap-2">
+                                {selectedOrder.payment_status === 'pending' && (
+                                    <Button size="sm" onClick={() => { setSelectedOrder(null); openCheckout(selectedOrder); }}
+                                        disabled={!paypal.enabled}>
+                                        Pay with PayPal
+                                    </Button>
+                                )}
+                                {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && (
+                                    <Button size="sm" onClick={() => { setSelectedOrder(null); completeOrder(selectedOrder); }}>
+                                        Mark complete
+                                    </Button>
+                                )}
+                                {selectedOrder.status === 'delivered' && selectedOrder.payment_status === 'paid' && selectedOrder.remaining_revisions > 0 && (
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setRevisionTarget(selectedOrder); }}>
+                                        <RefreshCcw className="mr-1.5 size-4" /> Request revision
+                                    </Button>
+                                )}
+                                {selectedOrder.status === 'completed' && !selectedOrder.review && (
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setReviewTarget(selectedOrder); }}>
+                                        <Star className="mr-1.5 size-4" /> Leave review
+                                    </Button>
+                                )}
+                                {selectedOrder.seller && (
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setMessageOrder(selectedOrder); }}>
+                                        <MessageCircle className="mr-1.5 size-4" /> Message seller
+                                    </Button>
+                                )}
+                                {['pending', 'active'].includes(selectedOrder.status) && (
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setCancelTarget(selectedOrder); }}>
+                                        Cancel order
+                                    </Button>
+                                )}
+                                {['delivered', 'completed'].includes(selectedOrder.status) && selectedOrder.payment_status === 'paid' && !selectedOrder.open_dispute_id && (
+                                    <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setDisputeTarget(selectedOrder); }}>
+                                        <AlertTriangle className="mr-1.5 size-4" /> Raise dispute
+                                    </Button>
+                                )}
+                                {selectedOrder.open_dispute_id && (
+                                    <Button size="sm" variant="outline" onClick={() => window.location.href = `/disputes/${selectedOrder.open_dispute_id}`}>
+                                        <AlertTriangle className="mr-1.5 size-4 text-amber-500" /> View dispute
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* ── Delivered files ── */}
+                            <div className="rounded-2xl border border-border/70 bg-card p-4">
+                                <p className="font-semibold mb-3">Delivered files ({selectedOrder.deliveries.length})</p>
+                                {selectedOrder.deliveries.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No delivery submitted yet.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {selectedOrder.deliveries.map((delivery) => (
+                                            <div key={delivery.id} className="rounded-xl border border-border/70 p-3 text-sm">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-medium">{formatDate(delivery.delivered_at)}</p>
+                                                        <p className="text-muted-foreground">By {delivery.delivered_by ?? 'Seller'}</p>
+                                                        {delivery.note && <p className="mt-1 text-muted-foreground">{delivery.note}</p>}
+                                                    </div>
+                                                    <div className="flex shrink-0 flex-col gap-1.5">
+                                                        <a href={delivery.file_url} target="_blank" rel="noreferrer"
+                                                            className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-4">
+                                                            <Eye className="size-3.5" /> View
+                                                        </a>
+                                                        <a href={delivery.file_url} download
+                                                            className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-4">
+                                                            <Download className="size-3.5" /> Download
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Your review ── */}
+                            <div className="rounded-2xl border border-border/70 bg-card p-4 text-sm">
+                                <p className="font-semibold mb-2">Your review</p>
+                                {!selectedOrder.review ? (
+                                    <p className="text-muted-foreground">
+                                        {selectedOrder.status === 'completed'
+                                            ? 'Order complete — you can leave a review above.'
+                                            : 'You can leave a review after the order is completed.'}
+                                    </p>
+                                ) : (
+                                    <div className="rounded-xl border border-border/70 p-3">
+                                        <div className="flex items-center gap-1.5 font-medium text-amber-600">
+                                            <Star className="size-4 fill-current" />
+                                            {selectedOrder.review.rating.toFixed(1)} out of 5
+                                        </div>
+                                        <p className="mt-2 text-muted-foreground">{selectedOrder.review.comment}</p>
+                                        <p className="mt-2 text-xs text-muted-foreground">Submitted {formatDate(selectedOrder.review.created_at)}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Revision history ── */}
+                            {selectedOrder.revisions.length > 0 && (
+                                <div className="rounded-2xl border border-border/70 bg-card p-4">
+                                    <p className="font-semibold mb-3">Revision history ({selectedOrder.revisions.length})</p>
+                                    <div className="space-y-3">
+                                        {selectedOrder.revisions.map((revision) => (
+                                            <div key={revision.id} className="rounded-xl border border-border/70 p-3 text-sm">
+                                                <p className="font-medium">{revision.requested_by ?? 'Buyer'}</p>
+                                                <p className="text-xs text-muted-foreground">{formatDate(revision.created_at)}</p>
+                                                <p className="mt-1 text-muted-foreground">{revision.note}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Cancellation trail ── */}
+                            {selectedOrder.cancellations.length > 0 && (
+                                <div className="rounded-2xl border border-border/70 bg-card p-4">
+                                    <p className="font-semibold mb-3">Cancellation trail</p>
+                                    <div className="space-y-3">
+                                        {selectedOrder.cancellations.map((c) => (
+                                            <div key={c.id} className="rounded-xl border border-border/70 p-3 text-sm">
+                                                <p className="font-medium capitalize">{c.cancelled_by}</p>
+                                                <p className="text-xs text-muted-foreground">{formatDate(c.created_at)}</p>
+                                                <p className="mt-1 text-muted-foreground">{c.reason}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     )}
                 </DialogContent>
             </Dialog>
+
+            <OrderChatModal
+                open={Boolean(messageOrder)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setMessageOrder(null);
+                    }
+                }}
+                orderId={messageOrder?.id ?? null}
+                recipientName={messageOrder?.seller?.name ?? null}
+            />
 
             <Dialog
                 open={Boolean(revisionTarget)}
@@ -1273,6 +1609,15 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                                         {paypal.currency} {checkoutOrder.price}
                                     </span>
                                 </div>
+                                {Number(checkoutOrder.discount_amount) > 0 && (
+                                    <div className="mt-2 flex items-center justify-between text-sm text-emerald-600">
+                                        <span>Discount</span>
+                                        <span className="font-medium">
+                                            -{paypal.currency}{' '}
+                                            {checkoutOrder.discount_amount}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {checkoutError && (
@@ -1302,8 +1647,65 @@ export default function BuyerOrdersIndex({ orders, paypal }: Props) {
                             )}
 
                             <div ref={handlePaypalContainerRef} />
+
+                            {refund_policy && (
+                                <div className="flex gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+                                    <span className="mt-0.5 shrink-0">🛡️</span>
+                                    <p className="whitespace-pre-wrap leading-relaxed">{refund_policy}</p>
+                                </div>
+                            )}
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={Boolean(disputeTarget)}
+                onOpenChange={(open) => !open && setDisputeTarget(null)}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Raise a Dispute</DialogTitle>
+                        <DialogDescription>
+                            Describe the issue clearly. Admin will review and
+                            make a decision.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={submitDispute} className="space-y-4">
+                        <div className="grid gap-2">
+                            <label
+                                htmlFor="dispute_reason"
+                                className="text-sm font-medium"
+                            >
+                                Reason
+                            </label>
+                            <textarea
+                                id="dispute_reason"
+                                rows={5}
+                                value={disputeForm.data.reason}
+                                onChange={(e) =>
+                                    disputeForm.setData(
+                                        'reason',
+                                        e.target.value,
+                                    )
+                                }
+                                className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
+                                placeholder="Explain the problem with this order..."
+                                required
+                            />
+                            <InputError message={disputeForm.errors.reason} />
+                        </div>
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={disputeForm.processing}
+                        >
+                            {disputeForm.processing
+                                ? 'Submitting...'
+                                : 'Submit Dispute'}
+                        </Button>
+                    </form>
                 </DialogContent>
             </Dialog>
         </>

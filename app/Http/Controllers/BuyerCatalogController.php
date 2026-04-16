@@ -4,14 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Gig;
+use App\Models\GigFavourite;
+use App\Models\Order;
+use App\Services\CouponService;
+use App\Services\SellerRankingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class BuyerCatalogController extends Controller
 {
+    public function __construct(
+        private readonly CouponService $coupons,
+        private readonly SellerRankingService $sellerRanking,
+    ) {}
+
     public function index(Request $request): Response
     {
         $this->ensureBuyer($request);
@@ -19,18 +29,20 @@ class BuyerCatalogController extends Controller
         $filters = [
             'keyword' => trim((string) $request->string('keyword')),
             'category_id' => trim((string) $request->string('category_id')),
+            'subcategory_id' => trim((string) $request->string('subcategory_id')),
             'price_max' => trim((string) $request->string('price_max')),
             'delivery_days' => trim((string) $request->string('delivery_days')),
             'rating' => trim((string) $request->string('rating')),
             'sort' => trim((string) $request->string('sort', 'latest')),
         ];
 
-        $gigs = Gig::query()
+        $gigQuery = Gig::query()
             ->where('status', 'active')
+            ->where('approval_status', 'approved')
             ->whereHas('category', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('subcategory', fn (Builder $query) => $query->where('status', 'active'))
             ->whereHas('seller.roles', fn (Builder $query) => $query->where('name', 'seller'))
-            ->with(['seller:id,name', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
+            ->with(['seller:id,name,is_available', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
             ->withMin('packages', 'price')
             ->withMin('packages', 'delivery_days')
             ->withAvg('reviews as reviews_avg_rating', 'rating')
@@ -47,6 +59,9 @@ class BuyerCatalogController extends Controller
             })
             ->when($filters['category_id'] !== '', function (Builder $query) use ($filters) {
                 $query->where('category_id', $filters['category_id']);
+            })
+            ->when($filters['subcategory_id'] !== '', function (Builder $query) use ($filters) {
+                $query->where('subcategory_id', $filters['subcategory_id']);
             })
             ->when($filters['price_max'] !== '', function (Builder $query) use ($filters) {
                 $query->whereHas('packages', fn (Builder $packageQuery) => $packageQuery->where('price', '<=', (float) $filters['price_max']));
@@ -65,22 +80,42 @@ class BuyerCatalogController extends Controller
             ->when($filters['sort'] === 'price_asc', fn (Builder $query) => $query->orderBy('packages_min_price'))
             ->when($filters['sort'] === 'price_desc', fn (Builder $query) => $query->orderByDesc('packages_min_price'))
             ->when($filters['sort'] === 'delivery_asc', fn (Builder $query) => $query->orderBy('packages_min_delivery_days'))
-            ->when(! in_array($filters['sort'], ['price_asc', 'price_desc', 'delivery_asc'], true), fn (Builder $query) => $query->latest('id'))
-            ->get()
-            ->map(fn (Gig $gig) => $this->catalogGigPayload($gig));
+            ->when(! in_array($filters['sort'], ['price_asc', 'price_desc', 'delivery_asc'], true), fn (Builder $query) => $query->latest('id'));
+
+        $gigPaginator = $gigQuery->paginate(12)->withQueryString();
+        $gigCollection = $gigPaginator->getCollection();
+        $this->refreshSellerLevels($gigCollection);
+        $gigs = $gigCollection->map(fn (Gig $gig) => $this->catalogGigPayload($gig));
 
         return Inertia::render('buyer/gigs/index', [
             'gigs' => $gigs,
+            'pagination' => [
+                'current_page' => $gigPaginator->currentPage(),
+                'last_page' => $gigPaginator->lastPage(),
+                'per_page' => $gigPaginator->perPage(),
+                'total' => $gigPaginator->total(),
+                'from' => $gigPaginator->firstItem(),
+                'to' => $gigPaginator->lastItem(),
+            ],
             'categories' => Category::query()
                 ->whereNull('parent_id')
                 ->where('status', 'active')
+                ->with(['subcategories' => fn ($q) => $q->where('status', 'active')->orderBy('name')])
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (Category $category) => [
                     'id' => $category->id,
                     'name' => $category->name,
+                    'subcategories' => $category->subcategories->map(fn (Category $sub) => [
+                        'id' => $sub->id,
+                        'name' => $sub->name,
+                    ])->values(),
                 ]),
             'filters' => $filters,
+            'favourite_gig_ids' => GigFavourite::query()
+                ->where('user_id', $request->user()->id)
+                ->pluck('gig_id')
+                ->values(),
         ]);
     }
 
@@ -88,10 +123,10 @@ class BuyerCatalogController extends Controller
     {
         $this->ensureBuyer($request);
 
-        abort_unless($gig->status === 'active', 404);
+        abort_unless($gig->status === 'active' && $gig->approval_status === 'approved', 404);
 
         $gig->load([
-            'seller:id,name,email',
+            'seller:id,name,email,profile_picture,created_at,seller_level,is_available',
             'category:id,name,status',
             'subcategory:id,name,status',
             'images',
@@ -100,14 +135,45 @@ class BuyerCatalogController extends Controller
         ]);
         $gig->loadAvg('reviews as reviews_avg_rating', 'rating');
         $gig->loadCount('reviews');
+        if ($gig->seller) {
+            $this->sellerRanking->recalculate($gig->seller);
+            $gig->seller->refresh();
+        }
 
         abort_if($gig->category?->status !== 'active' || $gig->subcategory?->status !== 'active', 404);
+
+        // Increment view count once per session per gig
+        $sessionKey = 'viewed_gig_' . $gig->id;
+        if (! $request->session()->has($sessionKey)) {
+            $gig->increment('views_count');
+            $request->session()->put($sessionKey, true);
+        }
+
+        $similarGigs = $this->similarGigs($gig, 6);
+        $peopleAlsoBought = $this->peopleAlsoBought($gig, 6);
 
         return Inertia::render('buyer/gigs/show', [
             'gig' => [
                 ...$this->catalogGigPayload($gig),
                 'description' => $gig->description,
+                'seller_id' => $gig->seller?->id,
                 'seller_email' => $gig->seller?->email,
+                'seller_avatar' => $gig->seller?->profile_picture
+                    ? Storage::disk('public')->url($gig->seller->profile_picture)
+                    : null,
+                'seller_member_since' => $gig->seller?->created_at?->format('M Y'),
+                'seller_level' => $gig->seller
+                    ? $this->sellerRanking->badge($gig->seller->seller_level)
+                    : null,
+                'seller_completed_orders' => $gig->seller
+                    ? \App\Models\Order::where('seller_id', $gig->seller->id)->where('status', 'completed')->count()
+                    : 0,
+                'seller_review_count' => $gig->seller
+                    ? \App\Models\Review::where('seller_id', $gig->seller->id)->count()
+                    : 0,
+                'seller_average_rating' => $gig->seller
+                    ? round((float) \App\Models\Review::where('seller_id', $gig->seller->id)->avg('rating'), 1)
+                    : 0,
                 'packages' => $gig->packages
                     ->sortBy(fn ($package) => match ($package->tier) {
                         'basic' => 1,
@@ -126,6 +192,7 @@ class BuyerCatalogController extends Controller
                         'revision_count' => $package->revision_count,
                     ]),
                 'review_count' => (int) ($gig->reviews_count ?? 0),
+                'views_count' => (int) $gig->views_count,
                 'reviews' => $gig->reviews
                     ->sortByDesc('created_at')
                     ->values()
@@ -137,6 +204,24 @@ class BuyerCatalogController extends Controller
                         'created_at' => $review->created_at?->toIso8601String(),
                     ]),
             ],
+            'similar_gigs' => $similarGigs->map(fn (Gig $item) => $this->catalogGigPayload($item))->values(),
+            'people_also_bought' => $peopleAlsoBought->map(fn (Gig $item) => $this->catalogGigPayload($item))->values(),
+            'coupons' => $this->coupons->availableCoupons($request->user()->id)
+                ->map(fn ($coupon) => [
+                    'id' => $coupon->id,
+                    'code' => $coupon->code,
+                    'description' => $coupon->description,
+                    'discount_type' => $coupon->discount_type,
+                    'discount_value' => (string) $coupon->discount_value,
+                    'minimum_order_amount' => $coupon->minimum_order_amount !== null
+                        ? (string) $coupon->minimum_order_amount
+                        : null,
+                    'usage_limit' => $coupon->usage_limit,
+                    'used_count' => $coupon->used_count,
+                    'starts_at' => $coupon->starts_at?->toIso8601String(),
+                    'expires_at' => $coupon->expires_at?->toIso8601String(),
+                ])
+                ->values(),
         ]);
     }
 
@@ -153,7 +238,12 @@ class BuyerCatalogController extends Controller
             'id' => $gig->id,
             'title' => $gig->title,
             'description' => $gig->description,
+            'seller_id' => $gig->seller?->id,
             'seller_name' => $gig->seller?->name,
+            'seller_is_available' => (bool) ($gig->seller?->is_available ?? false),
+            'seller_level' => $gig->seller
+                ? $this->sellerRanking->badge($gig->seller->seller_level)
+                : null,
             'category_name' => $gig->category?->name,
             'subcategory_name' => $gig->subcategory?->name,
             'tags' => $gig->tags ?? [],
@@ -163,7 +253,107 @@ class BuyerCatalogController extends Controller
             'delivery_days' => (int) ($gig->packages_min_delivery_days ?? 0),
             'rating' => round((float) ($gig->reviews_avg_rating ?? 0), 1),
             'review_count' => (int) ($gig->reviews_count ?? 0),
+            'views_count' => (int) ($gig->views_count ?? 0),
             'package_count' => $gig->packages->count(),
         ];
+    }
+
+    private function refreshSellerLevels(\Illuminate\Support\Collection $gigs): void
+    {
+        $gigs->pluck('seller')
+            ->filter()
+            ->unique('id')
+            ->each(function ($seller) {
+                $this->sellerRanking->recalculate($seller);
+                $seller->refresh();
+            });
+    }
+
+    private function recommendationBaseQuery(): Builder
+    {
+        return Gig::query()
+            ->where('status', 'active')
+            ->where('approval_status', 'approved')
+            ->whereHas('category', fn (Builder $query) => $query->where('status', 'active'))
+            ->whereHas('subcategory', fn (Builder $query) => $query->where('status', 'active'))
+            ->whereHas('seller.roles', fn (Builder $query) => $query->where('name', 'seller'))
+            ->whereHas('seller', fn (Builder $query) => $query->where('is_available', true))
+            ->with(['seller:id,name,is_available,seller_level', 'category:id,name', 'subcategory:id,name', 'images', 'packages'])
+            ->withMin('packages', 'price')
+            ->withMin('packages', 'delivery_days')
+            ->withAvg('reviews as reviews_avg_rating', 'rating')
+            ->withCount('reviews');
+    }
+
+    private function similarGigs(Gig $gig, int $limit = 6): Collection
+    {
+        $currentPrice = (float) ($gig->packages->min('price') ?? 0);
+        $minPrice = $currentPrice > 0 ? round($currentPrice * 0.7, 2) : 0;
+        $maxPrice = $currentPrice > 0 ? round($currentPrice * 1.3, 2) : 99999999;
+        $tags = collect($gig->tags ?? [])
+            ->filter(fn ($tag) => is_string($tag) && trim($tag) !== '')
+            ->map(fn ($tag) => trim((string) $tag))
+            ->values();
+
+        $query = $this->recommendationBaseQuery()
+            ->where('id', '!=', $gig->id)
+            ->where('category_id', $gig->category_id)
+            ->whereHas('packages', fn (Builder $packageQuery) => $packageQuery->whereBetween('price', [$minPrice, $maxPrice]));
+
+        if ($tags->isNotEmpty()) {
+            $query->where(function (Builder $tagQuery) use ($tags) {
+                foreach ($tags as $tag) {
+                    $tagQuery->orWhereJsonContains('tags', $tag);
+                }
+            });
+        }
+
+        $gigs = $query
+            ->latest('id')
+            ->limit($limit)
+            ->get();
+
+        $this->refreshSellerLevels($gigs);
+
+        return $gigs;
+    }
+
+    private function peopleAlsoBought(Gig $gig, int $limit = 6): Collection
+    {
+        $buyerIds = Order::query()
+            ->where('gig_id', $gig->id)
+            ->whereIn('payment_status', ['paid', 'released'])
+            ->distinct()
+            ->pluck('buyer_id');
+
+        if ($buyerIds->isEmpty()) {
+            return collect();
+        }
+
+        $relatedGigIds = Order::query()
+            ->selectRaw('gig_id, COUNT(*) as buys_count')
+            ->whereIn('buyer_id', $buyerIds)
+            ->where('gig_id', '!=', $gig->id)
+            ->whereIn('payment_status', ['paid', 'released'])
+            ->groupBy('gig_id')
+            ->orderByDesc('buys_count')
+            ->limit($limit * 3)
+            ->pluck('gig_id');
+
+        if ($relatedGigIds->isEmpty()) {
+            return collect();
+        }
+
+        $positionByGigId = $relatedGigIds->flip();
+        $gigs = $this->recommendationBaseQuery()
+            ->whereIn('id', $relatedGigIds)
+            ->get()
+            ->sortBy(fn (Gig $relatedGig) => $positionByGigId[$relatedGig->id] ?? PHP_INT_MAX)
+            ->take($limit)
+            ->values();
+
+        $this->refreshSellerLevels($gigs);
+
+        return $gigs;
     }
 }

@@ -48,15 +48,23 @@ export function NotificationCenter() {
         return null;
     }
 
+    const unreadCount = notifications.items.filter((n) => !n.read_at).length;
+
     const markAllAsRead = () => {
-        router.post('/notifications/read-all', {}, { preserveScroll: true });
+        router.post('/notifications/read-all', {}, {
+            preserveScroll: true,
+            onSuccess: () => router.reload({ only: ['notifications'] }),
+        });
     };
 
     const markAsRead = (notificationId: string) => {
         router.post(
             `/notifications/${notificationId}/read`,
             {},
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onSuccess: () => router.reload({ only: ['notifications'] }),
+            },
         );
     };
 
@@ -65,11 +73,9 @@ export function NotificationCenter() {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative size-9">
                     <Bell className="size-4" />
-                    {notifications.unread_count > 0 ? (
+                    {unreadCount > 0 ? (
                         <span className="absolute top-1.5 right-1.5 min-w-4 rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">
-                            {notifications.unread_count > 99
-                                ? '99+'
-                                : notifications.unread_count}
+                            {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                     ) : null}
                 </Button>
@@ -84,7 +90,7 @@ export function NotificationCenter() {
                         variant="ghost"
                         size="sm"
                         onClick={markAllAsRead}
-                        disabled={notifications.unread_count === 0}
+                        disabled={unreadCount === 0}
                     >
                         <CheckCheck className="size-4" />
                         Mark all read

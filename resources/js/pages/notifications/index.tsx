@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
-import { BellRing } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import Heading from '@/components/heading';
+import EmptyState from '@/components/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { roleLayout } from '@/hooks/use-role-layout';
@@ -16,7 +17,7 @@ type NotificationItem = {
 };
 
 type Props = {
-    notifications: NotificationItem[];
+    notificationItems: NotificationItem[];
 };
 
 function formatDate(value?: string | null) {
@@ -30,7 +31,7 @@ function formatDate(value?: string | null) {
     }).format(new Date(value));
 }
 
-export default function NotificationsIndex({ notifications }: Props) {
+export default function NotificationsIndex({ notificationItems }: Props) {
     return (
         <>
             <Head title="Notifications" />
@@ -42,15 +43,14 @@ export default function NotificationsIndex({ notifications }: Props) {
                 />
 
                 <div className="grid gap-4">
-                    {notifications.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
-                            <BellRing className="mx-auto size-8 text-muted-foreground" />
-                            <p className="mt-3 text-sm text-muted-foreground">
-                                No notifications yet.
-                            </p>
-                        </div>
+                    {notificationItems.length === 0 ? (
+                        <EmptyState
+                            icon={Bell}
+                            title="No notifications yet"
+                            description="Order updates, messages, and payment events will appear here."
+                        />
                     ) : (
-                        notifications.map((notification) => (
+                        notificationItems.map((notification) => (
                             <div
                                 key={notification.id}
                                 className="rounded-xl border border-sidebar-border/70 bg-card p-5 dark:border-sidebar-border"

@@ -2,10 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\Gig;
 use App\Models\Order;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
+use App\Notifications\AdminDirectNotification;
 use App\Notifications\SystemUserNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class SystemNotificationService
 {
@@ -214,7 +219,7 @@ class SystemNotificationService
             'Your account has been created successfully. You can now sign in and start using the platform.',
             null,
             'registration',
-            'registration',
+            null,
             '/dashboard',
         );
 
@@ -228,6 +233,52 @@ class SystemNotificationService
                 $user->primaryRoleName() ?? 'user',
             ),
         );
+    }
+
+    public function newMessage(User $sender, User $receiver, ?Order $order, string $preview): void
+    {
+        $context = $order
+            ? sprintf(' on order #%d', $order->id)
+            : '';
+
+        $this->notifyUsers(
+            [$receiver],
+            'New message',
+            sprintf('%s sent you a message%s: %s', $sender->name, $context, $preview),
+            'messages',
+            'messages',
+            null,
+            $this->orderMessageActionUrl($receiver, $order),
+        );
+
+        $this->notifyTrello(
+            'new_messages',
+            sprintf('New message from %s', $sender->name),
+            sprintf(
+                "Sender: %s\nReceiver: %s\nOrder: %s\nPreview: %s",
+                $sender->name,
+                $receiver->name,
+                $order ? '#'.$order->id : 'General thread',
+                $preview,
+            ),
+        );
+    }
+
+    private function orderMessageActionUrl(User $receiver, ?Order $order): string
+    {
+        if (! $order) {
+            return '/notifications';
+        }
+
+        if ($receiver->hasRole('buyer')) {
+            return sprintf('/buyer/orders?message_order=%d', $order->id);
+        }
+
+        if ($receiver->hasRole('seller')) {
+            return sprintf('/seller/orders?message_order=%d', $order->id);
+        }
+
+        return '/notifications';
     }
 
     /**
@@ -254,21 +305,155 @@ class SystemNotificationService
             ->filter(fn ($user) => $user instanceof User)
             ->unique('id')
             ->each(function (User $user) use ($title, $message, $inAppEvent, $emailEvent, $twilioEvent, $actionUrl) {
+                $shouldSendInApp = $inAppEvent
+                    && $this->preferences->userSupportsInAppEvent($user, $inAppEvent);
+                $shouldSendEmail = $emailEvent
+                    && $this->preferences->userSupportsEmailEvent($user, $emailEvent);
+
                 if (
-                    ($inAppEvent && $this->preferences->inAppEnabled() && $this->preferences->supportsInAppEvent($inAppEvent))
-                    || ($emailEvent && $this->preferences->emailEnabled() && $this->preferences->supportsEmailEvent($emailEvent))
+                    $shouldSendInApp
+                    || $shouldSendEmail
                 ) {
-                    $user->notify(new SystemUserNotification(
-                        $title,
-                        $message,
-                        $inAppEvent,
-                        $emailEvent,
-                        $actionUrl,
-                    ));
+                    try {
+                        $user->notify(new SystemUserNotification(
+                            $title,
+                            $message,
+                            $inAppEvent,
+                            $emailEvent,
+                            $actionUrl,
+                        ));
+                    } catch (Throwable $exception) {
+                        Log::warning('System user notification failed before Twilio send.', [
+                            'user_id' => $user->id,
+                            'title' => $title,
+                            'in_app_event' => $inAppEvent,
+                            'email_event' => $emailEvent,
+                            'message' => $exception->getMessage(),
+                        ]);
+                    }
                 }
 
                 if ($twilioEvent && $this->preferences->twilioEnabled() && $this->preferences->supportsTwilioEvent($twilioEvent)) {
                     $this->twilio->send($user, $twilioEvent, $title, $message);
+                }
+            });
+    }
+
+    public function reviewReceived(Order $order, int $rating): void
+    {
+        $order->loadMissing(['seller:id,name,phone', 'buyer:id,name', 'gig:id,title']);
+
+        $this->notifyUsers(
+            [$order->seller],
+            'New review received',
+            sprintf(
+                '%s left a %d-star review for "%s".',
+                $order->buyer?->name ?? 'A buyer',
+                $rating,
+                $order->gig?->title ?? 'your gig',
+            ),
+            'reviews',
+            null,
+            null,
+            '/seller/orders',
+        );
+    }
+
+    public function withdrawalRequested(WithdrawalRequest $withdrawal): void
+    {
+        $withdrawal->loadMissing('seller:id,name,email');
+
+        $this->notifyAdmins(
+            'Withdrawal request submitted',
+            sprintf(
+                '%s requested a withdrawal of %s %s via %s.',
+                $withdrawal->seller?->name ?? 'A seller',
+                $withdrawal->wallet?->currency ?? 'USD',
+                number_format((float) $withdrawal->amount, 2),
+                $withdrawal->method,
+            ),
+            '/admin/withdrawals',
+        );
+
+        $this->notifyTrello(
+            'withdrawal_requests',
+            sprintf('Withdrawal request #%d submitted', $withdrawal->id),
+            sprintf(
+                "Seller: %s\nAmount: %s %s\nMethod: %s\nReview: %s",
+                $withdrawal->seller?->name ?? 'Seller',
+                $withdrawal->wallet?->currency ?? 'USD',
+                number_format((float) $withdrawal->amount, 2),
+                $withdrawal->method,
+                url('/admin/withdrawals'),
+            ),
+        );
+    }
+
+    public function gigSubmittedForApproval(Gig $gig): void
+    {
+        $gig->loadMissing('seller:id,name,email');
+
+        $this->notifyAdmins(
+            'Gig pending approval',
+            sprintf(
+                '%s submitted a gig "%s" for approval.',
+                $gig->seller?->name ?? 'A seller',
+                $gig->title,
+            ),
+            '/admin/gigs',
+        );
+    }
+
+    public function disputeRaised(Order $order, User $raisedBy): void
+    {
+        $order->loadMissing(['buyer:id,name', 'seller:id,name', 'gig:id,title']);
+
+        $this->notifyAdmins(
+            'New dispute raised',
+            sprintf(
+                '%s raised a dispute on order #%d (%s).',
+                $raisedBy->name,
+                $order->id,
+                $order->gig?->title ?? 'order',
+            ),
+            '/admin/disputes',
+        );
+
+        $this->notifyTrello(
+            'order_cancelled',
+            sprintf('Dispute raised on order #%d', $order->id),
+            sprintf(
+                "Raised by: %s\nBuyer: %s\nSeller: %s\nGig: %s\nReview: %s",
+                $raisedBy->name,
+                $order->buyer?->name ?? 'Buyer',
+                $order->seller?->name ?? 'Seller',
+                $order->gig?->title ?? 'Gig',
+                url('/admin/disputes'),
+            ),
+        );
+    }
+
+    /**
+     * Notify all super_admin users directly (bypasses per-user preference checks).
+     */
+    private function notifyAdmins(string $title, string $message, string $actionUrl): void
+    {
+        if (! $this->preferences->inAppEnabled()) {
+            return;
+        }
+
+        User::role('super_admin')
+            ->get(['id', 'name', 'email'])
+            ->each(function (User $admin) use ($title, $message, $actionUrl) {
+                try {
+                    // Use direct database notification — bypass per-user preference checks for admins
+                    $admin->notify(new AdminDirectNotification($title, $message, $actionUrl));
+                } catch (Throwable $exception) {
+                    Log::warning('Admin notification failed.', [
+                        'admin_id' => $admin->id,
+                        'title' => $title,
+                        'message' => $exception->getMessage(),
+                    ]);
                 }
             });
     }

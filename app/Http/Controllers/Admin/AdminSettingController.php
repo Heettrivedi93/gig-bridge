@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\PaypalCheckoutService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -20,18 +21,16 @@ class AdminSettingController extends Controller
         return Inertia::render('admin/settings/index', [
             'settings' => [
                 ...$settings,
+                'brand_logo_url' => Setting::getValue('brand_logo_path')
+                    ? Storage::disk('public')->url((string) Setting::getValue('brand_logo_path'))
+                    : null,
             ],
             'eventOptions' => [
                 'email' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_placed', 'label' => 'Order placed'],
+                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
-                    ['key' => 'messages', 'label' => 'Messages'],
-                    ['key' => 'reviews', 'label' => 'Reviews'],
-                    ['key' => 'payments', 'label' => 'Payments'],
-                    ['key' => 'withdrawals', 'label' => 'Withdrawals'],
-                    ['key' => 'subscriptions', 'label' => 'Subscriptions'],
                 ],
                 'in_app' => [
                     ['key' => 'orders', 'label' => 'Orders'],
@@ -49,7 +48,6 @@ class AdminSettingController extends Controller
                     ['key' => 'new_user_registrations', 'label' => 'New user registrations'],
                 ],
                 'twilio' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
                     ['key' => 'order_placed', 'label' => 'Order placed'],
                     ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
@@ -72,21 +70,9 @@ class AdminSettingController extends Controller
             'email_from_address' => ['nullable', 'email', 'max:255'],
             'email_from_name' => ['nullable', 'string', 'max:255'],
 
-            'brand_site_name' => ['nullable', 'string', 'max:255'],
-            'brand_logo_url' => ['nullable', 'url', 'max:2000'],
-            'brand_favicon_url' => ['nullable', 'url', 'max:2000'],
-            'brand_tagline' => ['nullable', 'string', 'max:255'],
-            'brand_primary_color' => ['nullable', 'string', 'max:20'],
-            'brand_secondary_color' => ['nullable', 'string', 'max:20'],
-            'brand_footer_text' => ['nullable', 'string', 'max:5000'],
+            'brand_site_name'     => ['nullable', 'string', 'max:255'],
             'brand_contact_email' => ['nullable', 'email', 'max:255'],
             'brand_contact_phone' => ['nullable', 'string', 'max:50'],
-            'brand_address' => ['nullable', 'string', 'max:2000'],
-            'social_facebook' => ['nullable', 'url', 'max:2000'],
-            'social_x' => ['nullable', 'url', 'max:2000'],
-            'social_instagram' => ['nullable', 'url', 'max:2000'],
-            'social_linkedin' => ['nullable', 'url', 'max:2000'],
-            'social_youtube' => ['nullable', 'url', 'max:2000'],
 
             'payment_paypal_mode' => ['required', 'in:sandbox,live'],
             'payment_paypal_client_id' => ['nullable', 'string', 'max:2000'],
@@ -132,21 +118,9 @@ class AdminSettingController extends Controller
             'email_from_address' => $data['email_from_address'] ?: '',
             'email_from_name' => $data['email_from_name'] ?: '',
 
-            'brand_site_name' => $data['brand_site_name'] ?: '',
-            'brand_logo_url' => $data['brand_logo_url'] ?: '',
-            'brand_favicon_url' => $data['brand_favicon_url'] ?: '',
-            'brand_tagline' => $data['brand_tagline'] ?: '',
-            'brand_primary_color' => $data['brand_primary_color'] ?: '',
-            'brand_secondary_color' => $data['brand_secondary_color'] ?: '',
-            'brand_footer_text' => $data['brand_footer_text'] ?: '',
+            'brand_site_name'     => $data['brand_site_name'] ?: 'GigBridge',
             'brand_contact_email' => $data['brand_contact_email'] ?: '',
             'brand_contact_phone' => $data['brand_contact_phone'] ?: '',
-            'brand_address' => $data['brand_address'] ?: '',
-            'social_facebook' => $data['social_facebook'] ?: '',
-            'social_x' => $data['social_x'] ?: '',
-            'social_instagram' => $data['social_instagram'] ?: '',
-            'social_linkedin' => $data['social_linkedin'] ?: '',
-            'social_youtube' => $data['social_youtube'] ?: '',
 
             'payment_paypal_mode' => $data['payment_paypal_mode'],
             'payment_paypal_client_id' => $data['payment_paypal_client_id'] ?: '',
@@ -183,6 +157,39 @@ class AdminSettingController extends Controller
             ->with('flash_nonce', Str::uuid()->toString());
     }
 
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => ['required', 'image', 'max:2048'],
+        ]);
+
+        $old = Setting::getValue('brand_logo_path');
+        if ($old) {
+            Storage::disk('public')->delete((string) $old);
+        }
+
+        $path = $request->file('logo')->store('brand', 'public');
+        Setting::setMany(['brand_logo_path' => $path]);
+
+        return back()
+            ->with('success', 'Logo updated successfully.')
+            ->with('flash_nonce', Str::uuid()->toString());
+    }
+
+    public function resetLogo()
+    {
+        $old = Setting::getValue('brand_logo_path');
+        if ($old) {
+            Storage::disk('public')->delete((string) $old);
+        }
+
+        Setting::setMany(['brand_logo_path' => '']);
+
+        return back()
+            ->with('success', 'Logo reset to default.')
+            ->with('flash_nonce', Str::uuid()->toString());
+    }
+
     private function defaults(): array
     {
         return [
@@ -195,21 +202,10 @@ class AdminSettingController extends Controller
             'email_from_address' => '',
             'email_from_name' => '',
 
-            'brand_site_name' => '',
-            'brand_logo_url' => '',
-            'brand_favicon_url' => '',
-            'brand_tagline' => '',
-            'brand_primary_color' => '',
-            'brand_secondary_color' => '',
-            'brand_footer_text' => '',
+            'brand_site_name'     => 'GigBridge',
             'brand_contact_email' => '',
             'brand_contact_phone' => '',
-            'brand_address' => '',
-            'social_facebook' => '',
-            'social_x' => '',
-            'social_instagram' => '',
-            'social_linkedin' => '',
-            'social_youtube' => '',
+            'brand_logo_path'     => '',
 
             'payment_paypal_mode' => 'sandbox',
             'payment_paypal_client_id' => '',
@@ -247,13 +243,9 @@ class AdminSettingController extends Controller
         return [
             'registration',
             'order_placed',
+            'order_delivered',
             'order_completed',
             'order_cancelled',
-            'messages',
-            'reviews',
-            'payments',
-            'withdrawals',
-            'subscriptions',
         ];
     }
 

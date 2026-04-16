@@ -26,6 +26,9 @@ use Spatie\Permission\Traits\HasRoles;
     'skills',
     'location',
     'website',
+    'seller_level',
+    'is_available',
+    'notification_preferences',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
@@ -44,6 +47,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'permissions_managed_at' => 'datetime',
+            'notification_preferences' => 'array',
+            'is_available' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
@@ -103,6 +108,11 @@ class User extends Authenticatable
     public function reviewsReceived(): HasMany
     {
         return $this->hasMany(Review::class, 'seller_id');
+    }
+
+    public function gigFavourites(): HasMany
+    {
+        return $this->hasMany(GigFavourite::class);
     }
 
     public function activeSubscription(): ?Subscription

@@ -1,5 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
+import '@/echo';
 import FlashToaster from '@/components/flash-toaster';
+import { RealtimeNotifications } from '@/components/realtime-notifications';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import { ConfirmDialogProvider } from '@/hooks/use-confirm';
@@ -13,6 +15,7 @@ function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <FlashToaster />
+            <RealtimeNotifications />
             {children}
         </>
     );

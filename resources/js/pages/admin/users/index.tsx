@@ -3,6 +3,9 @@ import { Pencil, ShieldCheck, UserCog } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import SellerLevelBadge from '@/components/seller-level-badge';
+import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import admin from '@/routes/admin';
 
 type Status = 'active' | 'banned';
@@ -32,6 +36,7 @@ type UserRow = {
     status: Status;
     created_at: string;
     roles: string[];
+    seller_level: SellerLevelBadgeData;
     permissions: string[];
     permissions_managed_at?: string | null;
 };
@@ -50,6 +55,9 @@ type UserUpdateForm = {
 
 export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
     const [editTarget, setEditTarget] = useState<UserRow | null>(null);
+    const [selectedRole, setSelectedRole] = useState<
+        'all' | 'seller' | 'buyer'
+    >('all');
 
     const form = useForm<UserUpdateForm>({
         name: '',
@@ -66,6 +74,16 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
             })),
         [users],
     );
+    const filteredUsers = useMemo(
+        () =>
+            usersWithPrimaryRole.filter((user) =>
+                selectedRole === 'all'
+                    ? true
+                    : user.primaryRole === selectedRole,
+            ),
+        [selectedRole, usersWithPrimaryRole],
+    );
+    const paginatedUsers = useClientPagination(filteredUsers);
     const assignablePermissions =
         permissionsByRole[editTarget?.roles?.[0] ?? ''] ?? [];
     const formatPermission = (permission: string) =>
@@ -74,6 +92,11 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
             .slice(1, -1)
             .join(' ')
             .replace(/\b\w/g, (char) => char.toUpperCase());
+    const roleOptions = [
+        { value: 'all' as const, label: 'All Users' },
+        { value: 'seller' as const, label: 'Sellers' },
+        { value: 'buyer' as const, label: 'Buyers' },
+    ];
 
     const openEdit = (user: UserRow) => {
         setEditTarget(user);
@@ -131,78 +154,129 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                     description="Manage user name, email, role, permissions, and account status."
                 />
 
+                <div className="flex flex-wrap gap-2">
+                    {roleOptions.map((option) => (
+                        <Button
+                            key={option.value}
+                            type="button"
+                            size="sm"
+                            variant={
+                                selectedRole === option.value
+                                    ? 'default'
+                                    : 'outline'
+                            }
+                            onClick={() => setSelectedRole(option.value)}
+                        >
+                            {option.label}
+                        </Button>
+                    ))}
+                </div>
+
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    User
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Role
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Permissions
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {usersWithPrimaryRole.map((user) => (
-                                <tr
-                                    key={user.id}
-                                    className="bg-background transition-colors hover:bg-muted/30"
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium text-foreground">
-                                            {user.name}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {user.email}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant="outline"
-                                            className="capitalize"
-                                        >
-                                            {user.primaryRole.replace('_', ' ')}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {user.permissions.length}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant={
-                                                user.status === 'active'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                        >
-                                            {user.status}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => openEdit(user)}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                        </div>
-                                    </td>
+                    <div className="max-w-full overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        User
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Role
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Seller Level
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Permissions
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {paginatedUsers.paginatedItems.map((user) => (
+                                    <tr
+                                        key={user.id}
+                                        className="bg-background transition-colors hover:bg-muted/30"
+                                    >
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium text-foreground">
+                                                {user.name}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {user.email}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge
+                                                variant="outline"
+                                                className="capitalize"
+                                            >
+                                                {user.primaryRole.replace(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {user.primaryRole === 'seller' ? (
+                                                <SellerLevelBadge
+                                                    level={user.seller_level}
+                                                />
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {user.permissions.length}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge
+                                                variant={
+                                                    user.status === 'active'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
+                                                {user.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openEdit(user)
+                                                    }
+                                                >
+                                                    <Pencil className="size-3.5" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <TablePagination
+                        page={paginatedUsers.page}
+                        pageSize={paginatedUsers.pageSize}
+                        totalItems={paginatedUsers.totalItems}
+                        totalPages={paginatedUsers.totalPages}
+                        startItem={paginatedUsers.startItem}
+                        endItem={paginatedUsers.endItem}
+                        hasPreviousPage={paginatedUsers.hasPreviousPage}
+                        hasNextPage={paginatedUsers.hasNextPage}
+                        onPageChange={paginatedUsers.setPage}
+                        onPageSizeChange={paginatedUsers.setPageSize}
+                    />
                 </div>
             </div>
 

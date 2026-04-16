@@ -7,9 +7,12 @@ use App\Models\GigPackage;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\Setting;
+use App\Services\CouponService;
 use App\Services\OrderFundService;
 use App\Services\PaypalCheckoutService;
+use App\Services\SellerRankingService;
 use App\Services\SystemNotificationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,8 +26,10 @@ class BuyerOrderController extends Controller
 {
     public function __construct(
         private readonly PaypalCheckoutService $paypal,
+        private readonly CouponService $coupons,
         private readonly OrderFundService $funds,
         private readonly SystemNotificationService $notifications,
+        private readonly SellerRankingService $sellerRanking,
     ) {}
 
     public function index(Request $request): Response
@@ -41,6 +46,7 @@ class BuyerOrderController extends Controller
                     'revisions.requester:id,name',
                     'cancellations',
                     'review',
+                    'disputes',
                 ])
                 ->where('buyer_id', $buyer->id)
                 ->latest('updated_at')
@@ -60,6 +66,7 @@ class BuyerOrderController extends Controller
                             'revision_count' => $order->package->revision_count,
                         ] : null,
                         'seller' => $order->seller ? [
+                            'id' => $order->seller->id,
                             'name' => $order->seller->name,
                             'email' => $order->seller->email,
                         ] : null,
@@ -69,6 +76,8 @@ class BuyerOrderController extends Controller
                         'style_notes' => $order->style_notes,
                         'coupon_code' => $order->coupon_code,
                         'brief_file_url' => $order->brief_file_path ? Storage::disk('public')->url($order->brief_file_path) : null,
+                        'subtotal_amount' => (string) $order->subtotal_amount,
+                        'discount_amount' => (string) $order->discount_amount,
                         'price' => (string) $order->price,
                         'unit_price' => (string) $order->unit_price,
                         'status' => $order->status,
@@ -76,6 +85,7 @@ class BuyerOrderController extends Controller
                         'paypal_order_id' => $order->paypal_order_id,
                         'created_at' => $order->created_at?->toIso8601String(),
                         'delivered_at' => $order->delivered_at?->toIso8601String(),
+                        'due_at' => $order->due_at?->toIso8601String(),
                         'completed_at' => $order->completed_at?->toIso8601String(),
                         'cancelled_at' => $order->cancelled_at?->toIso8601String(),
                         'used_revisions' => $usedRevisions,
@@ -105,9 +115,11 @@ class BuyerOrderController extends Controller
                             'comment' => $order->review->comment,
                             'created_at' => $order->review->created_at?->toIso8601String(),
                         ] : null,
+                        'open_dispute_id' => $order->disputes->where('status', 'open')->first()?->id,
                     ];
                 }),
             'paypal' => $this->paypal->publicConfig(),
+            'refund_policy' => (string) \App\Models\Setting::getValue('payment_refund_policy_text', ''),
         ]);
     }
 
@@ -115,43 +127,54 @@ class BuyerOrderController extends Controller
     {
         $buyer = $this->ensureBuyer($request);
 
+        $orders = Order::query()
+            ->with(['gig:id,title', 'package:id,gig_id,tier,title,delivery_days,revision_count', 'seller:id,name,email'])
+            ->where('buyer_id', $buyer->id)
+            ->whereNotNull('paypal_order_id')
+            ->whereIn('payment_status', ['paid', 'released', 'refunded'])
+            ->latest('updated_at')
+            ->latest('id')
+            ->get();
+
+        $totalSpent = number_format(
+            $orders->sum(fn (Order $o) => max(0, (float) $o->price - (float) ($o->refunded_amount ?? 0))),
+            2, '.', ''
+        );
+
         return Inertia::render('buyer/payments/index', [
-            'payments' => Order::query()
-                ->with(['gig:id,title', 'package:id,gig_id,tier,title,delivery_days,revision_count', 'seller:id,name,email'])
-                ->where('buyer_id', $buyer->id)
-                ->whereNotNull('paypal_order_id')
-                ->latest('updated_at')
-                ->latest('id')
-                ->get()
-                ->map(fn (Order $order) => [
-                    'id' => $order->id,
-                    'invoice_number' => 'INV-ORDER-'.$order->id,
-                    'provider' => 'PAYPAL',
-                    'provider_order_id' => $order->paypal_order_id,
-                    'provider_reference' => $order->paypal_payer_id,
-                    'amount' => (string) $order->price,
-                    'currency' => 'USD',
-                    'status' => $order->payment_status,
-                    'created_at' => $order->created_at?->toIso8601String(),
-                    'paid_at' => $order->updated_at?->toIso8601String(),
-                    'gig' => [
-                        'title' => $order->gig?->title,
-                    ],
-                    'package' => $order->package ? [
-                        'title' => $order->package->title,
-                        'tier' => $order->package->tier,
-                        'delivery_days' => $order->package->delivery_days,
-                        'revision_count' => $order->package->revision_count,
-                    ] : null,
-                    'seller' => $order->seller ? [
-                        'name' => $order->seller->name,
-                        'email' => $order->seller->email,
-                    ] : null,
-                    'billing' => [
-                        'name' => $order->billing_name,
-                        'email' => $order->billing_email,
-                    ],
-                ]),
+            'total_spent' => $totalSpent,
+            'payments' => $orders->map(fn (Order $order) => [
+                'id' => $order->id,
+                'invoice_number' => 'INV-ORDER-'.$order->id,
+                'provider' => 'PAYPAL',
+                'provider_order_id' => $order->paypal_order_id,
+                'provider_reference' => $order->paypal_payer_id,
+                'amount' => number_format((float) $order->price, 2, '.', ''),
+                'refunded_amount' => number_format((float) ($order->refunded_amount ?? 0), 2, '.', ''),
+                'net_amount' => number_format(max(0, (float) $order->price - (float) ($order->refunded_amount ?? 0)), 2, '.', ''),
+                'subtotal_amount' => number_format((float) $order->subtotal_amount, 2, '.', ''),
+                'discount_amount' => number_format((float) $order->discount_amount, 2, '.', ''),
+                'coupon_code' => $order->coupon_code,
+                'currency' => 'USD',
+                'status' => $order->payment_status,
+                'created_at' => $order->created_at?->toIso8601String(),
+                'paid_at' => $order->updated_at?->toIso8601String(),
+                'gig' => ['title' => $order->gig?->title],
+                'package' => $order->package ? [
+                    'title' => $order->package->title,
+                    'tier' => $order->package->tier,
+                    'delivery_days' => $order->package->delivery_days,
+                    'revision_count' => $order->package->revision_count,
+                ] : null,
+                'seller' => $order->seller ? [
+                    'name' => $order->seller->name,
+                    'email' => $order->seller->email,
+                ] : null,
+                'billing' => [
+                    'name' => $order->billing_name,
+                    'email' => $order->billing_email,
+                ],
+            ]),
             'buyer' => [
                 'name' => $buyer->name,
                 'email' => $buyer->email,
@@ -159,11 +182,75 @@ class BuyerOrderController extends Controller
         ]);
     }
 
+    public function downloadInvoicePdf(Request $request, Order $order)
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+
+        $order->load(['gig:id,title', 'package:id,title,tier,delivery_days,revision_count', 'seller:id,name,email']);
+
+        abort_unless($order->paypal_order_id !== null, 404);
+
+        $invoiceNumber = 'INV-ORDER-'.$order->id;
+
+        $pdf = Pdf::loadView('invoices.buyer-order-payment', [
+            'invoiceNumber' => $invoiceNumber,
+            'buyer' => $buyer,
+            'order' => $order,
+            'generatedAt' => now(),
+        ])->setPaper('a4');
+
+        return $pdf->download(sprintf('buyer-invoice-%s.pdf', strtolower($invoiceNumber)));
+    }
+
+    public function downloadRefundReceipt(Request $request, Order $order)
+    {
+        $buyer = $this->ensureBuyer($request);
+        abort_unless($order->buyer_id === $buyer->id, 403);
+        abort_unless($order->payment_status === 'refunded', 404);
+
+        $order->load([
+            'gig:id,title',
+            'package:id,title,tier',
+            'seller:id,name,email',
+            'cancellations',
+        ]);
+
+        $invoiceNumber   = 'INV-ORDER-'.$order->id;
+        $receiptNumber   = 'REF-ORDER-'.$order->id;
+        $cancellation    = $order->cancellations->first();
+        $refundReason    = $cancellation?->reason ?? 'Order cancelled';
+        $cancelledBy     = $cancellation?->cancelled_by ?? 'system';
+        $siteName        = (string) \App\Models\Setting::getValue('brand_site_name', 'GigBridge') ?: 'GigBridge';
+        $contactEmail    = (string) \App\Models\Setting::getValue('brand_contact_email', '');
+
+        $pdf = Pdf::loadView('invoices.buyer-refund-receipt', [
+            'receiptNumber'  => $receiptNumber,
+            'invoiceNumber'  => $invoiceNumber,
+            'buyer'          => $buyer,
+            'order'          => $order,
+            'refundReason'   => $refundReason,
+            'cancelledBy'    => $cancelledBy,
+            'siteName'       => $siteName,
+            'contactEmail'   => $contactEmail,
+            'generatedAt'    => now(),
+        ])->setPaper('a4');
+
+        return $pdf->download(sprintf('refund-receipt-%s.pdf', strtolower($receiptNumber)));
+    }
+
     public function store(Request $request, Gig $gig): RedirectResponse
     {
         $buyer = $this->ensureBuyer($request);
 
         abort_unless($gig->status === 'active', 404);
+        $gig->loadMissing('seller:id,is_available');
+
+        if (! ($gig->seller?->is_available ?? false)) {
+            throw ValidationException::withMessages([
+                'order' => 'This seller is currently unavailable and not accepting new orders.',
+            ]);
+        }
 
         $data = $request->validate([
             'package_id' => ['required', 'integer'],
@@ -184,23 +271,30 @@ class BuyerOrderController extends Controller
 
         $quantity = (int) $data['quantity'];
         $unitPrice = (float) $package->price;
+        $subtotal = round($unitPrice * $quantity, 2);
+        $coupon = $this->coupons->validateForSubtotal($data['coupon_code'] ?? null, $subtotal, $buyer->id);
+        $discountAmount = (float) $coupon['discount_amount'];
+        $finalPrice = round(max(0, $subtotal - $discountAmount), 2);
 
         $order = Order::create([
             'buyer_id' => $buyer->id,
             'seller_id' => $gig->user_id,
             'gig_id' => $gig->id,
             'package_id' => $package->id,
+            'coupon_id' => $coupon['coupon']?->id,
             'quantity' => $quantity,
             'requirements' => $data['requirements'],
             'brief_file_path' => $request->file('brief_file')?->store('order-briefs', 'public'),
             'reference_link' => ($data['reference_link'] ?? '') ?: null,
             'style_notes' => ($data['style_notes'] ?? '') ?: null,
-            'coupon_code' => ($data['coupon_code'] ?? '') ?: null,
+            'coupon_code' => $coupon['code'],
             'billing_name' => $data['billing_name'],
             'billing_email' => $data['billing_email'],
             'unit_price' => $unitPrice,
-            'price' => $unitPrice * $quantity,
-            'gross_amount' => $unitPrice * $quantity,
+            'subtotal_amount' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'price' => $finalPrice,
+            'gross_amount' => $finalPrice,
             'status' => 'pending',
             'payment_status' => 'pending',
             'fund_status' => 'none',
@@ -325,7 +419,10 @@ class BuyerOrderController extends Controller
             'platform_fee_amount' => $platformFeeAmount,
             'seller_net_amount' => $sellerNetAmount,
             'paypal_payer_id' => data_get($capture, 'payer.payer_id'),
+            'due_at' => now()->addDays((int) ($order->package?->delivery_days ?? 0)),
         ]);
+
+        $this->coupons->markUsed($order->coupon, $buyer->id, $order->fresh());
 
         $this->notifications->orderPlaced($order->fresh());
         $this->funds->holdEscrow($order->fresh());
@@ -404,6 +501,7 @@ class BuyerOrderController extends Controller
         }
 
         $this->notifications->orderCompleted($freshOrder->fresh());
+        $this->sellerRanking->recalculate($freshOrder->seller()->firstOrFail());
 
         return back()->with('success', 'Order marked as completed.');
     }
@@ -413,9 +511,12 @@ class BuyerOrderController extends Controller
         $buyer = $this->ensureBuyer($request);
         abort_unless($order->buyer_id === $buyer->id, 403);
 
-        if ($order->status !== 'completed' || $order->payment_status !== 'paid') {
+        if (
+            $order->status !== 'completed'
+            || ! in_array($order->payment_status, ['paid', 'released'], true)
+        ) {
             throw ValidationException::withMessages([
-                'rating' => 'Only completed paid orders can be reviewed.',
+                'rating' => 'Only completed paid or released orders can be reviewed.',
             ]);
         }
 
@@ -431,13 +532,16 @@ class BuyerOrderController extends Controller
         ]);
 
         Review::create([
-            'order_id' => $order->id,
-            'gig_id' => $order->gig_id,
-            'buyer_id' => $buyer->id,
+            'order_id'  => $order->id,
+            'gig_id'    => $order->gig_id,
+            'buyer_id'  => $buyer->id,
             'seller_id' => $order->seller_id,
-            'rating' => $data['rating'],
-            'comment' => $data['comment'],
+            'rating'    => $data['rating'],
+            'comment'   => $data['comment'],
         ]);
+
+        $this->notifications->reviewReceived($order->fresh(), (int) $data['rating']);
+        $this->sellerRanking->recalculate($order->seller()->firstOrFail());
 
         return back()->with('success', 'Review submitted successfully.');
     }
@@ -447,9 +551,9 @@ class BuyerOrderController extends Controller
         $buyer = $this->ensureBuyer($request);
         abort_unless($order->buyer_id === $buyer->id, 403);
 
-        if (! in_array($order->status, ['pending', 'active', 'delivered'], true)) {
+        if (! in_array($order->status, ['pending', 'active'], true)) {
             throw ValidationException::withMessages([
-                'cancellation_reason' => 'Only pending, active, or delivered orders can be cancelled.',
+                'cancellation_reason' => 'Only pending or active orders can be cancelled. Use revision or dispute for delivered orders.',
             ]);
         }
 
@@ -476,6 +580,7 @@ class BuyerOrderController extends Controller
         }
 
         $this->notifications->orderCancelledByBuyer($order->fresh());
+        $this->sellerRanking->recalculate($order->seller()->firstOrFail());
 
         return back()->with('success', 'Order cancelled successfully.');
     }

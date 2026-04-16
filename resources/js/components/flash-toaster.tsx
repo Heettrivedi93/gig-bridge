@@ -5,6 +5,15 @@ import { cn } from '@/lib/utils';
 
 type FlashLevel = 'success' | 'error' | 'warning' | 'info';
 
+// ── Imperative toast API ──────────────────────────────────────────────────────
+// Call window.dispatchEvent(new CustomEvent('app:toast', { detail: { level, message } }))
+// or use the exported `toast` helper from anywhere in the app.
+export function toast(level: FlashLevel, message: string) {
+    window.dispatchEvent(
+        new CustomEvent('app:toast', { detail: { level, message } }),
+    );
+}
+
 type FlashPayload = Partial<Record<FlashLevel, string | null | undefined>> & {
     nonce?: string | null;
 };
@@ -103,6 +112,15 @@ export default function FlashToaster() {
         setToasts((current) => [...current, { id, level, message, leaving: false }]);
         registerToastTimers(id, key);
     });
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const { level, message } = (e as CustomEvent<{ level: FlashLevel; message: string }>).detail;
+            enqueueToast(level, message);
+        };
+        window.addEventListener('app:toast', handler);
+        return () => window.removeEventListener('app:toast', handler);
+    }, []);
 
     useEffect(() => {
         for (const level of FLASH_LEVELS) {

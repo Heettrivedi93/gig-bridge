@@ -11,6 +11,7 @@ use App\Services\SystemNotificationService;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -18,6 +19,7 @@ class CreateNewUser implements CreatesNewUsers
 
     public function __construct(
         private readonly SystemNotificationService $notifications,
+        private readonly PermissionRegistrar $permissions,
     ) {}
 
     /**
@@ -45,6 +47,11 @@ class CreateNewUser implements CreatesNewUsers
             'guard_name' => 'web',
         ]));
 
+        $this->permissions->forgetCachedPermissions();
+        $user->unsetRelation('roles');
+        $user->unsetRelation('permissions');
+        $user = $user->fresh();
+
         if ($input['role'] === 'seller') {
             $defaultPlan = Plan::query()
                 ->where('status', 'active')
@@ -62,6 +69,8 @@ class CreateNewUser implements CreatesNewUsers
                 ]);
             }
         }
+
+        $user->loadMissing('roles');
 
         $this->notifications->registration($user);
 

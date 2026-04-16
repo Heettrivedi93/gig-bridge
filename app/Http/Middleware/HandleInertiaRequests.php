@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
+use App\Services\NotificationPreferenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
@@ -38,7 +39,10 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $inAppNotificationsEnabled = (bool) Setting::getValue('notifications_in_app_enabled', true);
+        $preferences = app(NotificationPreferenceService::class);
+        $inAppNotificationsEnabled = $user
+            ? $preferences->userInAppEnabled($user)
+            : false;
         $notifications = $user && $inAppNotificationsEnabled
             ? $user->notifications()
                 ->latest()
@@ -59,6 +63,11 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'brand_logo_url' => (function () {
+                $path = Setting::getValue('brand_logo_path', '');
+                return $path ? Storage::disk('public')->url((string) $path) : null;
+            })(),
+            'brand_site_name' => (string) Setting::getValue('brand_site_name', '') ?: null,
             'flash' => [
                 'nonce' => $request->session()->get('flash_nonce'),
                 'success' => $request->session()->get('success'),
@@ -73,12 +82,12 @@ class HandleInertiaRequests extends Middleware
                     'avatar' => $user->profile_picture
                         ? Storage::disk('public')->url($user->profile_picture)
                         : null,
+                    'notification_preferences' => $user->notification_preferences,
                 ]) : null,
             ],
             'notifications' => [
                 'enabled' => $inAppNotificationsEnabled,
                 'items' => $notifications,
-                'unread_count' => $user && $inAppNotificationsEnabled ? $user->unreadNotifications()->count() : 0,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

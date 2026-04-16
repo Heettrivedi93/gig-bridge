@@ -1,5 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLogoIcon from '@/components/app-logo-icon';
 import admin from '@/routes/admin';
 
 type SettingsForm = {
@@ -25,20 +26,9 @@ type SettingsForm = {
     email_from_name: string;
 
     brand_site_name: string;
-    brand_logo_url: string;
-    brand_favicon_url: string;
-    brand_tagline: string;
-    brand_primary_color: string;
-    brand_secondary_color: string;
-    brand_footer_text: string;
     brand_contact_email: string;
     brand_contact_phone: string;
-    brand_address: string;
-    social_facebook: string;
-    social_x: string;
-    social_instagram: string;
-    social_linkedin: string;
-    social_youtube: string;
+    brand_logo_url: string | null;
 
     payment_paypal_mode: 'sandbox' | 'live';
     payment_paypal_client_id: string;
@@ -123,6 +113,28 @@ function EventCheckboxList({
 export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
     const form = useForm<SettingsForm>(settings);
     const [activeTab, setActiveTab] = useState<SettingTab>('email');
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(settings.brand_logo_url ?? null);
+    const [logoUploading, setLogoUploading] = useState(false);
+
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLogoPreview(URL.createObjectURL(file));
+        const data = new FormData();
+        data.append('logo', file);
+        setLogoUploading(true);
+        router.post('/admin/settings/logo', data, {
+            forceFormData: true,
+            preserveScroll: true,
+            onFinish: () => setLogoUploading(false),
+        });
+    };
+
+    const handleLogoReset = () => {
+        setLogoPreview(null);
+        router.delete('/admin/settings/logo', { preserveScroll: true });
+    };
 
     const toggleValue = (
         key:
@@ -153,11 +165,11 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
 
     return (
         <>
-            <Head title="System Settings" />
+            <Head title="Settings" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="System Settings"
+                    title="Settings"
                     description="Manage email, brand, payment, Trello, and notification configuration in one place."
                 />
 
@@ -394,279 +406,82 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 : 'hidden'
                         }
                     >
-                        <h2 className="mb-4 text-base font-semibold">
-                            3.5 Brand Settings
-                        </h2>
+                        <h2 className="mb-4 text-base font-semibold">Brand Settings</h2>
+
+                        {/* Logo */}
+                        <div className="mb-6">
+                            <Label className="mb-2 block">Brand Logo</Label>
+                            <div className="flex items-center gap-4">
+                                <div className="flex size-16 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                                    {logoPreview ? (
+                                        <img src={logoPreview} alt="Brand logo" className="size-full object-contain" />
+                                    ) : (
+                                        <AppLogoIcon className="size-8 text-muted-foreground" />
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <input
+                                        ref={logoInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleLogoChange}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={logoUploading}
+                                        onClick={() => logoInputRef.current?.click()}
+                                    >
+                                        {logoUploading ? 'Uploading…' : 'Upload Logo'}
+                                    </Button>
+                                    {logoPreview && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleLogoReset}
+                                        >
+                                            Reset to Default
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            <p className="mt-1.5 text-xs text-muted-foreground">PNG, JPG or SVG. Max 2 MB.</p>
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="brand-site-name">
-                                    Site Name
-                                </Label>
+                                <Label htmlFor="brand-site-name">Site Name</Label>
                                 <Input
                                     id="brand-site-name"
                                     value={form.data.brand_site_name}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_site_name',
-                                            e.target.value,
-                                        )
-                                    }
+                                    onChange={(e) => form.setData('brand_site_name', e.target.value)}
                                 />
-                                <InputError
-                                    message={form.errors.brand_site_name}
-                                />
+                                <InputError message={form.errors.brand_site_name} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="brand-tagline">Tagline</Label>
-                                <Input
-                                    id="brand-tagline"
-                                    value={form.data.brand_tagline}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_tagline',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_tagline}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-logo-url">Logo URL</Label>
-                                <Input
-                                    id="brand-logo-url"
-                                    value={form.data.brand_logo_url}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_logo_url',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_logo_url}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-favicon-url">
-                                    Favicon URL
-                                </Label>
-                                <Input
-                                    id="brand-favicon-url"
-                                    value={form.data.brand_favicon_url}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_favicon_url',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_favicon_url}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-primary-color">
-                                    Primary Color
-                                </Label>
-                                <Input
-                                    id="brand-primary-color"
-                                    placeholder="#0ea5e9"
-                                    value={form.data.brand_primary_color}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_primary_color',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_primary_color}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-secondary-color">
-                                    Secondary Color
-                                </Label>
-                                <Input
-                                    id="brand-secondary-color"
-                                    placeholder="#10b981"
-                                    value={form.data.brand_secondary_color}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_secondary_color',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_secondary_color}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-contact-email">
-                                    Contact Email
-                                </Label>
+                                <Label htmlFor="brand-contact-email">Contact Email</Label>
                                 <Input
                                     id="brand-contact-email"
                                     type="email"
                                     value={form.data.brand_contact_email}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_contact_email',
-                                            e.target.value,
-                                        )
-                                    }
+                                    onChange={(e) => form.setData('brand_contact_email', e.target.value)}
                                 />
-                                <InputError
-                                    message={form.errors.brand_contact_email}
-                                />
+                                <InputError message={form.errors.brand_contact_email} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="brand-contact-phone">
-                                    Contact Phone
-                                </Label>
+                                <Label htmlFor="brand-contact-phone">Contact Phone</Label>
                                 <Input
                                     id="brand-contact-phone"
                                     value={form.data.brand_contact_phone}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_contact_phone',
-                                            e.target.value,
-                                        )
-                                    }
+                                    onChange={(e) => form.setData('brand_contact_phone', e.target.value)}
                                 />
-                                <InputError
-                                    message={form.errors.brand_contact_phone}
-                                />
+                                <InputError message={form.errors.brand_contact_phone} />
                             </div>
                         </div>
-                        <div className="mt-4 grid gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-address">Address</Label>
-                                <textarea
-                                    id="brand-address"
-                                    rows={2}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                    value={form.data.brand_address}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_address',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_address}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="brand-footer-text">
-                                    Footer Text
-                                </Label>
-                                <textarea
-                                    id="brand-footer-text"
-                                    rows={2}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                    value={form.data.brand_footer_text}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'brand_footer_text',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.brand_footer_text}
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="social-facebook">
-                                    Facebook URL
-                                </Label>
-                                <Input
-                                    id="social-facebook"
-                                    value={form.data.social_facebook}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'social_facebook',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.social_facebook}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="social-x">X URL</Label>
-                                <Input
-                                    id="social-x"
-                                    value={form.data.social_x}
-                                    onChange={(e) =>
-                                        form.setData('social_x', e.target.value)
-                                    }
-                                />
-                                <InputError message={form.errors.social_x} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="social-instagram">
-                                    Instagram URL
-                                </Label>
-                                <Input
-                                    id="social-instagram"
-                                    value={form.data.social_instagram}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'social_instagram',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.social_instagram}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="social-linkedin">
-                                    LinkedIn URL
-                                </Label>
-                                <Input
-                                    id="social-linkedin"
-                                    value={form.data.social_linkedin}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'social_linkedin',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.social_linkedin}
-                                />
-                            </div>
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="social-youtube">
-                                    YouTube URL
-                                </Label>
-                                <Input
-                                    id="social-youtube"
-                                    value={form.data.social_youtube}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'social_youtube',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={form.errors.social_youtube}
-                                />
-                            </div>
-                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">Contact email and phone appear in the footer of all notification emails sent to users.</p>
                     </section>
 
                     <section

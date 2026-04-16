@@ -1,8 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
+import { Eye, Pencil, PlusIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import TablePagination from '@/components/table-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useClientPagination } from '@/hooks/use-client-pagination';
 import { useConfirm } from '@/hooks/use-confirm';
 import admin from '@/routes/admin';
 
@@ -175,6 +177,7 @@ function PlanForm({
 export default function AdminPlansIndex({ plans }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<Plan | null>(null);
+    const [viewTarget, setViewTarget] = useState<Plan | null>(null);
     const confirm = useConfirm();
 
     const createForm = useForm<PlanFormData>({
@@ -194,6 +197,7 @@ export default function AdminPlansIndex({ plans }: Props) {
         features_text: '',
         status: 'active',
     });
+    const paginatedPlans = useClientPagination(plans);
 
     const openEdit = (plan: Plan) => {
         setEditTarget(plan);
@@ -251,12 +255,12 @@ export default function AdminPlansIndex({ plans }: Props) {
 
     return (
         <>
-            <Head title="Subscription Plans" />
+            <Head title="Plans" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">
                     <Heading
-                        title="Subscription Plans"
+                        title="Plans"
                         description="Manage seller subscription packages and limits."
                     />
                     <Button onClick={() => setShowCreate(true)} size="sm">
@@ -266,89 +270,112 @@ export default function AdminPlansIndex({ plans }: Props) {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Name
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Price
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Duration
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Gig Limit
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Features
-                                </th>
-                                <th className="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-right font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {plans.map((plan) => (
-                                <tr
-                                    key={plan.id}
-                                    className="bg-background transition-colors hover:bg-muted/30"
-                                >
-                                    <td className="px-4 py-3 font-medium text-foreground">
-                                        {plan.name}
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        ${plan.price}
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {plan.duration_days} days
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {plan.gig_limit}
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {plan.features.length}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Badge
-                                            variant={
-                                                plan.status === 'active'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                        >
-                                            {plan.status}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => openEdit(plan)}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    handleDelete(plan)
-                                                }
-                                                className="text-destructive hover:text-destructive"
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
-                                    </td>
+                    <div className="max-w-full overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase">
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Name
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Price
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Duration
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Gig Limit
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Features
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-medium">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {paginatedPlans.paginatedItems.map((plan) => (
+                                    <tr
+                                        key={plan.id}
+                                        className="bg-background transition-colors hover:bg-muted/30"
+                                    >
+                                        <td className="px-4 py-3 font-medium text-foreground">
+                                            {plan.name}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            ${plan.price}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {plan.duration_days} days
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {plan.gig_limit}
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {plan.features.length}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge
+                                                variant={
+                                                    plan.status === 'active'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
+                                                {plan.status}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setViewTarget(plan)}
+                                                >
+                                                    <Eye className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openEdit(plan)
+                                                    }
+                                                >
+                                                    <Pencil className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        handleDelete(plan)
+                                                    }
+                                                    className="text-destructive hover:text-destructive"
+                                                >
+                                                    <Trash2 className="size-3.5" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <TablePagination
+                        page={paginatedPlans.page}
+                        pageSize={paginatedPlans.pageSize}
+                        totalItems={paginatedPlans.totalItems}
+                        totalPages={paginatedPlans.totalPages}
+                        startItem={paginatedPlans.startItem}
+                        endItem={paginatedPlans.endItem}
+                        hasPreviousPage={paginatedPlans.hasPreviousPage}
+                        hasNextPage={paginatedPlans.hasNextPage}
+                        onPageChange={paginatedPlans.setPage}
+                        onPageSizeChange={paginatedPlans.setPageSize}
+                    />
                 </div>
             </div>
 
@@ -384,6 +411,57 @@ export default function AdminPlansIndex({ plans }: Props) {
                         onSubmit={handleEdit}
                         onCancel={() => setEditTarget(null)}
                     />
+                </DialogContent>
+            </Dialog>
+
+            {/* Plan Detail Dialog */}
+            <Dialog open={Boolean(viewTarget)} onOpenChange={(open) => { if (!open) setViewTarget(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{viewTarget?.name} — Plan Details</DialogTitle>
+                    </DialogHeader>
+                    {viewTarget && (
+                        <div className="space-y-4 pt-1">
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Price</p>
+                                    <p className="mt-1 font-semibold">${viewTarget.price}</p>
+                                </div>
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Duration</p>
+                                    <p className="mt-1 font-semibold">{viewTarget.duration_days} days</p>
+                                </div>
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Gig Limit</p>
+                                    <p className="mt-1 font-semibold">{viewTarget.gig_limit} gigs</p>
+                                </div>
+                                <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <p className="mt-1">
+                                        <Badge variant={viewTarget.status === 'active' ? 'default' : 'secondary'}>
+                                            {viewTarget.status}
+                                        </Badge>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="mb-2 text-sm font-medium">Features</p>
+                                {viewTarget.features.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No features defined.</p>
+                                ) : (
+                                    <ul className="space-y-1.5">
+                                        {viewTarget.features.map((feature, i) => (
+                                            <li key={i} className="flex items-start gap-2 text-sm">
+                                                <span className="mt-0.5 text-emerald-600">✓</span>
+                                                <span>{feature}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Dispute;
 
 class Order extends Model
 {
@@ -14,6 +15,7 @@ class Order extends Model
         'seller_id',
         'gig_id',
         'package_id',
+        'coupon_id',
         'quantity',
         'requirements',
         'brief_file_path',
@@ -23,6 +25,8 @@ class Order extends Model
         'billing_name',
         'billing_email',
         'unit_price',
+        'subtotal_amount',
+        'discount_amount',
         'price',
         'gross_amount',
         'platform_fee_percentage',
@@ -36,6 +40,7 @@ class Order extends Model
         'paypal_order_id',
         'paypal_payer_id',
         'delivered_at',
+        'due_at',
         'completed_at',
         'cancelled_at',
         'funds_released_at',
@@ -45,6 +50,8 @@ class Order extends Model
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
+        'subtotal_amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'price' => 'decimal:2',
         'gross_amount' => 'decimal:2',
         'platform_fee_percentage' => 'decimal:2',
@@ -53,6 +60,7 @@ class Order extends Model
         'refunded_amount' => 'decimal:2',
         'escrow_held' => 'boolean',
         'delivered_at' => 'datetime',
+        'due_at' => 'datetime',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'funds_released_at' => 'datetime',
@@ -76,6 +84,11 @@ class Order extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(GigPackage::class, 'package_id');
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function releasedBy(): BelongsTo
@@ -106,5 +119,10 @@ class Order extends Model
     public function review(): HasOne
     {
         return $this->hasOne(Review::class);
+    }
+
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class)->latest();
     }
 }

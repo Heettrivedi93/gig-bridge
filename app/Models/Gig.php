@@ -16,10 +16,20 @@ class Gig extends Model
         'description',
         'tags',
         'status',
+        'views_count',
+        'approval_status',
+        'rejection_reason',
+        'pending_changes',
+        'approved_at',
+        'rejected_at',
     ];
 
     protected $casts = [
-        'tags' => 'array',
+        'tags'            => 'array',
+        'pending_changes' => 'array',
+        'views_count'     => 'integer',
+        'approved_at'     => 'datetime',
+        'rejected_at'     => 'datetime',
     ];
 
     public function seller(): BelongsTo
@@ -55,5 +65,10 @@ class Gig extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function favourites(): HasMany
+    {
+        return $this->hasMany(GigFavourite::class);
     }
 }

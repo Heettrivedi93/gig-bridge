@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\Gig;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Services\SellerRankingService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +21,37 @@ class SellerGigController extends Controller
 {
     private const PACKAGE_TIERS = ['basic', 'standard', 'premium'];
 
+    public function __construct(
+        private readonly SellerRankingService $sellerRanking,
+        private readonly SystemNotificationService $notifications,
+    ) {}
+
     public function index(Request $request): Response
     {
         $seller = $this->ensureSeller($request);
         $subscription = $this->ensureActiveSubscription($seller->id);
+
+        // Enforce gig limit — deactivate excess gigs (oldest first stay active)
+        $gigLimit = (int) $subscription->plan->gig_limit;
+        $allGigs = Gig::query()
+            ->where('user_id', $seller->id)
+            ->orderBy('id')
+            ->get();
+
+        $activeGigs = $allGigs->where('status', 'active');
+
+        if ($activeGigs->count() > $gigLimit) {
+            $activeGigs->slice($gigLimit)->each(fn (Gig $gig) => $gig->update(['status' => 'inactive']));
+            // Refresh after deactivation
+            $allGigs = Gig::query()->where('user_id', $seller->id)->orderBy('id')->get();
+        }
+
+        // Gigs beyond the plan limit (by creation order) are locked
+        $allowedGigIds = $allGigs->take($gigLimit)->pluck('id')->all();
+
+        $sellerLevel = $this->sellerRanking->badge(
+            $this->sellerRanking->recalculate($seller)
+        );
 
         return Inertia::render('seller/gigs/index', [
             'gigs' => Gig::query()
@@ -30,7 +59,7 @@ class SellerGigController extends Controller
                 ->with(['category:id,name,status', 'subcategory:id,name,status', 'packages', 'images'])
                 ->latest('id')
                 ->get()
-                ->map(fn (Gig $gig) => $this->gigPayload($gig)),
+                ->map(fn (Gig $gig) => $this->gigPayload($gig, $allowedGigIds)),
             'categories' => Category::query()
                 ->whereNull('parent_id')
                 ->where('status', 'active')
@@ -52,34 +81,63 @@ class SellerGigController extends Controller
                     ->where('user_id', $seller->id)
                     ->where('status', 'active')
                     ->count(),
+                'total_gig_count' => Gig::query()
+                    ->where('user_id', $seller->id)
+                    ->count(),
                 'ends_at' => $subscription->ends_at?->toIso8601String(),
             ],
+            'seller_level' => $sellerLevel,
+            'seller_is_available' => (bool) $seller->is_available,
         ]);
+    }
+
+    public function updateAvailability(Request $request): RedirectResponse
+    {
+        $seller = $this->ensureSeller($request);
+        $data = $request->validate([
+            'is_available' => ['required', 'boolean'],
+        ]);
+
+        $seller->forceFill([
+            'is_available' => (bool) $data['is_available'],
+        ])->save();
+
+        return back()->with(
+            'success',
+            $seller->is_available
+                ? 'You are now available for new orders.'
+                : 'You are now marked unavailable. New orders are paused.',
+        );
     }
 
     public function store(Request $request): RedirectResponse
     {
         $seller = $this->ensureSeller($request);
         $data = $this->validateGig($request);
-        $shouldActivate = $data['status'] === 'active';
 
-        if ($shouldActivate) {
-            $this->ensureGigLimitAvailable($seller->id);
-        }
+        $this->ensureGigLimitAvailable($seller->id);
 
         DB::transaction(function () use ($request, $seller, $data) {
+            $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
+
             $gig = Gig::create([
                 'user_id' => $seller->id,
                 'category_id' => $data['category_id'],
                 'subcategory_id' => $data['subcategory_id'],
                 'title' => $data['title'],
                 'description' => $data['description'],
-                'tags' => $this->normalizeTags($data['tags'] ?? null),
+                'tags' => $normalizedTags,
                 'status' => $data['status'],
+                'approval_status' => 'pending',
+                'rejection_reason' => null,
+                'approved_at' => null,
+                'rejected_at' => null,
             ]);
 
             $this->syncPackages($gig, $data['packages']);
             $this->appendImages($gig, $request->file('images', []));
+
+            $this->notifications->gigSubmittedForApproval($gig);
         });
 
         return back()->with('success', 'Gig created successfully.');
@@ -91,25 +149,57 @@ class SellerGigController extends Controller
         abort_unless($gig->user_id === $seller->id, 403);
 
         $data = $this->validateGig($request, $gig);
-        $shouldActivate = $data['status'] === 'active' && $gig->status !== 'active';
 
-        if ($shouldActivate) {
-            $this->ensureGigLimitAvailable($seller->id);
+        // Block activating a gig if active gig count already meets the plan limit
+        if ($data['status'] === 'active' && $gig->status !== 'active') {
+            $subscription = $this->ensureActiveSubscription($seller->id);
+            $activeCount = Gig::query()
+                ->where('user_id', $seller->id)
+                ->where('status', 'active')
+                ->count();
+
+            if ($activeCount >= $subscription->plan->gig_limit) {
+                throw ValidationException::withMessages([
+                    'status' => sprintf(
+                        'Your %s plan allows only %d active gigs. Deactivate another gig or upgrade your plan to activate this one.',
+                        $subscription->plan->name,
+                        $subscription->plan->gig_limit,
+                    ),
+                ]);
+            }
         }
 
         DB::transaction(function () use ($request, $gig, $data) {
+            $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
+            $needsReapproval = $this->needsReapproval($gig, $data, $normalizedTags);
+
+            $pendingChanges = null;
+            if ($needsReapproval) {
+                $gig->loadMissing('packages');
+                $pendingChanges = $this->buildPendingChanges($gig, $data, $normalizedTags);
+            }
+
             $gig->update([
-                'category_id' => $data['category_id'],
-                'subcategory_id' => $data['subcategory_id'],
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'tags' => $this->normalizeTags($data['tags'] ?? null),
-                'status' => $data['status'],
+                'category_id'      => $data['category_id'],
+                'subcategory_id'   => $data['subcategory_id'],
+                'title'            => $data['title'],
+                'description'      => $data['description'],
+                'tags'             => $normalizedTags,
+                'status'           => $data['status'],
+                'approval_status'  => $needsReapproval ? 'pending' : $gig->approval_status,
+                'rejection_reason' => $needsReapproval ? null : $gig->rejection_reason,
+                'pending_changes'  => $needsReapproval ? $pendingChanges : $gig->pending_changes,
+                'approved_at'      => $needsReapproval ? null : $gig->approved_at,
+                'rejected_at'      => $needsReapproval ? null : $gig->rejected_at,
             ]);
 
             $this->syncPackages($gig, $data['packages']);
             $this->removeImages($gig, $data['remove_image_ids'] ?? []);
             $this->appendImages($gig, $request->file('images', []));
+
+            if ($needsReapproval) {
+                $this->notifications->gigSubmittedForApproval($gig);
+            }
         });
 
         return back()->with('success', 'Gig updated successfully.');
@@ -177,7 +267,6 @@ class SellerGigController extends Controller
 
         $activeGigCount = Gig::query()
             ->where('user_id', $userId)
-            ->where('status', 'active')
             ->count();
 
         if ($activeGigCount >= $subscription->plan->gig_limit) {
@@ -294,7 +383,7 @@ class SellerGigController extends Controller
             ->all();
     }
 
-    private function gigPayload(Gig $gig): array
+    private function gigPayload(Gig $gig, array $allowedGigIds = []): array
     {
         $gig->loadMissing(['packages', 'images', 'category', 'subcategory']);
 
@@ -308,6 +397,10 @@ class SellerGigController extends Controller
             'subcategory_name' => $gig->subcategory?->name,
             'tags' => implode(', ', $gig->tags ?? []),
             'status' => $gig->status,
+            'approval_status' => $gig->approval_status,
+            'rejection_reason' => $gig->rejection_reason,
+            'approved_at' => $gig->approved_at?->toIso8601String(),
+            'rejected_at' => $gig->rejected_at?->toIso8601String(),
             'images' => $gig->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => Storage::disk('public')->url($image->path),
@@ -321,6 +414,110 @@ class SellerGigController extends Controller
                     'revision_count' => (string) ($gig->packages->firstWhere('tier', $tier)?->revision_count ?? ''),
                 ],
             ])->all(),
+            'views_count' => (int) ($gig->views_count ?? 0),
+            'is_locked' => $allowedGigIds !== [] && ! in_array($gig->id, $allowedGigIds, true),
         ];
+    }
+
+    private function buildPendingChanges(Gig $gig, array $data, array $normalizedTags): array
+    {
+        $changes = [];
+
+        if ($gig->title !== $data['title']) {
+            $changes['title'] = ['old' => $gig->title, 'new' => $data['title']];
+        }
+
+        if ($gig->description !== $data['description']) {
+            $changes['description'] = ['old' => $gig->description, 'new' => $data['description']];
+        }
+
+        if ((int) $gig->category_id !== (int) $data['category_id']) {
+            $changes['category_id'] = ['old' => $gig->category_id, 'new' => $data['category_id']];
+        }
+
+        if ((int) $gig->subcategory_id !== (int) $data['subcategory_id']) {
+            $changes['subcategory_id'] = ['old' => $gig->subcategory_id, 'new' => $data['subcategory_id']];
+        }
+
+        if (($gig->tags ?? []) !== $normalizedTags) {
+            $changes['tags'] = ['old' => $gig->tags ?? [], 'new' => $normalizedTags];
+        }
+
+        foreach (self::PACKAGE_TIERS as $tier) {
+            $existing = $gig->packages->firstWhere('tier', $tier);
+            $payload  = $data['packages'][$tier] ?? null;
+
+            if (! $existing || ! $payload) {
+                continue;
+            }
+
+            $pkgChanges = [];
+
+            if ((string) $existing->title !== (string) $payload['title']) {
+                $pkgChanges['title'] = ['old' => $existing->title, 'new' => $payload['title']];
+            }
+            if ((string) $existing->description !== (string) $payload['description']) {
+                $pkgChanges['description'] = ['old' => $existing->description, 'new' => $payload['description']];
+            }
+            if ((float) $existing->price !== (float) $payload['price']) {
+                $pkgChanges['price'] = ['old' => (string) $existing->price, 'new' => (string) $payload['price']];
+            }
+            if ((int) $existing->delivery_days !== (int) $payload['delivery_days']) {
+                $pkgChanges['delivery_days'] = ['old' => $existing->delivery_days, 'new' => (int) $payload['delivery_days']];
+            }
+            if ((int) $existing->revision_count !== (int) $payload['revision_count']) {
+                $pkgChanges['revision_count'] = ['old' => $existing->revision_count, 'new' => (int) $payload['revision_count']];
+            }
+
+            if ($pkgChanges !== []) {
+                $changes['packages'][$tier] = $pkgChanges;
+            }
+        }
+
+        return $changes;
+    }
+
+    private function needsReapproval(Gig $gig, array $data, array $normalizedTags): bool
+    {
+        if ($gig->approval_status !== 'approved') {
+            return false;
+        }
+
+        if ((int) $gig->category_id !== (int) $data['category_id']) {
+            return true;
+        }
+
+        if ((int) $gig->subcategory_id !== (int) $data['subcategory_id']) {
+            return true;
+        }
+
+        if ($gig->title !== $data['title'] || $gig->description !== $data['description']) {
+            return true;
+        }
+
+        if (($gig->tags ?? []) !== $normalizedTags) {
+            return true;
+        }
+
+        foreach (self::PACKAGE_TIERS as $tier) {
+            $existing = $gig->packages->firstWhere('tier', $tier);
+            $payload = $data['packages'][$tier] ?? null;
+
+            if (! $existing || ! $payload) {
+                return true;
+            }
+
+            if (
+                (string) $existing->title !== (string) $payload['title']
+                || (string) $existing->description !== (string) $payload['description']
+                || (float) $existing->price !== (float) $payload['price']
+                || (int) $existing->delivery_days !== (int) $payload['delivery_days']
+                || (int) $existing->revision_count !== (int) $payload['revision_count']
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -2,10 +2,14 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Bell,
     BookText,
+    BadgePercent,
     LayoutGrid,
+    Megaphone,
     Package,
     Settings,
+    ShieldAlert,
     ShoppingBag,
+    Store,
     Tag,
     Users,
     Wallet2,
@@ -32,10 +36,14 @@ import type { BreadcrumbItem, NavItem } from '@/types';
 const adminNavItems: NavItem[] = [
     { title: 'Dashboard', href: admin.dashboard.url(), icon: LayoutGrid },
     { title: 'Notifications', href: '/notifications', icon: Bell },
+    { title: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { title: 'Categories', href: admin.categories.index.url(), icon: Tag },
     { title: 'Plans', href: '/admin/plans', icon: Package },
+    { title: 'Coupons', href: '/admin/coupons', icon: BadgePercent },
     { title: 'Orders', href: '/admin/orders', icon: ShoppingBag },
-    { title: 'Withdrawals', href: '/admin/withdrawals', icon: Wallet2 },
+    { title: 'Disputes', href: '/admin/disputes', icon: ShieldAlert },
+    { title: 'Gig Approvals', href: '/admin/gigs', icon: Store },
+    { title: 'Withdrawal Requests', href: '/admin/withdrawals', icon: Wallet2 },
     { title: 'Ledger', href: '/admin/ledger', icon: BookText },
     { title: 'Users', href: '/admin/users', icon: Users },
     { title: 'Settings', href: '/admin/settings', icon: Settings },
@@ -43,17 +51,20 @@ const adminNavItems: NavItem[] = [
 
 function AdminSidebar() {
     const { notifications } = usePage<{
-        notifications?: { enabled?: boolean; unread_count?: number };
+        notifications?: { enabled?: boolean; items?: { read_at?: string | null }[] };
     }>().props;
+
+    const unreadCount = notifications?.enabled
+        ? (notifications.items ?? []).filter((n) => !n.read_at).length
+        : 0;
+
     const items = adminNavItems.map((item) =>
         item.title === 'Notifications'
             ? {
                   ...item,
-                  badge:
-                      notifications?.enabled &&
-                      (notifications.unread_count ?? 0) > 0
-                          ? String(notifications.unread_count)
-                          : null,
+                  badge: unreadCount > 0
+                      ? unreadCount > 99 ? '99+' : String(unreadCount)
+                      : undefined,
               }
             : item,
     );
@@ -64,7 +75,7 @@ function AdminSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={admin.dashboard.url()} prefetch>
+                            <Link href={admin.dashboard.url()}>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

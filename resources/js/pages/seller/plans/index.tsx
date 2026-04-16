@@ -325,12 +325,12 @@ export default function SellerPlansIndex({
 
     return (
         <>
-            <Head title="Seller Plans" />
+            <Head title="Plans" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <Heading
-                        title="Seller Plans"
+                        title="Plans"
                         description="Upgrade your seller account, expand gig limits, and purchase plans with PayPal."
                     />
 
@@ -372,8 +372,7 @@ export default function SellerPlansIndex({
                         {nextSubscription && (
                             <p className="mt-2 text-xs text-muted-foreground">
                                 Current usage: {planActivation.active_gig_count}
-                                /{currentSubscription?.gig_limit ?? 0} active
-                                gigs
+                                /{currentSubscription?.gig_limit ?? 0} gigs
                             </p>
                         )}
                         {planActivation.can_activate_next_now &&
@@ -432,7 +431,7 @@ export default function SellerPlansIndex({
                                         </p>
                                         <p className="mt-2 text-sm text-muted-foreground">
                                             {plan.duration_days} days,{' '}
-                                            {plan.gig_limit} active gigs
+                                            {plan.gig_limit} gigs
                                         </p>
                                     </div>
 
