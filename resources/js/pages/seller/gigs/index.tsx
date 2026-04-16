@@ -703,7 +703,7 @@ export default function SellerGigsIndex({
 
                     <div className="flex flex-wrap items-center gap-3">
                         <SellerLevelBadge level={seller_level} />
-                        <Button onClick={() => setShowCreate(true)} size="sm">
+                        <Button onClick={() => setShowCreate(true)} size="sm" disabled={remainingSlots === 0} title={remainingSlots === 0 ? 'Gig limit reached. Upgrade your plan to create more gigs.' : undefined}>
                             <PlusIcon />
                             Create Gig
                         </Button>
@@ -808,7 +808,7 @@ export default function SellerGigsIndex({
                                     and gallery images.
                                 </p>
                             </div>
-                            <Button onClick={() => setShowCreate(true)}>
+                            <Button onClick={() => setShowCreate(true)} disabled={remainingSlots === 0}>
                                 <PlusIcon />
                                 Create your first gig
                             </Button>

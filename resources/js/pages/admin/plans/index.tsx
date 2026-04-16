@@ -254,12 +254,12 @@ export default function AdminPlansIndex({ plans }: Props) {
 
     return (
         <>
-            <Head title="Subscription Plans" />
+            <Head title="Plans" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">
                     <Heading
-                        title="Subscription Plans"
+                        title="Plans"
                         description="Manage seller subscription packages and limits."
                     />
                     <Button onClick={() => setShowCreate(true)} size="sm">

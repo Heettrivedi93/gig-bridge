@@ -1198,7 +1198,7 @@ function SellerDashboard({
     return (
         <div className="flex h-full flex-1 flex-col gap-6 p-6">
             <Heading
-                title="Seller Analytics"
+                title="Dashboard"
                 description="Track your revenue momentum, order flow, payout readiness, and top-performing gigs from one view."
             />
 
@@ -1769,7 +1769,7 @@ function BuyerDashboard({
     return (
         <div className="flex h-full flex-1 flex-col gap-6 p-6">
             <Heading
-                title="Buyer Analytics"
+                title="Dashboard"
                 description="Track your spending, purchase activity, favorite sellers, and the orders that still need your attention."
             />
 

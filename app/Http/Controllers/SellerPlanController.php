@@ -419,39 +419,46 @@ class SellerPlanController extends Controller
     {
         $current = $seller->activeSubscription();
         $now = now();
-        $shouldActivateImmediately = $current
-            && $current->plan
-            && (float) $current->plan->price <= 0
-            && (float) $plan->price > 0;
 
-        $startsAt = $shouldActivateImmediately
-            ? $now->copy()
-            : ($current && $current->ends_at && $current->ends_at->isFuture()
-                ? $current->ends_at->copy()
-                : $now->copy());
-        $endsAt = $startsAt->copy()->addDays($plan->duration_days);
+        // Always activate immediately if:
+        // 1. No current subscription, OR
+        // 2. New plan has higher or equal gig limit (upgrade), OR
+        // 3. Current plan is free
+        $shouldActivateImmediately = ! $current
+            || ! $current->plan
+            || (int) $plan->gig_limit >= (int) $current->plan->gig_limit
+            || (float) $current->plan->price <= 0;
 
+        $startsAt = $now->copy();
+        $endsAt   = $startsAt->copy()->addDays($plan->duration_days);
+
+        // Cancel all queued (future) subscriptions
         Subscription::query()
             ->where('user_id', $seller->id)
             ->where('status', 'active')
             ->where('starts_at', '>', $now)
-            ->update([
-                'status' => 'replaced',
-            ]);
+            ->update(['status' => 'replaced']);
 
-        if ($shouldActivateImmediately) {
+        // Override current active plan immediately if upgrading
+        if ($shouldActivateImmediately && $current) {
             $current->update([
                 'status' => 'replaced',
                 'ends_at' => $now,
             ]);
         }
 
+        // If downgrading (lower gig_limit), queue after current ends
+        if (! $shouldActivateImmediately && $current?->ends_at?->isFuture()) {
+            $startsAt = $current->ends_at->copy();
+            $endsAt   = $startsAt->copy()->addDays($plan->duration_days);
+        }
+
         $subscription = Subscription::create([
-            'user_id' => $seller->id,
-            'plan_id' => $plan->id,
+            'user_id'   => $seller->id,
+            'plan_id'   => $plan->id,
             'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'status' => 'active',
+            'ends_at'   => $endsAt,
+            'status'    => 'active',
         ]);
 
         if ($payment) {

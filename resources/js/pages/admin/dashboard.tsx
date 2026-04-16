@@ -591,10 +591,10 @@ export default function AdminDashboard({
 
     return (
         <>
-            <Head title="Admin Analytics" />
+            <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="Analytics Dashboard"
+                    title="Dashboard"
                     description="Track marketplace growth, revenue movement, order flow, and operational risk from one admin view."
                 />
 
@@ -602,7 +602,7 @@ export default function AdminDashboard({
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                         <div className="space-y-2">
                             <Badge variant="outline" className="bg-background/70">
-                                Super Admin Analytics
+                                Dashboard
                             </Badge>
                             <h2 className="text-2xl font-semibold tracking-tight">
                                 Marketplace control tower

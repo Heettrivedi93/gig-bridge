@@ -92,11 +92,8 @@ class SellerGigController extends Controller
     {
         $seller = $this->ensureSeller($request);
         $data = $this->validateGig($request);
-        $shouldActivate = $data['status'] === 'active';
 
-        if ($shouldActivate) {
-            $this->ensureGigLimitAvailable($seller->id);
-        }
+        $this->ensureGigLimitAvailable($seller->id);
 
         DB::transaction(function () use ($request, $seller, $data) {
             $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
@@ -130,12 +127,6 @@ class SellerGigController extends Controller
         abort_unless($gig->user_id === $seller->id, 403);
 
         $data = $this->validateGig($request, $gig);
-        $shouldActivate = $data['status'] === 'active' && $gig->status !== 'active';
-
-        if ($shouldActivate) {
-            $this->ensureGigLimitAvailable($seller->id);
-        }
-
         DB::transaction(function () use ($request, $gig, $data) {
             $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
             $needsReapproval = $this->needsReapproval($gig, $data, $normalizedTags);
@@ -234,7 +225,6 @@ class SellerGigController extends Controller
 
         $activeGigCount = Gig::query()
             ->where('user_id', $userId)
-            ->where('status', 'active')
             ->count();
 
         if ($activeGigCount >= $subscription->plan->gig_limit) {

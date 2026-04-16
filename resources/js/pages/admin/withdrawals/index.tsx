@@ -123,11 +123,11 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
 
     return (
         <>
-            <Head title="Withdrawals" />
+            <Head title="Withdrawal Requests" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="Withdrawals"
+                    title="Withdrawal Requests"
                     description="Review seller payout requests and either approve them or return the reserved funds back to the seller."
                 />
 
@@ -377,6 +377,6 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
 AdminWithdrawalsIndex.layout = {
     breadcrumbs: [
         { title: 'Dashboard', href: admin.dashboard.url() },
-        { title: 'Withdrawals', href: '/admin/withdrawals' },
+        { title: 'Withdrawal Requests', href: '/admin/withdrawals' },
     ] satisfies BreadcrumbItem[],
 };

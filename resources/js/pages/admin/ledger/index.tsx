@@ -55,11 +55,11 @@ export default function AdminLedgerIndex({
 
     return (
         <>
-            <Head title="Funds Ledger" />
+            <Head title="Ledger" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="Funds Ledger"
+                    title="Ledger"
                     description="Audit escrow, seller releases, commissions, refunds, and payout movement across the platform."
                 />
 
@@ -284,6 +284,6 @@ export default function AdminLedgerIndex({
 AdminLedgerIndex.layout = {
     breadcrumbs: [
         { title: 'Dashboard', href: admin.dashboard.url() },
-        { title: 'Funds Ledger', href: '/admin/ledger' },
+        { title: 'Ledger', href: '/admin/ledger' },
     ] satisfies BreadcrumbItem[],
 };

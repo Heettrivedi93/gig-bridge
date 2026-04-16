@@ -165,11 +165,11 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
 
     return (
         <>
-            <Head title="System Settings" />
+            <Head title="Settings" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="System Settings"
+                    title="Settings"
                     description="Manage email, brand, payment, Trello, and notification configuration in one place."
                 />
 

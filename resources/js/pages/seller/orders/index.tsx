@@ -289,12 +289,12 @@ export default function SellerOrdersIndex({ orders }: Props) {
 
     return (
         <>
-            <Head title="Seller Orders" />
+            <Head title="Orders" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
-                        title="Seller Orders"
+                        title="Orders"
                         description="A clean view of active work, delivery status, and buyer briefs."
                     />
                     <div className="flex flex-wrap gap-2">

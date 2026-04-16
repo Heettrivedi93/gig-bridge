@@ -129,11 +129,11 @@ export default function AdminGigModerationIndex({ stats, gigs }: Props) {
 
     return (
         <>
-            <Head title="Gig Moderation" />
+            <Head title="Gig Approvals" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 <Heading
-                    title="Gig Moderation"
+                    title="Gig Approvals"
                     description="Review submitted gigs, approve quality listings, and reject with clear reasons."
                 />
 
@@ -422,6 +422,6 @@ export default function AdminGigModerationIndex({ stats, gigs }: Props) {
 AdminGigModerationIndex.layout = {
     breadcrumbs: [
         { title: 'Dashboard', href: admin.dashboard.url() },
-        { title: 'Gigs', href: '/admin/gigs' },
+        { title: 'Gig Approvals', href: '/admin/gigs' },
     ] satisfies BreadcrumbItem[],
 };
