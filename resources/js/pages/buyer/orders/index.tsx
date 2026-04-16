@@ -1253,7 +1253,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                         <MessageCircle className="mr-1.5 size-4" /> Message seller
                                     </Button>
                                 )}
-                                {['pending', 'active', 'delivered'].includes(selectedOrder.status) && (
+                                {['pending', 'active'].includes(selectedOrder.status) && (
                                     <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setCancelTarget(selectedOrder); }}>
                                         Cancel order
                                     </Button>

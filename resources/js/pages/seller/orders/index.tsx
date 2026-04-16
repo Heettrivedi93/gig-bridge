@@ -663,12 +663,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                                 )
                                                             }
                                                             disabled={
-                                                                ![
-                                                                    'active',
-                                                                    'delivered',
-                                                                ].includes(
-                                                                    order.status,
-                                                                )
+                                                                order.status !== 'active'
                                                             }
                                                         >
                                                             <Ban className="size-4" />
@@ -807,10 +802,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                 setCancelTarget(order)
                                             }
                                             disabled={
-                                                ![
-                                                    'active',
-                                                    'delivered',
-                                                ].includes(order.status)
+                                                order.status !== 'active'
                                             }
                                         >
                                             <Ban className="size-4" />
@@ -984,7 +976,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                             </div>
 
                             {/* ── Actions ── */}
-                            {['active', 'delivered'].includes(selectedOrder.status) && (
+                            {selectedOrder.status === 'active' && (
                                 <div className="flex flex-wrap gap-2">
                                     {selectedOrder.status === 'active' && selectedOrder.payment_status === 'paid' && (
                                         <Button size="sm" onClick={() => { setSelectedOrder(null); setDeliveryTarget(selectedOrder); }}>
@@ -997,7 +989,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         </Button>
                                     )}
                                     <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setCancelTarget(selectedOrder); }}
-                                        disabled={!['active', 'delivered'].includes(selectedOrder.status)}>
+                                        disabled={selectedOrder.status !== 'active'}>
                                         <Ban className="mr-1.5 size-4" /> Cancel order
                                     </Button>
                                     {['delivered', 'completed'].includes(selectedOrder.status) && selectedOrder.payment_status === 'paid' && !selectedOrder.open_dispute_id && (

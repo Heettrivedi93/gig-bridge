@@ -551,9 +551,9 @@ class BuyerOrderController extends Controller
         $buyer = $this->ensureBuyer($request);
         abort_unless($order->buyer_id === $buyer->id, 403);
 
-        if (! in_array($order->status, ['pending', 'active', 'delivered'], true)) {
+        if (! in_array($order->status, ['pending', 'active'], true)) {
             throw ValidationException::withMessages([
-                'cancellation_reason' => 'Only pending, active, or delivered orders can be cancelled.',
+                'cancellation_reason' => 'Only pending or active orders can be cancelled. Use revision or dispute for delivered orders.',
             ]);
         }
 
