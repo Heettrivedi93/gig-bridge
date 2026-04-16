@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Gig;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
@@ -460,6 +461,24 @@ class SellerPlanController extends Controller
             'ends_at'   => $endsAt,
             'status'    => 'active',
         ]);
+
+        // Reactivate deactivated gigs up to the new plan limit
+        $currentActiveCount = Gig::query()
+            ->where('user_id', $seller->id)
+            ->where('status', 'active')
+            ->count();
+
+        $slotsAvailable = $plan->gig_limit - $currentActiveCount;
+
+        if ($slotsAvailable > 0) {
+            Gig::query()
+                ->where('user_id', $seller->id)
+                ->where('status', 'inactive')
+                ->orderBy('id')
+                ->limit($slotsAvailable)
+                ->get()
+                ->each(fn (Gig $gig) => $gig->update(['status' => 'active']));
+        }
 
         if ($payment) {
             $payment->subscription_id = $subscription->id;

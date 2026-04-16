@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { ImagePlus, Eye, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
+import { ImagePlus, Eye, Lock, Pencil, PlusIcon, Power, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -70,6 +70,7 @@ type GigItem = {
     approved_at: string | null;
     rejected_at: string | null;
     views_count: number;
+    is_locked: boolean;
     images: { id: number; url: string }[];
     packages: Record<PackageTier, PackageForm>;
 };
@@ -83,6 +84,7 @@ type Props = {
         plan_name: string;
         gig_limit: number;
         active_gig_count: number;
+        total_gig_count: number;
         ends_at?: string | null;
     };
 };
@@ -593,6 +595,7 @@ export default function SellerGigsIndex({
         subscription.gig_limit - subscription.active_gig_count,
         0,
     );
+    const canCreateGig = subscription.total_gig_count < subscription.gig_limit;
 
     const subscriptionEndsText = useMemo(() => {
         return formatDisplayDate(subscription.ends_at);
@@ -703,7 +706,7 @@ export default function SellerGigsIndex({
 
                     <div className="flex flex-wrap items-center gap-3">
                         <SellerLevelBadge level={seller_level} />
-                        <Button onClick={() => setShowCreate(true)} size="sm" disabled={remainingSlots === 0} title={remainingSlots === 0 ? 'Gig limit reached. Upgrade your plan to create more gigs.' : undefined}>
+                        <Button onClick={() => setShowCreate(true)} size="sm" disabled={!canCreateGig} title={!canCreateGig ? 'Gig limit reached. Upgrade your plan to create more gigs.' : undefined}>
                             <PlusIcon />
                             Create Gig
                         </Button>
@@ -808,7 +811,7 @@ export default function SellerGigsIndex({
                                     and gallery images.
                                 </p>
                             </div>
-                            <Button onClick={() => setShowCreate(true)} disabled={remainingSlots === 0}>
+                            <Button onClick={() => setShowCreate(true)} disabled={!canCreateGig}>
                                 <PlusIcon />
                                 Create your first gig
                             </Button>
@@ -818,8 +821,20 @@ export default function SellerGigsIndex({
                             {gigs.map((gig) => (
                                 <article
                                     key={gig.id}
-                                    className="overflow-hidden rounded-2xl border border-border/70 bg-background"
+                                    className={`relative overflow-hidden rounded-2xl border bg-background ${
+                                        gig.is_locked
+                                            ? 'border-destructive/40 opacity-60'
+                                            : 'border-border/70'
+                                    }`}
                                 >
+                                    {gig.is_locked && (
+                                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-background/20">
+                                            <Lock className="size-6 text-destructive" />
+                                            <p className="px-4 text-center text-sm font-medium text-destructive">
+                                                Locked — upgrade your plan to manage this gig
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="aspect-[16/9] bg-muted">
                                         {gig.images[0] ? (
                                             <img

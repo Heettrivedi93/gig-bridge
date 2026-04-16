@@ -30,6 +30,25 @@ class SellerGigController extends Controller
     {
         $seller = $this->ensureSeller($request);
         $subscription = $this->ensureActiveSubscription($seller->id);
+
+        // Enforce gig limit — deactivate excess gigs (oldest first stay active)
+        $gigLimit = (int) $subscription->plan->gig_limit;
+        $allGigs = Gig::query()
+            ->where('user_id', $seller->id)
+            ->orderBy('id')
+            ->get();
+
+        $activeGigs = $allGigs->where('status', 'active');
+
+        if ($activeGigs->count() > $gigLimit) {
+            $activeGigs->slice($gigLimit)->each(fn (Gig $gig) => $gig->update(['status' => 'inactive']));
+            // Refresh after deactivation
+            $allGigs = Gig::query()->where('user_id', $seller->id)->orderBy('id')->get();
+        }
+
+        // Gigs beyond the plan limit (by creation order) are locked
+        $allowedGigIds = $allGigs->take($gigLimit)->pluck('id')->all();
+
         $sellerLevel = $this->sellerRanking->badge(
             $this->sellerRanking->recalculate($seller)
         );
@@ -40,7 +59,7 @@ class SellerGigController extends Controller
                 ->with(['category:id,name,status', 'subcategory:id,name,status', 'packages', 'images'])
                 ->latest('id')
                 ->get()
-                ->map(fn (Gig $gig) => $this->gigPayload($gig)),
+                ->map(fn (Gig $gig) => $this->gigPayload($gig, $allowedGigIds)),
             'categories' => Category::query()
                 ->whereNull('parent_id')
                 ->where('status', 'active')
@@ -61,6 +80,9 @@ class SellerGigController extends Controller
                 'active_gig_count' => Gig::query()
                     ->where('user_id', $seller->id)
                     ->where('status', 'active')
+                    ->count(),
+                'total_gig_count' => Gig::query()
+                    ->where('user_id', $seller->id)
                     ->count(),
                 'ends_at' => $subscription->ends_at?->toIso8601String(),
             ],
@@ -127,6 +149,26 @@ class SellerGigController extends Controller
         abort_unless($gig->user_id === $seller->id, 403);
 
         $data = $this->validateGig($request, $gig);
+
+        // Block activating a gig if active gig count already meets the plan limit
+        if ($data['status'] === 'active' && $gig->status !== 'active') {
+            $subscription = $this->ensureActiveSubscription($seller->id);
+            $activeCount = Gig::query()
+                ->where('user_id', $seller->id)
+                ->where('status', 'active')
+                ->count();
+
+            if ($activeCount >= $subscription->plan->gig_limit) {
+                throw ValidationException::withMessages([
+                    'status' => sprintf(
+                        'Your %s plan allows only %d active gigs. Deactivate another gig or upgrade your plan to activate this one.',
+                        $subscription->plan->name,
+                        $subscription->plan->gig_limit,
+                    ),
+                ]);
+            }
+        }
+
         DB::transaction(function () use ($request, $gig, $data) {
             $normalizedTags = $this->normalizeTags($data['tags'] ?? null);
             $needsReapproval = $this->needsReapproval($gig, $data, $normalizedTags);
@@ -341,7 +383,7 @@ class SellerGigController extends Controller
             ->all();
     }
 
-    private function gigPayload(Gig $gig): array
+    private function gigPayload(Gig $gig, array $allowedGigIds = []): array
     {
         $gig->loadMissing(['packages', 'images', 'category', 'subcategory']);
 
@@ -373,6 +415,7 @@ class SellerGigController extends Controller
                 ],
             ])->all(),
             'views_count' => (int) ($gig->views_count ?? 0),
+            'is_locked' => $allowedGigIds !== [] && ! in_array($gig->id, $allowedGigIds, true),
         ];
     }
 
