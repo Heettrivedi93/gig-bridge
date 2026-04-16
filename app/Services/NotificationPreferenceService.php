@@ -323,7 +323,6 @@ class NotificationPreferenceService
                 ],
                 'twilio' => [
                     ['key' => 'order_placed',    'label' => 'New order received'],
-                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
                     ['key' => 'payment_released','label' => 'Payment released'],
                 ],
