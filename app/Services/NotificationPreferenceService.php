@@ -295,13 +295,12 @@ class NotificationPreferenceService
             ],
             'buyer' => [
                 'email' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
+                    ['key' => 'registration',    'label' => 'Registration'],
                     ['key' => 'order_delivered', 'label' => 'Order delivered'],
-                    ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
                 ],
                 'in_app' => [
-                    ['key' => 'orders', 'label' => 'Order updates'],
+                    ['key' => 'orders',   'label' => 'Order updates'],
                     ['key' => 'messages', 'label' => 'Messages'],
                 ],
                 'twilio' => [
@@ -311,22 +310,22 @@ class NotificationPreferenceService
             ],
             'seller' => [
                 'email' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
-                    ['key' => 'order_placed', 'label' => 'New order received'],
-                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
+                    ['key' => 'registration',    'label' => 'Registration'],
+                    ['key' => 'order_placed',    'label' => 'New order received'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
                 ],
                 'in_app' => [
-                    ['key' => 'orders', 'label' => 'Order updates'],
-                    ['key' => 'messages', 'label' => 'Messages'],
+                    ['key' => 'orders',           'label' => 'Order updates'],
+                    ['key' => 'messages',         'label' => 'Messages'],
+                    ['key' => 'reviews',          'label' => 'Reviews'],
                     ['key' => 'payment_released', 'label' => 'Payment released'],
                 ],
                 'twilio' => [
-                    ['key' => 'order_placed', 'label' => 'New order received'],
-                    ['key' => 'order_completed', 'label' => 'Order completed'],
+                    ['key' => 'order_placed',    'label' => 'New order received'],
+                    ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
-                    ['key' => 'payment_released', 'label' => 'Payment released'],
+                    ['key' => 'payment_released','label' => 'Payment released'],
                 ],
             ],
         ];

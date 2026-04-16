@@ -532,14 +532,15 @@ class BuyerOrderController extends Controller
         ]);
 
         Review::create([
-            'order_id' => $order->id,
-            'gig_id' => $order->gig_id,
-            'buyer_id' => $buyer->id,
+            'order_id'  => $order->id,
+            'gig_id'    => $order->gig_id,
+            'buyer_id'  => $buyer->id,
             'seller_id' => $order->seller_id,
-            'rating' => $data['rating'],
-            'comment' => $data['comment'],
+            'rating'    => $data['rating'],
+            'comment'   => $data['comment'],
         ]);
 
+        $this->notifications->reviewReceived($order->fresh(), (int) $data['rating']);
         $this->sellerRanking->recalculate($order->seller()->firstOrFail());
 
         return back()->with('success', 'Review submitted successfully.');

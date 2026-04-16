@@ -339,6 +339,26 @@ class SystemNotificationService
             });
     }
 
+    public function reviewReceived(Order $order, int $rating): void
+    {
+        $order->loadMissing(['seller:id,name,phone', 'buyer:id,name', 'gig:id,title']);
+
+        $this->notifyUsers(
+            [$order->seller],
+            'New review received',
+            sprintf(
+                '%s left a %d-star review for "%s".',
+                $order->buyer?->name ?? 'A buyer',
+                $rating,
+                $order->gig?->title ?? 'your gig',
+            ),
+            'reviews',
+            null,
+            null,
+            '/seller/orders',
+        );
+    }
+
     public function withdrawalRequested(WithdrawalRequest $withdrawal): void
     {
         $withdrawal->loadMissing('seller:id,name,email');
