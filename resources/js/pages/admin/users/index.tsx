@@ -58,6 +58,7 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
     const [selectedRole, setSelectedRole] = useState<
         'all' | 'seller' | 'buyer'
     >('all');
+    const [search, setSearch] = useState('');
 
     const form = useForm<UserUpdateForm>({
         name: '',
@@ -76,12 +77,17 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
     );
     const filteredUsers = useMemo(
         () =>
-            usersWithPrimaryRole.filter((user) =>
-                selectedRole === 'all'
-                    ? true
-                    : user.primaryRole === selectedRole,
-            ),
-        [selectedRole, usersWithPrimaryRole],
+            usersWithPrimaryRole.filter((user) => {
+                const matchesRole = selectedRole === 'all' ? true : user.primaryRole === selectedRole;
+                const term = search.toLowerCase().trim();
+                const matchesSearch = !term ||
+                    user.name.toLowerCase().includes(term) ||
+                    user.email.toLowerCase().includes(term) ||
+                    user.primaryRole.toLowerCase().includes(term) ||
+                    user.status.toLowerCase().includes(term);
+                return matchesRole && matchesSearch;
+            }),
+        [selectedRole, search, usersWithPrimaryRole],
     );
     const paginatedUsers = useClientPagination(filteredUsers);
     const assignablePermissions =
@@ -154,23 +160,41 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                     description="Manage user name, email, role, permissions, and account status."
                 />
 
-                <div className="flex flex-wrap gap-2">
-                    {roleOptions.map((option) => (
-                        <Button
-                            key={option.value}
-                            type="button"
-                            size="sm"
-                            variant={
-                                selectedRole === option.value
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            onClick={() => setSelectedRole(option.value)}
-                        >
-                            {option.label}
-                        </Button>
-                    ))}
-                </div>
+                <section className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Input
+                            placeholder="Search by name, email, or status…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="max-w-sm"
+                        />
+                        {search && (
+                            <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                                Clear
+                            </Button>
+                        )}
+                        <div className="flex flex-wrap gap-2 ml-auto">
+                            {roleOptions.map((option) => (
+                                <Button
+                                    key={option.value}
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        selectedRole === option.value
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    onClick={() => setSelectedRole(option.value)}
+                                >
+                                    {option.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {filteredUsers.length} result{filteredUsers.length === 1 ? '' : 's'}
+                    </p>
+                </section>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <div className="max-w-full overflow-x-auto">

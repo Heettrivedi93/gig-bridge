@@ -154,8 +154,19 @@ export default function AdminGigModerationIndex({ stats, gigs }: Props) {
                 </section>
 
                 <section className="rounded-2xl border border-border/70 bg-card p-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <Input
+                            className="max-w-sm"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search gig title, seller name, or email"
+                        />
+                        {search && (
+                            <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                                Clear
+                            </Button>
+                        )}
+                        <div className="flex flex-wrap gap-2 lg:ml-auto">
                             {STATUS_OPTIONS.map((option) => (
                                 <Button
                                     key={option.value}
@@ -167,13 +178,10 @@ export default function AdminGigModerationIndex({ stats, gigs }: Props) {
                                 </Button>
                             ))}
                         </div>
-                        <Input
-                            className="max-w-md"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search gig title, seller name, or email"
-                        />
                     </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {filtered.length} result{filtered.length === 1 ? '' : 's'}
+                    </p>
                 </section>
 
                 <section className="rounded-2xl border border-border/70 bg-card">

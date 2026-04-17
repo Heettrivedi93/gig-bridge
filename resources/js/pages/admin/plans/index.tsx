@@ -279,22 +279,24 @@ export default function AdminPlansIndex({ plans }: Props) {
                     </Button>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <Input
-                        placeholder="Search by name, price, or status…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="max-w-sm"
-                    />
-                    {search && (
-                        <Button variant="outline" size="sm" onClick={() => setSearch('')}>
-                            Clear
-                        </Button>
-                    )}
-                    <p className="text-sm text-muted-foreground">
+                <section className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
+                    <div className="flex items-center gap-3">
+                        <Input
+                            placeholder="Search by name, price, or status…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="max-w-sm"
+                        />
+                        {search && (
+                            <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
                         {filteredPlans.length} result{filteredPlans.length === 1 ? '' : 's'}
                     </p>
-                </div>
+                </section>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <div className="max-w-full overflow-x-auto">
