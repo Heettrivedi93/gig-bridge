@@ -148,3 +148,5 @@ Want me to implement any of these? I'd suggest starting with 7 (messages real-ti
 3.implement next level reach milestone Improvements
 4.seller availability option implemented
 5.smart recommendation in gigs
+
+so give me one suggestion that if user is not completing thier order the pending order is creating that we implemented above but give me suggestion that order is should be created pending or payment failed is creating.
