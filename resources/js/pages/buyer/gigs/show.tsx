@@ -278,8 +278,9 @@ export default function BuyerGigShow({
     ).toFixed(2);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [checkoutOrderId, setCheckoutOrderId] = useState<number | null>(null);
-    const [checkoutPaypalOrderId, setCheckoutPaypalOrderId] = useState<string | null>(null);
+    const [checkoutOpen, setCheckoutOpen] = useState(false);
+    const [paypalOrderId, setPaypalOrderId] = useState<string | null>(null);
+    const [formSnapshot, setFormSnapshot] = useState<{ data: OrderFormData; briefFile: File | null } | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [isLoadingButtons, setIsLoadingButtons] = useState(false);
     const paypalContainerRef = useRef<HTMLDivElement | null>(null);
@@ -291,7 +292,7 @@ export default function BuyerGigShow({
     }, []);
 
     useEffect(() => {
-        if (!checkoutOrderId || !paypal.enabled) return;
+        if (!checkoutOpen || !paypal.enabled || !paypalOrderId || !formSnapshot) return;
 
         let cancelled = false;
         const paypalContainer = paypalContainerRef.current;
@@ -320,20 +321,48 @@ export default function BuyerGigShow({
             });
         };
 
-        requestJson<{ id: string }>(`/buyer/orders/${checkoutOrderId}/paypal/order`)
-            .then(async (order) => {
-                if (cancelled) return;
-                setCheckoutPaypalOrderId(order.id);
-                await loadScript();
+        const snapshot = formSnapshot;
+        const ppOrderId = paypalOrderId;
+
+        loadScript()
+            .then(async () => {
                 if (cancelled || !window.paypal || !paypalContainer) return;
 
                 const buttons = window.paypal.Buttons({
-                    createOrder: async () => order.id,
+                    createOrder: async () => ppOrderId,
                     onApprove: async (data) => {
                         if (!data.orderID) throw new Error('PayPal did not return an order ID.');
-                        await requestJson(`/buyer/orders/${checkoutOrderId}/paypal/capture`, { order_id: data.orderID });
-                        setCheckoutOrderId(null);
-                        setCheckoutPaypalOrderId(null);
+
+                        const fd = new FormData();
+                        fd.append('package_id', snapshot.data.package_id);
+                        fd.append('quantity', snapshot.data.quantity);
+                        fd.append('requirements', snapshot.data.requirements);
+                        fd.append('reference_link', snapshot.data.reference_link);
+                        fd.append('style_notes', snapshot.data.style_notes);
+                        fd.append('coupon_code', snapshot.data.coupon_code);
+                        fd.append('billing_name', snapshot.data.billing_name);
+                        fd.append('billing_email', snapshot.data.billing_email);
+                        fd.append('paypal_order_id', data.orderID);
+                        if (snapshot.briefFile) fd.append('brief_file', snapshot.briefFile);
+
+                        const csrf = getCsrfToken();
+                        const res = await fetch(`/buyer/gigs/${gig.id}/orders`, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                Accept: 'application/json',
+                                ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+                            },
+                            body: fd,
+                        });
+                        const payload = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                            throw new Error(
+                                payload?.errors
+                                    ? (Object.values(payload.errors) as string[][]).flat().join(' ')
+                                    : payload?.message || 'Failed to save order.',
+                            );
+                        }
                         window.location.href = '/buyer/orders';
                     },
                     onError: (error) => {
@@ -343,63 +372,53 @@ export default function BuyerGigShow({
                 await buttons.render(paypalContainer);
             })
             .catch((error: Error) => {
-                if (!cancelled) {
-                    setCheckoutPaypalOrderId(null);
-                    setCheckoutError(error.message);
-                }
+                if (!cancelled) setCheckoutError(error.message);
             })
             .finally(() => {
                 if (!cancelled) setIsLoadingButtons(false);
             });
 
         return () => { cancelled = true; };
-    }, [checkoutOrderId, paypal.client_id, paypal.currency, paypal.enabled, paypalContainerElement]);
+    }, [checkoutOpen, paypalOrderId, formSnapshot, paypal.client_id, paypal.currency, paypal.enabled, paypalContainerElement, gig.id]);
 
     const submitOrder = (event: React.FormEvent) => {
         event.preventDefault();
-
-        const formData = new FormData();
-        formData.append('package_id', selectedPackageId);
-        formData.append('quantity', form.data.quantity);
-        formData.append('requirements', form.data.requirements);
-        formData.append('reference_link', form.data.reference_link);
-        formData.append('style_notes', form.data.style_notes);
-        formData.append('coupon_code', form.data.coupon_code);
-        formData.append('billing_name', form.data.billing_name);
-        formData.append('billing_email', form.data.billing_email);
-        if (form.data.brief_file) {
-            formData.append('brief_file', form.data.brief_file);
-        }
 
         const csrf = getCsrfToken();
         form.setError({});
         setIsSubmitting(true);
 
-        fetch(`/buyer/gigs/${gig.id}/orders`, {
+        // Step 1: /prepare — validates + creates PayPal order, NO DB write
+        const prepareData = new FormData();
+        prepareData.append('package_id', selectedPackageId);
+        prepareData.append('quantity', form.data.quantity);
+        prepareData.append('coupon_code', form.data.coupon_code);
+        prepareData.append('billing_name', form.data.billing_name);
+        prepareData.append('billing_email', form.data.billing_email);
+
+        fetch(`/buyer/gigs/${gig.id}/paypal/prepare`, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',
                 ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
             },
-            body: formData,
+            body: prepareData,
         })
             .then(async (response) => {
                 const payload = await response.json().catch(() => ({}));
                 if (!response.ok) {
-                    if (payload?.errors) {
-                        form.setError(payload.errors);
-                    } else {
-                        form.setError({ requirements: payload?.message || 'Failed to create order.' });
-                    }
+                    if (payload?.errors) form.setError(payload.errors);
+                    else form.setError({ requirements: payload?.message || 'Failed to prepare payment.' });
                     return;
                 }
-                const orderId = payload?.order_id as number | undefined;
-                if (orderId) {
+                const ppOrderId = payload?.paypal_order_id as string | undefined;
+                if (ppOrderId) {
+                    setFormSnapshot({ data: { ...form.data, package_id: selectedPackageId }, briefFile: form.data.brief_file });
                     setCheckoutError(null);
-                    setCheckoutPaypalOrderId(null);
                     setIsLoadingButtons(true);
-                    setCheckoutOrderId(orderId);
+                    setPaypalOrderId(ppOrderId);
+                    setCheckoutOpen(true);
                 }
             })
             .catch(() => {
@@ -1214,11 +1233,12 @@ export default function BuyerGigShow({
                 </div>
             </div>
             <Dialog
-                open={Boolean(checkoutOrderId)}
+                open={checkoutOpen}
                 onOpenChange={(open) => {
                     if (!open) {
-                        setCheckoutOrderId(null);
-                        setCheckoutPaypalOrderId(null);
+                        setCheckoutOpen(false);
+                        setPaypalOrderId(null);
+                        setFormSnapshot(null);
                         setCheckoutError(null);
                         setIsLoadingButtons(false);
                     }
@@ -1258,12 +1278,6 @@ export default function BuyerGigShow({
 
                         {isLoadingButtons && (
                             <p className="text-sm text-muted-foreground">Loading PayPal checkout…</p>
-                        )}
-
-                        {!isLoadingButtons && checkoutPaypalOrderId && (
-                            <p className="text-xs text-muted-foreground">
-                                PayPal order ready: {checkoutPaypalOrderId}
-                            </p>
                         )}
 
                         <div ref={handlePaypalContainerRef} />

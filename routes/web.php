@@ -96,6 +96,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware('can:buyer.orders.access')->group(function () {
             Route::get('orders', [BuyerOrderController::class, 'index'])->name('orders.index');
+            Route::post('gigs/{gig}/paypal/prepare', [BuyerOrderController::class, 'preparePaypalOrder'])->name('orders.paypal.prepare');
             Route::post('gigs/{gig}/orders', [BuyerOrderController::class, 'store'])->name('orders.store');
             Route::post('orders/{order}/revision', [BuyerOrderController::class, 'requestRevision'])->name('orders.revision');
             Route::post('orders/{order}/complete', [BuyerOrderController::class, 'complete'])->name('orders.complete');
