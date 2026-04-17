@@ -7,6 +7,7 @@ use App\Models\Gig;
 use App\Models\GigFavourite;
 use App\Models\Order;
 use App\Services\CouponService;
+use App\Services\PaypalCheckoutService;
 use App\Services\SellerRankingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class BuyerCatalogController extends Controller
     public function __construct(
         private readonly CouponService $coupons,
         private readonly SellerRankingService $sellerRanking,
+        private readonly PaypalCheckoutService $paypal,
     ) {}
 
     public function index(Request $request): Response
@@ -206,6 +208,7 @@ class BuyerCatalogController extends Controller
             ],
             'similar_gigs' => $similarGigs->map(fn (Gig $item) => $this->catalogGigPayload($item))->values(),
             'people_also_bought' => $peopleAlsoBought->map(fn (Gig $item) => $this->catalogGigPayload($item))->values(),
+            'paypal' => $this->paypal->publicConfig(),
             'coupons' => $this->coupons->availableCoupons($request->user()->id)
                 ->map(fn ($coupon) => [
                     'id' => $coupon->id,

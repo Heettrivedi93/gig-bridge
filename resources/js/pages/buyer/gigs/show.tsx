@@ -15,10 +15,17 @@ import {
     User,
     X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import SellerLevelBadge from '@/components/seller-level-badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -106,11 +113,63 @@ type CouponOption = {
     expires_at: string | null;
 };
 
+type PaypalConfig = {
+    mode: 'sandbox' | 'live';
+    client_id: string;
+    currency: string;
+    enabled: boolean;
+    message: string | null;
+};
+
+type PaypalButtonsProps = {
+    createOrder: () => Promise<string>;
+    onApprove: (data: { orderID?: string }) => Promise<void>;
+    onError: (error: Error) => void;
+};
+
+declare global {
+    interface Window {
+        paypal?: {
+            Buttons: (props: PaypalButtonsProps) => {
+                render: (selector: string | HTMLElement) => Promise<void>;
+            };
+        };
+    }
+}
+
+const PAYPAL_SCRIPT_ID = 'paypal-js-sdk';
+
+function getCsrfToken() {
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
+}
+
+async function requestJson<T>(url: string, body?: Record<string, unknown>): Promise<T> {
+    const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...(getCsrfToken() ? { 'X-CSRF-TOKEN': getCsrfToken()! } : {}),
+        },
+        body: JSON.stringify(body ?? {}),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const message = payload?.errors
+            ? Object.values(payload.errors).flat().join(' ')
+            : payload?.message || 'Request failed.';
+        throw new Error(message as string);
+    }
+    return payload as T;
+}
+
 type Props = {
     gig: GigDetail;
     similar_gigs: RecommendedGig[];
     people_also_bought: RecommendedGig[];
     coupons: CouponOption[];
+    paypal: PaypalConfig;
 };
 
 type OrderFormData = {
@@ -130,6 +189,7 @@ export default function BuyerGigShow({
     coupons,
     similar_gigs,
     people_also_bought,
+    paypal,
 }: Props) {
     const similarGigs = similar_gigs;
     const peopleAlsoBought = people_also_bought;
@@ -217,18 +277,135 @@ export default function BuyerGigShow({
         ),
     ).toFixed(2);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [checkoutOrderId, setCheckoutOrderId] = useState<number | null>(null);
+    const [checkoutPaypalOrderId, setCheckoutPaypalOrderId] = useState<string | null>(null);
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
+    const [isLoadingButtons, setIsLoadingButtons] = useState(false);
+    const paypalContainerRef = useRef<HTMLDivElement | null>(null);
+    const [paypalContainerElement, setPaypalContainerElement] = useState<HTMLDivElement | null>(null);
+
+    const handlePaypalContainerRef = useCallback((node: HTMLDivElement | null) => {
+        paypalContainerRef.current = node;
+        setPaypalContainerElement(node);
+    }, []);
+
+    useEffect(() => {
+        if (!checkoutOrderId || !paypal.enabled) return;
+
+        let cancelled = false;
+        const paypalContainer = paypalContainerRef.current;
+        if (!paypalContainer) return;
+        paypalContainer.innerHTML = '';
+
+        const loadScript = async () => {
+            if (window.paypal) return;
+            const existing = document.getElementById(PAYPAL_SCRIPT_ID) as HTMLScriptElement | null;
+            if (existing) {
+                await new Promise<void>((resolve, reject) => {
+                    if (window.paypal) { resolve(); return; }
+                    existing.addEventListener('load', () => resolve(), { once: true });
+                    existing.addEventListener('error', () => reject(new Error('Unable to load PayPal SDK.')), { once: true });
+                });
+                return;
+            }
+            await new Promise<void>((resolve, reject) => {
+                const script = document.createElement('script');
+                script.id = PAYPAL_SCRIPT_ID;
+                script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(paypal.client_id)}&currency=${encodeURIComponent(paypal.currency)}&intent=capture`;
+                script.async = true;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Unable to load PayPal SDK.'));
+                document.head.appendChild(script);
+            });
+        };
+
+        requestJson<{ id: string }>(`/buyer/orders/${checkoutOrderId}/paypal/order`)
+            .then(async (order) => {
+                if (cancelled) return;
+                setCheckoutPaypalOrderId(order.id);
+                await loadScript();
+                if (cancelled || !window.paypal || !paypalContainer) return;
+
+                const buttons = window.paypal.Buttons({
+                    createOrder: async () => order.id,
+                    onApprove: async (data) => {
+                        if (!data.orderID) throw new Error('PayPal did not return an order ID.');
+                        await requestJson(`/buyer/orders/${checkoutOrderId}/paypal/capture`, { order_id: data.orderID });
+                        setCheckoutOrderId(null);
+                        setCheckoutPaypalOrderId(null);
+                        window.location.href = '/buyer/orders';
+                    },
+                    onError: (error) => {
+                        setCheckoutError(error.message || 'PayPal checkout failed unexpectedly.');
+                    },
+                });
+                await buttons.render(paypalContainer);
+            })
+            .catch((error: Error) => {
+                if (!cancelled) {
+                    setCheckoutPaypalOrderId(null);
+                    setCheckoutError(error.message);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setIsLoadingButtons(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [checkoutOrderId, paypal.client_id, paypal.currency, paypal.enabled, paypalContainerElement]);
+
     const submitOrder = (event: React.FormEvent) => {
         event.preventDefault();
 
-        form.transform((data) => ({
-            ...data,
-            package_id: selectedPackageId,
-        }));
+        const formData = new FormData();
+        formData.append('package_id', selectedPackageId);
+        formData.append('quantity', form.data.quantity);
+        formData.append('requirements', form.data.requirements);
+        formData.append('reference_link', form.data.reference_link);
+        formData.append('style_notes', form.data.style_notes);
+        formData.append('coupon_code', form.data.coupon_code);
+        formData.append('billing_name', form.data.billing_name);
+        formData.append('billing_email', form.data.billing_email);
+        if (form.data.brief_file) {
+            formData.append('brief_file', form.data.brief_file);
+        }
 
-        form.post(`/buyer/gigs/${gig.id}/orders`, {
-            forceFormData: true,
-            preserveScroll: true,
-        });
+        const csrf = getCsrfToken();
+        form.setError({});
+        setIsSubmitting(true);
+
+        fetch(`/buyer/gigs/${gig.id}/orders`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+            },
+            body: formData,
+        })
+            .then(async (response) => {
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    if (payload?.errors) {
+                        form.setError(payload.errors);
+                    } else {
+                        form.setError({ requirements: payload?.message || 'Failed to create order.' });
+                    }
+                    return;
+                }
+                const orderId = payload?.order_id as number | undefined;
+                if (orderId) {
+                    setCheckoutError(null);
+                    setCheckoutPaypalOrderId(null);
+                    setIsLoadingButtons(true);
+                    setCheckoutOrderId(orderId);
+                }
+            })
+            .catch(() => {
+                form.setError({ requirements: 'Network error. Please try again.' });
+            })
+            .finally(() => setIsSubmitting(false));
     };
 
     return (
@@ -1016,22 +1193,19 @@ export default function BuyerGigShow({
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={
-                                        form.processing ||
-                                        !gig.seller_is_available
-                                    }
+                                    disabled={isSubmitting || !gig.seller_is_available}
                                 >
-                                    {form.processing
+                                    {isSubmitting
                                         ? 'Creating order...'
                                         : gig.seller_is_available
-                                          ? 'Create order & continue'
+                                          ? 'Continue to payment'
                                           : 'Seller unavailable'}
                                 </Button>
-                                <InputError message={form.errors.order} />
+                                <InputError message={form.errors.requirements} />
 
                                 <p className="text-xs text-muted-foreground">
                                     {gig.seller_is_available
-                                        ? 'This creates your order and sends you to the buyer orders list for PayPal checkout.'
+                                        ? 'Your order will be created and PayPal checkout will open immediately.'
                                         : 'This seller is currently on a break and not accepting new orders.'}
                                 </p>
                             </form>
@@ -1039,6 +1213,63 @@ export default function BuyerGigShow({
                     </aside>
                 </div>
             </div>
+            <Dialog
+                open={Boolean(checkoutOrderId)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setCheckoutOrderId(null);
+                        setCheckoutPaypalOrderId(null);
+                        setCheckoutError(null);
+                        setIsLoadingButtons(false);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Complete your payment</DialogTitle>
+                        <DialogDescription>
+                            Complete PayPal checkout to activate your order.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Package</span>
+                                <span className="font-medium">{selectedPackage?.title}</span>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between">
+                                <span className="text-muted-foreground">Total</span>
+                                <span className="font-semibold">{paypal.currency} {estimatedTotal}</span>
+                            </div>
+                        </div>
+
+                        {checkoutError && (
+                            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                                {checkoutError}
+                            </div>
+                        )}
+
+                        {!paypal.enabled && paypal.message && !checkoutError && (
+                            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                                {paypal.message}
+                            </div>
+                        )}
+
+                        {isLoadingButtons && (
+                            <p className="text-sm text-muted-foreground">Loading PayPal checkout…</p>
+                        )}
+
+                        {!isLoadingButtons && checkoutPaypalOrderId && (
+                            <p className="text-xs text-muted-foreground">
+                                PayPal order ready: {checkoutPaypalOrderId}
+                            </p>
+                        )}
+
+                        <div ref={handlePaypalContainerRef} />
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
@@ -1049,3 +1280,4 @@ BuyerGigShow.layout = {
         { title: 'Gig Details', href: '#' },
     ] satisfies BreadcrumbItem[],
 };
+

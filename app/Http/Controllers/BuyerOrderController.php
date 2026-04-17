@@ -239,7 +239,7 @@ class BuyerOrderController extends Controller
         return $pdf->download(sprintf('refund-receipt-%s.pdf', strtolower($receiptNumber)));
     }
 
-    public function store(Request $request, Gig $gig): RedirectResponse
+    public function store(Request $request, Gig $gig): JsonResponse
     {
         $buyer = $this->ensureBuyer($request);
 
@@ -301,9 +301,9 @@ class BuyerOrderController extends Controller
             'escrow_held' => false,
         ]);
 
-        return redirect()
-            ->route('buyer.orders.index')
-            ->with('success', 'Order created successfully. Continue to PayPal from your buyer orders list.');
+        return response()->json([
+            'order_id' => $order->id,
+        ], 201);
     }
 
     public function createPaypalOrder(Request $request, Order $order): JsonResponse
