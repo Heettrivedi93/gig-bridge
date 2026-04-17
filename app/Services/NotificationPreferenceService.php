@@ -128,6 +128,10 @@ class NotificationPreferenceService
             return false;
         }
 
+        if (! $this->supportsEmailEvent($event)) {
+            return false;
+        }
+
         return in_array($event, $this->userPreferences($user)['email_events'], true);
     }
 
@@ -139,6 +143,7 @@ class NotificationPreferenceService
     public function userSupportsInAppEvent(User $user, string $event): bool
     {
         return $this->userInAppEnabled($user)
+            && $this->supportsInAppEvent($event)
             && in_array($event, $this->userPreferences($user)['in_app_events'], true);
     }
 
