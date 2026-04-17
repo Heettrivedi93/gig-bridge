@@ -295,7 +295,7 @@ function DashboardAnnouncement({
         <section className="rounded-3xl border border-amber-200/80 bg-[linear-gradient(135deg,rgba(251,191,36,0.18),rgba(249,115,22,0.1),rgba(255,255,255,0.65))] p-5 shadow-sm dark:border-amber-900/70 dark:bg-[linear-gradient(135deg,rgba(120,53,15,0.5),rgba(146,64,14,0.2),rgba(20,20,20,0.5))]">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="flex gap-3">
-                    <div className="rounded-2xl bg-background/80 p-2.5 text-amber-700 shadow-sm ring-1 ring-amber-200/70 dark:bg-black/20 dark:text-amber-300 dark:ring-amber-900/60">
+                    <div className="self-start shrink-0 rounded-2xl bg-background/80 p-2.5 text-amber-700 shadow-sm ring-1 ring-amber-200/70 dark:bg-black/20 dark:text-amber-300 dark:ring-amber-900/60">
                         <BadgeAlert className="size-4" />
                     </div>
                     <div>

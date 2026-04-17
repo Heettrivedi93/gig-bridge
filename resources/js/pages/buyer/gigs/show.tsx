@@ -633,7 +633,7 @@ export default function BuyerGigShow({
                                 className="mt-5 space-y-4"
                             >
                                 <div className="grid gap-2">
-                                    <Label htmlFor="quantity">Quantity</Label>
+                                    <Label htmlFor="quantity">Quantity <span className="text-destructive">*</span></Label>
                                     <Input
                                         id="quantity"
                                         type="number"
@@ -655,7 +655,7 @@ export default function BuyerGigShow({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="requirements">
-                                        Requirements
+                                        Requirements <span className="text-destructive">*</span>
                                     </Label>
                                     <textarea
                                         id="requirements"
@@ -679,7 +679,7 @@ export default function BuyerGigShow({
                                 <div className="grid gap-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="reference_link">
-                                            Reference link
+                                            Reference link <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                                         </Label>
                                         <div className="relative">
                                             <Link2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -704,7 +704,7 @@ export default function BuyerGigShow({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="style_notes">
-                                        Style notes
+                                        Style notes <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                                     </Label>
                                     <div className="relative">
                                         <Palette className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
@@ -729,7 +729,7 @@ export default function BuyerGigShow({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="brief_file">
-                                        Brief file
+                                        Brief file <span className="text-xs text-muted-foreground font-normal">(optional)</span>
                                     </Label>
                                     <div className="relative">
                                         <FileText className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -900,7 +900,7 @@ export default function BuyerGigShow({
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="billing_name">
-                                            Billing name
+                                            Billing name <span className="text-destructive">*</span>
                                         </Label>
                                         <Input
                                             id="billing_name"
@@ -921,7 +921,7 @@ export default function BuyerGigShow({
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="billing_email">
-                                            Billing email
+                                            Billing email <span className="text-destructive">*</span>
                                         </Label>
                                         <Input
                                             id="billing_email"

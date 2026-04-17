@@ -751,18 +751,15 @@ export default function BuyerGigIndex({
                                                         Rating
                                                     </p>
                                                     <p className="mt-2 flex items-center gap-1 font-medium">
-                                                        <Star className="size-4 text-amber-500" />
+                                                        <Star className="size-4 shrink-0 text-amber-500" />
                                                         {gig.review_count > 0
-                                                            ? gig.rating.toFixed(
-                                                                  1,
-                                                              )
+                                                            ? gig.rating.toFixed(1)
                                                             : 'New'}
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {gig.review_count >
-                                                            0
-                                                                ? `(${gig.review_count})`
-                                                                : '(0 reviews)'}
-                                                        </span>
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {gig.review_count > 0
+                                                            ? `(${gig.review_count} reviews)`
+                                                            : '(0 reviews)'}
                                                     </p>
                                                 </div>
                                                 <div>
