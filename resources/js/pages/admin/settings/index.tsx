@@ -234,9 +234,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 : 'hidden'
                         }
                     >
-                        <h2 className="mb-4 text-base font-semibold">
-                            3.4 Email Settings (SMTP)
-                        </h2>
+                        <h2 className="mb-4 text-base font-semibold">Email Settings</h2>
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label>Driver</Label>
@@ -491,9 +489,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 : 'hidden'
                         }
                     >
-                        <h2 className="mb-4 text-base font-semibold">
-                            3.6 Payment Settings
-                        </h2>
+                        <h2 className="mb-4 text-base font-semibold">Payment Settings</h2>
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label>PayPal Mode</Label>
@@ -666,9 +662,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 : 'hidden'
                         }
                     >
-                        <h2 className="mb-4 text-base font-semibold">
-                            3.7 Trello Settings
-                        </h2>
+                        <h2 className="mb-4 text-base font-semibold">Trello Settings</h2>
                         <div className="mb-4">
                             <label
                                 htmlFor="trello-enabled"
@@ -678,12 +672,10 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                     id="trello-enabled"
                                     type="checkbox"
                                     checked={form.data.trello_enabled}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'trello_enabled',
-                                            e.target.checked,
-                                        )
-                                    }
+                                    onChange={(e) => {
+                                        form.setData('trello_enabled', e.target.checked);
+                                        form.setData('notifications_trello_enabled', e.target.checked);
+                                    }}
                                     className="size-4 accent-primary"
                                 />
                                 Enable Trello integration
@@ -770,9 +762,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 : 'hidden'
                         }
                     >
-                        <h2 className="mb-4 text-base font-semibold">
-                            3.8 Twilio Settings
-                        </h2>
+                        <h2 className="mb-4 text-base font-semibold">Twilio Settings</h2>
                         <div className="mb-4">
                             <label
                                 htmlFor="twilio-enabled"
@@ -782,9 +772,10 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                     id="twilio-enabled"
                                     type="checkbox"
                                     checked={form.data.twilio_enabled}
-                                    onChange={(e) =>
-                                        form.setData('twilio_enabled', e.target.checked)
-                                    }
+                                    onChange={(e) => {
+                                        form.setData('twilio_enabled', e.target.checked);
+                                        form.setData('notifications_twilio_enabled', e.target.checked);
+                                    }}
                                     className="size-4 accent-primary"
                                 />
                                 Enable Twilio SMS integration
@@ -835,9 +826,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 : 'hidden'
                         }
                     >
-                        <h2 className="mb-4 text-base font-semibold">
-                            3.8 Notification Settings
-                        </h2>
+                        <h2 className="mb-4 text-base font-semibold">Notification Settings</h2>
                         <div className="grid gap-3 md:grid-cols-3">
                             <label
                                 htmlFor="notifications-email-enabled"
@@ -889,12 +878,10 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                     checked={
                                         form.data.notifications_trello_enabled
                                     }
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'notifications_trello_enabled',
-                                            e.target.checked,
-                                        )
-                                    }
+                                    onChange={(e) => {
+                                        form.setData('notifications_trello_enabled', e.target.checked);
+                                        form.setData('trello_enabled', e.target.checked);
+                                    }}
                                     className="size-4 accent-primary"
                                 />
                                 Enable Trello Notifications
@@ -907,9 +894,10 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                     id="notifications-twilio-enabled"
                                     type="checkbox"
                                     checked={form.data.notifications_twilio_enabled}
-                                    onChange={(e) =>
-                                        form.setData('notifications_twilio_enabled', e.target.checked)
-                                    }
+                                    onChange={(e) => {
+                                        form.setData('notifications_twilio_enabled', e.target.checked);
+                                        form.setData('twilio_enabled', e.target.checked);
+                                    }}
                                     className="size-4 accent-primary"
                                 />
                                 Enable Twilio SMS Notifications
@@ -921,10 +909,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 options={eventOptions.email}
                                 values={form.data.notifications_email_events}
                                 toggle={(key) =>
-                                    toggleValue(
-                                        'notifications_email_events',
-                                        key,
-                                    )
+                                    toggleValue('notifications_email_events', key)
                                 }
                             />
                             <EventCheckboxList
@@ -932,10 +917,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 options={eventOptions.in_app}
                                 values={form.data.notifications_in_app_events}
                                 toggle={(key) =>
-                                    toggleValue(
-                                        'notifications_in_app_events',
-                                        key,
-                                    )
+                                    toggleValue('notifications_in_app_events', key)
                                 }
                             />
                             <EventCheckboxList
@@ -943,10 +925,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 options={eventOptions.trello}
                                 values={form.data.notifications_trello_events}
                                 toggle={(key) =>
-                                    toggleValue(
-                                        'notifications_trello_events',
-                                        key,
-                                    )
+                                    toggleValue('notifications_trello_events', key)
                                 }
                             />
                             <EventCheckboxList
@@ -954,10 +933,7 @@ export default function AdminSettingsIndex({ settings, eventOptions }: Props) {
                                 options={eventOptions.twilio}
                                 values={form.data.notifications_twilio_events}
                                 toggle={(key) =>
-                                    toggleValue(
-                                        'notifications_twilio_events',
-                                        key,
-                                    )
+                                    toggleValue('notifications_twilio_events', key)
                                 }
                             />
                         </div>

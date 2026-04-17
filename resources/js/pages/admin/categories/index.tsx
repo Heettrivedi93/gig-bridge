@@ -6,7 +6,7 @@ import {
     PlusIcon,
     Trash2,
 } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import TablePagination from '@/components/table-pagination';
@@ -150,6 +150,7 @@ export default function CategoriesIndex({ categories: cats }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<Category | null>(null);
     const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+    const [search, setSearch] = useState('');
 
     const createForm = useForm<FormData>({
         name: '',
@@ -161,7 +162,20 @@ export default function CategoriesIndex({ categories: cats }: Props) {
         status: 'active',
         parent_id: '',
     });
-    const paginatedCategories = useClientPagination(cats);
+    const filteredCats = useMemo(() => {
+        const term = search.toLowerCase().trim();
+        if (!term) return cats;
+        return cats.filter(cat =>
+            cat.name.toLowerCase().includes(term) ||
+            cat.slug.toLowerCase().includes(term) ||
+            cat.status.toLowerCase().includes(term) ||
+            cat.subcategories.some(sub =>
+                sub.name.toLowerCase().includes(term) ||
+                sub.slug.toLowerCase().includes(term)
+            )
+        );
+    }, [cats, search]);
+    const paginatedCategories = useClientPagination(filteredCats);
 
     const confirm = useConfirm();
 
@@ -245,6 +259,25 @@ export default function CategoriesIndex({ categories: cats }: Props) {
                         Add Category
                     </Button>
                 </div>
+
+                <section className="rounded-xl border border-sidebar-border/70 bg-card p-4 dark:border-sidebar-border">
+                    <div className="flex items-center gap-3">
+                        <Input
+                            placeholder="Search by name, slug, or status…"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="max-w-sm"
+                        />
+                        {search && (
+                            <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {filteredCats.length} result{filteredCats.length === 1 ? '' : 's'}
+                    </p>
+                </section>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                     <div className="max-w-full overflow-x-auto">
