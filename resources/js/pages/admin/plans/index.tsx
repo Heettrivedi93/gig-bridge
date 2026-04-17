@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Eye, Pencil, PlusIcon, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import TablePagination from '@/components/table-pagination';
@@ -178,6 +178,7 @@ export default function AdminPlansIndex({ plans }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<Plan | null>(null);
     const [viewTarget, setViewTarget] = useState<Plan | null>(null);
+    const [search, setSearch] = useState('');
     const confirm = useConfirm();
 
     const createForm = useForm<PlanFormData>({
@@ -197,7 +198,16 @@ export default function AdminPlansIndex({ plans }: Props) {
         features_text: '',
         status: 'active',
     });
-    const paginatedPlans = useClientPagination(plans);
+    const filteredPlans = useMemo(() => {
+        const term = search.toLowerCase().trim();
+        if (!term) return plans;
+        return plans.filter(p =>
+            p.name.toLowerCase().includes(term) ||
+            p.status.toLowerCase().includes(term) ||
+            String(p.price).includes(term)
+        );
+    }, [plans, search]);
+    const paginatedPlans = useClientPagination(filteredPlans);
 
     const openEdit = (plan: Plan) => {
         setEditTarget(plan);
@@ -267,6 +277,23 @@ export default function AdminPlansIndex({ plans }: Props) {
                         <PlusIcon />
                         Add Plan
                     </Button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <Input
+                        placeholder="Search by name, price, or status…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="max-w-sm"
+                    />
+                    {search && (
+                        <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                            Clear
+                        </Button>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                        {filteredPlans.length} result{filteredPlans.length === 1 ? '' : 's'}
+                    </p>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">

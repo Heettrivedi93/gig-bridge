@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Megaphone, Pencil, PlusIcon, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import TablePagination from '@/components/table-pagination';
@@ -224,6 +224,7 @@ function AnnouncementForm({
 export default function AdminAnnouncementsIndex({ announcements }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<Announcement | null>(null);
+    const [search, setSearch] = useState('');
     const confirm = useConfirm();
     const initialState: AnnouncementFormData = {
         message: '',
@@ -235,7 +236,16 @@ export default function AdminAnnouncementsIndex({ announcements }: Props) {
 
     const createForm = useForm<AnnouncementFormData>(initialState);
     const editForm = useForm<AnnouncementFormData>(initialState);
-    const paginatedAnnouncements = useClientPagination(announcements);
+    const filteredAnnouncements = useMemo(() => {
+        const term = search.toLowerCase().trim();
+        if (!term) return announcements;
+        return announcements.filter(a => 
+            a.message.toLowerCase().includes(term) ||
+            a.audience.toLowerCase().includes(term) ||
+            a.created_by_name.toLowerCase().includes(term)
+        );
+    }, [announcements, search]);
+    const paginatedAnnouncements = useClientPagination(filteredAnnouncements);
 
     const openEdit = (announcement: Announcement) => {
         setEditTarget(announcement);
@@ -319,6 +329,23 @@ export default function AdminAnnouncementsIndex({ announcements }: Props) {
                         <PlusIcon className="mr-2 size-4" />
                         New Announcement
                     </Button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <Input
+                        placeholder="Search by message, audience, or creator…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="max-w-sm"
+                    />
+                    {search && (
+                        <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                            Clear
+                        </Button>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                        {filteredAnnouncements.length} result{filteredAnnouncements.length === 1 ? '' : 's'}
+                    </p>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">

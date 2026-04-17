@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { Pencil, PlusIcon, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import TablePagination from '@/components/table-pagination';
@@ -261,6 +261,7 @@ function CouponForm({
 export default function AdminCouponsIndex({ coupons }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTarget, setEditTarget] = useState<Coupon | null>(null);
+    const [search, setSearch] = useState('');
     const confirm = useConfirm();
     const initialState: CouponFormData = {
         code: '',
@@ -276,7 +277,17 @@ export default function AdminCouponsIndex({ coupons }: Props) {
 
     const createForm = useForm<CouponFormData>(initialState);
     const editForm = useForm<CouponFormData>(initialState);
-    const paginatedCoupons = useClientPagination(coupons);
+    const filteredCoupons = useMemo(() => {
+        const term = search.toLowerCase().trim();
+        if (!term) return coupons;
+        return coupons.filter(c =>
+            c.code.toLowerCase().includes(term) ||
+            (c.description ?? '').toLowerCase().includes(term) ||
+            c.status.toLowerCase().includes(term) ||
+            c.discount_type.toLowerCase().includes(term)
+        );
+    }, [coupons, search]);
+    const paginatedCoupons = useClientPagination(filteredCoupons);
 
     const openEdit = (coupon: Coupon) => {
         setEditTarget(coupon);
@@ -349,6 +360,23 @@ export default function AdminCouponsIndex({ coupons }: Props) {
                         <PlusIcon className="mr-2 size-4" />
                         Add Coupon
                     </Button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <Input
+                        placeholder="Search by code, description, or type…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="max-w-sm"
+                    />
+                    {search && (
+                        <Button variant="outline" size="sm" onClick={() => setSearch('')}>
+                            Clear
+                        </Button>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                        {filteredCoupons.length} result{filteredCoupons.length === 1 ? '' : 's'}
+                    </p>
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
