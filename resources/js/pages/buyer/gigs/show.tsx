@@ -285,6 +285,7 @@ export default function BuyerGigShow({
     const [isLoadingButtons, setIsLoadingButtons] = useState(false);
     const paypalContainerRef = useRef<HTMLDivElement | null>(null);
     const [paypalContainerElement, setPaypalContainerElement] = useState<HTMLDivElement | null>(null);
+    const paymentCompletedRef = useRef(false);
 
     const handlePaypalContainerRef = useCallback((node: HTMLDivElement | null) => {
         paypalContainerRef.current = node;
@@ -363,6 +364,7 @@ export default function BuyerGigShow({
                                     : payload?.message || 'Failed to save order.',
                             );
                         }
+                        paymentCompletedRef.current = true;
                         window.location.href = '/buyer/orders';
                     },
                     onError: (error) => {
@@ -1235,13 +1237,32 @@ export default function BuyerGigShow({
             <Dialog
                 open={checkoutOpen}
                 onOpenChange={(open) => {
-                    if (!open) {
-                        setCheckoutOpen(false);
-                        setPaypalOrderId(null);
-                        setFormSnapshot(null);
-                        setCheckoutError(null);
-                        setIsLoadingButtons(false);
+                    if (!open && formSnapshot && !paymentCompletedRef.current) {
+                        // User closed without paying — save as pending so they can pay from orders page
+                        const fd = new FormData();
+                        fd.append('package_id', formSnapshot.data.package_id);
+                        fd.append('quantity', formSnapshot.data.quantity);
+                        fd.append('requirements', formSnapshot.data.requirements);
+                        fd.append('reference_link', formSnapshot.data.reference_link);
+                        fd.append('style_notes', formSnapshot.data.style_notes);
+                        fd.append('coupon_code', formSnapshot.data.coupon_code);
+                        fd.append('billing_name', formSnapshot.data.billing_name);
+                        fd.append('billing_email', formSnapshot.data.billing_email);
+                        if (formSnapshot.briefFile) fd.append('brief_file', formSnapshot.briefFile);
+                        const csrf = getCsrfToken();
+                        fetch(`/buyer/gigs/${gig.id}/orders`, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { Accept: 'application/json', ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}) },
+                            body: fd,
+                        }).catch(() => {});
                     }
+                    setCheckoutOpen(false);
+                    setPaypalOrderId(null);
+                    setFormSnapshot(null);
+                    setCheckoutError(null);
+                    setIsLoadingButtons(false);
+                    paymentCompletedRef.current = false;
                 }}
             >
                 <DialogContent className="sm:max-w-lg">

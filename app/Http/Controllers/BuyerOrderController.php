@@ -306,9 +306,6 @@ class BuyerOrderController extends Controller
         return response()->json(['paypal_order_id' => $response['id']]);
     }
 
-    /**
-     * Capture PayPal payment then create the order in DB — only on success.
-     */
     public function store(Request $request, Gig $gig): JsonResponse
     {
         $buyer = $this->ensureBuyer($request);
@@ -332,7 +329,7 @@ class BuyerOrderController extends Controller
             'coupon_code'     => ['nullable', 'string', 'max:100'],
             'billing_name'    => ['required', 'string', 'max:255'],
             'billing_email'   => ['required', 'email', 'max:255'],
-            'paypal_order_id' => ['required', 'string'],
+            'paypal_order_id' => ['nullable', 'string'],
         ]);
 
         $package = GigPackage::query()
@@ -347,57 +344,89 @@ class BuyerOrderController extends Controller
         $discountAmount = (float) $coupon['discount_amount'];
         $finalPrice     = round(max(0, $subtotal - $discountAmount), 2);
 
-        // Capture payment first — no DB write until this succeeds
-        try {
-            $capture = $this->paypal->captureOrder($data['paypal_order_id']);
-        } catch (RuntimeException $exception) {
-            throw ValidationException::withMessages(['paypal' => $exception->getMessage()]);
+        $paypalOrderId = ($data['paypal_order_id'] ?? '') ?: null;
+
+        // If paypal_order_id provided — capture payment first, create active order
+        if ($paypalOrderId !== null) {
+            try {
+                $capture = $this->paypal->captureOrder($paypalOrderId);
+            } catch (RuntimeException $exception) {
+                throw ValidationException::withMessages(['paypal' => $exception->getMessage()]);
+            }
+
+            if (strtoupper((string) data_get($capture, 'status', '')) !== 'COMPLETED') {
+                throw ValidationException::withMessages(['paypal' => 'PayPal did not complete the capture.']);
+            }
+
+            $platformFeePercentage = (float) Setting::getValue('payment_platform_fee_percentage', 10);
+            $platformFeeAmount     = round($finalPrice * ($platformFeePercentage / 100), 2);
+            $sellerNetAmount       = round($finalPrice - $platformFeeAmount, 2);
+
+            $order = Order::create([
+                'buyer_id'                => $buyer->id,
+                'seller_id'               => $gig->user_id,
+                'gig_id'                  => $gig->id,
+                'package_id'              => $package->id,
+                'coupon_id'               => $coupon['coupon']?->id,
+                'quantity'                => $quantity,
+                'requirements'            => $data['requirements'],
+                'brief_file_path'         => $request->file('brief_file')?->store('order-briefs', 'public'),
+                'reference_link'          => ($data['reference_link'] ?? '') ?: null,
+                'style_notes'             => ($data['style_notes'] ?? '') ?: null,
+                'coupon_code'             => $coupon['code'],
+                'billing_name'            => $data['billing_name'],
+                'billing_email'           => $data['billing_email'],
+                'unit_price'              => $unitPrice,
+                'subtotal_amount'         => $subtotal,
+                'discount_amount'         => $discountAmount,
+                'price'                   => $finalPrice,
+                'gross_amount'            => $finalPrice,
+                'platform_fee_percentage' => $platformFeePercentage,
+                'platform_fee_amount'     => $platformFeeAmount,
+                'seller_net_amount'       => $sellerNetAmount,
+                'status'                  => 'active',
+                'payment_status'          => 'paid',
+                'fund_status'             => 'escrow',
+                'escrow_held'             => true,
+                'paypal_order_id'         => $paypalOrderId,
+                'paypal_payer_id'         => data_get($capture, 'payer.payer_id'),
+                'due_at'                  => now()->addDays((int) ($package->delivery_days ?? 0)),
+            ]);
+
+            $this->coupons->markUsed($coupon['coupon'], $buyer->id, $order);
+            $this->notifications->orderPlaced($order);
+            $this->funds->holdEscrow($order);
+
+            return response()->json(['order_id' => $order->id, 'status' => 'active'], 201);
         }
 
-        if (strtoupper((string) data_get($capture, 'status', '')) !== 'COMPLETED') {
-            throw ValidationException::withMessages(['paypal' => 'PayPal did not complete the capture.']);
-        }
-
-        $platformFeePercentage = (float) Setting::getValue('payment_platform_fee_percentage', 10);
-        $platformFeeAmount     = round($finalPrice * ($platformFeePercentage / 100), 2);
-        $sellerNetAmount       = round($finalPrice - $platformFeeAmount, 2);
-
+        // No paypal_order_id — user abandoned checkout, save as pending so they can pay later
         $order = Order::create([
-            'buyer_id'                => $buyer->id,
-            'seller_id'               => $gig->user_id,
-            'gig_id'                  => $gig->id,
-            'package_id'              => $package->id,
-            'coupon_id'               => $coupon['coupon']?->id,
-            'quantity'                => $quantity,
-            'requirements'            => $data['requirements'],
-            'brief_file_path'         => $request->file('brief_file')?->store('order-briefs', 'public'),
-            'reference_link'          => ($data['reference_link'] ?? '') ?: null,
-            'style_notes'             => ($data['style_notes'] ?? '') ?: null,
-            'coupon_code'             => $coupon['code'],
-            'billing_name'            => $data['billing_name'],
-            'billing_email'           => $data['billing_email'],
-            'unit_price'              => $unitPrice,
-            'subtotal_amount'         => $subtotal,
-            'discount_amount'         => $discountAmount,
-            'price'                   => $finalPrice,
-            'gross_amount'            => $finalPrice,
-            'platform_fee_percentage' => $platformFeePercentage,
-            'platform_fee_amount'     => $platformFeeAmount,
-            'seller_net_amount'       => $sellerNetAmount,
-            'status'                  => 'active',
-            'payment_status'          => 'paid',
-            'fund_status'             => 'escrow',
-            'escrow_held'             => true,
-            'paypal_order_id'         => $data['paypal_order_id'],
-            'paypal_payer_id'         => data_get($capture, 'payer.payer_id'),
-            'due_at'                  => now()->addDays((int) ($package->delivery_days ?? 0)),
+            'buyer_id'        => $buyer->id,
+            'seller_id'       => $gig->user_id,
+            'gig_id'          => $gig->id,
+            'package_id'      => $package->id,
+            'coupon_id'       => $coupon['coupon']?->id,
+            'quantity'        => $quantity,
+            'requirements'    => $data['requirements'],
+            'brief_file_path' => $request->file('brief_file')?->store('order-briefs', 'public'),
+            'reference_link'  => ($data['reference_link'] ?? '') ?: null,
+            'style_notes'     => ($data['style_notes'] ?? '') ?: null,
+            'coupon_code'     => $coupon['code'],
+            'billing_name'    => $data['billing_name'],
+            'billing_email'   => $data['billing_email'],
+            'unit_price'      => $unitPrice,
+            'subtotal_amount' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'price'           => $finalPrice,
+            'gross_amount'    => $finalPrice,
+            'status'          => 'pending',
+            'payment_status'  => 'pending',
+            'fund_status'     => 'none',
+            'escrow_held'     => false,
         ]);
 
-        $this->coupons->markUsed($coupon['coupon'], $buyer->id, $order);
-        $this->notifications->orderPlaced($order);
-        $this->funds->holdEscrow($order);
-
-        return response()->json(['order_id' => $order->id], 201);
+        return response()->json(['order_id' => $order->id, 'status' => 'pending'], 201);
     }
 
     /**
