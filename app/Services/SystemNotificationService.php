@@ -22,7 +22,7 @@ class SystemNotificationService
 
     public function orderPlaced(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,email,phone', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,email,phone', 'seller:id,name,email,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -54,7 +54,7 @@ class SystemNotificationService
 
     public function orderDelivered(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,email,phone', 'seller:id,name,email,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->buyer],
@@ -66,7 +66,7 @@ class SystemNotificationService
                 $order->gig?->title ?? 'your order',
             ),
             'orders',
-            null,
+            'order_delivered',
             'order_delivered',
             '/buyer/orders',
         );
@@ -85,7 +85,7 @@ class SystemNotificationService
 
     public function revisionRequested(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,email,phone', 'seller:id,name,email,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -104,7 +104,7 @@ class SystemNotificationService
 
     public function orderCompleted(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone', 'gig:id,title']);
+        $order->loadMissing(['buyer:id,name,email,phone', 'seller:id,name,email,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -134,7 +134,7 @@ class SystemNotificationService
 
     public function orderCancelledByBuyer(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone']);
+        $order->loadMissing(['buyer:id,name,email,phone', 'seller:id,name,email,phone']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -164,7 +164,7 @@ class SystemNotificationService
 
     public function orderCancelledBySeller(Order $order): void
     {
-        $order->loadMissing(['buyer:id,name,phone', 'seller:id,name,phone']);
+        $order->loadMissing(['buyer:id,name,email,phone', 'seller:id,name,email,phone']);
 
         $this->notifyUsers(
             [$order->buyer],
@@ -194,7 +194,7 @@ class SystemNotificationService
 
     public function paymentReleased(Order $order): void
     {
-        $order->loadMissing(['seller:id,name,phone', 'gig:id,title']);
+        $order->loadMissing(['seller:id,name,email,phone', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
@@ -341,7 +341,7 @@ class SystemNotificationService
 
     public function reviewReceived(Order $order, int $rating): void
     {
-        $order->loadMissing(['seller:id,name,phone', 'buyer:id,name', 'gig:id,title']);
+        $order->loadMissing(['seller:id,name,email,phone', 'buyer:id,name,email', 'gig:id,title']);
 
         $this->notifyUsers(
             [$order->seller],
