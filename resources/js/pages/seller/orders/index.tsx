@@ -625,7 +625,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                                         >
                                                             <Eye className="size-4" />
                                                         </ActionIconButton>
-                                                        {order.buyer && (
+                                                        {order.buyer && order.status !== 'cancelled' && (
                                                             <ActionIconButton
                                                                 label="Message"
                                                                 variant="outline"
@@ -772,7 +772,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                         >
                                             <Eye className="size-4" />
                                         </ActionIconButton>
-                                        {order.buyer && (
+                                        {order.buyer && order.status !== 'cancelled' && (
                                             <ActionIconButton
                                                 label="Message"
                                                 variant="outline"
@@ -983,7 +983,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                             <Truck className="mr-1.5 size-4" /> Submit delivery
                                         </Button>
                                     )}
-                                    {selectedOrder.buyer && (
+                                    {selectedOrder.buyer && selectedOrder.status !== 'cancelled' && (
                                         <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setMessageOrder(selectedOrder); }}>
                                             <MessageCircle className="mr-1.5 size-4" /> Message buyer
                                         </Button>

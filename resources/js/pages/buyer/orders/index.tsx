@@ -841,7 +841,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                                         >
                                                             <Eye className="size-4" />
                                                         </ActionIconButton>
-                                                        {order.seller && order.payment_status !== 'pending' && (
+                                                        {order.seller && order.payment_status !== 'pending' && order.status !== 'cancelled' && (
                                                             <ActionIconButton
                                                                 label="Message"
                                                                 variant="outline"
@@ -1006,7 +1006,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                         >
                                             <Eye className="size-4" />
                                         </ActionIconButton>
-                                        {order.seller && order.payment_status !== 'pending' && (
+                                        {order.seller && order.payment_status !== 'pending' && order.status !== 'cancelled' && (
                                             <ActionIconButton
                                                 label="Message"
                                                 variant="outline"
@@ -1248,7 +1248,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                         <Star className="mr-1.5 size-4" /> Leave review
                                     </Button>
                                 )}
-                                {selectedOrder.seller && selectedOrder.payment_status !== 'pending' && (
+                                {selectedOrder.seller && selectedOrder.payment_status !== 'pending' && selectedOrder.status !== 'cancelled' && (
                                     <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(null); setMessageOrder(selectedOrder); }}>
                                         <MessageCircle className="mr-1.5 size-4" /> Message seller
                                     </Button>

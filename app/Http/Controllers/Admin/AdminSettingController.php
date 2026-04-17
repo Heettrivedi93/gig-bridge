@@ -27,6 +27,7 @@ class AdminSettingController extends Controller
             ],
             'eventOptions' => [
                 'email' => [
+                    ['key' => 'registration', 'label' => 'New user registration'],
                     ['key' => 'order_placed', 'label' => 'Order placed'],
                     ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],

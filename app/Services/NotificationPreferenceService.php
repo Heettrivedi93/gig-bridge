@@ -124,6 +124,11 @@ class NotificationPreferenceService
 
     public function userSupportsEmailEvent(User $user, string $event): bool
     {
+        // Registration is a one-time system event — only respect global admin toggle
+        if ($event === 'registration') {
+            return $this->emailEnabled() && $this->supportsEmailEvent('registration');
+        }
+
         if (! $this->userEmailEnabled($user)) {
             return false;
         }
@@ -290,9 +295,7 @@ class NotificationPreferenceService
     {
         return [
             'default' => [
-                'email' => [
-                    ['key' => 'registration', 'label' => 'Registration'],
-                ],
+                'email' => [],
                 'in_app' => [
                     ['key' => 'messages', 'label' => 'Messages'],
                 ],
@@ -300,7 +303,6 @@ class NotificationPreferenceService
             ],
             'buyer' => [
                 'email' => [
-                    ['key' => 'registration',    'label' => 'Registration'],
                     ['key' => 'order_delivered', 'label' => 'Order delivered'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
                 ],
@@ -315,7 +317,6 @@ class NotificationPreferenceService
             ],
             'seller' => [
                 'email' => [
-                    ['key' => 'registration',    'label' => 'Registration'],
                     ['key' => 'order_placed',    'label' => 'New order received'],
                     ['key' => 'order_completed', 'label' => 'Order completed'],
                     ['key' => 'order_cancelled', 'label' => 'Order cancelled'],
