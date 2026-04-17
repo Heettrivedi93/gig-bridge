@@ -26,6 +26,7 @@ class NotificationPreferenceController extends Controller
         return Inertia::render('settings/notifications', [
             'preferences' => $this->preferences->userPreferences($request->user()),
             'eventOptions' => $this->preferences->userEventOptions($request->user()),
+            'has_phone' => filled($request->user()?->phone),
         ]);
     }
 

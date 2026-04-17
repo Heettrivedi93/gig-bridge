@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ type FormData = {
 type Props = {
     preferences: FormData;
     eventOptions: Record<ChannelKey, EventOption[]>;
+    has_phone: boolean;
 };
 
 function EventCheckboxList({
@@ -138,6 +139,7 @@ function ChannelCard({
 export default function NotificationSettings({
     preferences,
     eventOptions,
+    has_phone,
 }: Props) {
     const form = useForm<FormData>(preferences);
 
@@ -219,6 +221,18 @@ export default function NotificationSettings({
                         onEnabledChange={(key, value) => form.setData(key, value)}
                         onToggle={toggleValue}
                     />
+
+                    {!has_phone && (
+                        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-300">
+                            <span className="mt-0.5 shrink-0">📱</span>
+                            <p>
+                                No phone number on your account. SMS notifications won't be delivered until you add one.{' '}
+                                <Link href="/settings/profile" className="font-medium underline underline-offset-4">
+                                    Add phone number →
+                                </Link>
+                            </p>
+                        </div>
+                    )}
 
                     <div className="flex items-center gap-4">
                         <Button type="submit" disabled={form.processing}>
