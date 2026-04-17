@@ -43,7 +43,7 @@ const icons = {
 } satisfies Record<FlashLevel, typeof CheckCircle2>;
 
 const FLASH_LEVELS: FlashLevel[] = ['success', 'error', 'warning', 'info'];
-const TOAST_DURATION = 4000;
+const TOAST_DURATION = 5500;
 const TOAST_EXIT_DURATION = 220;
 
 type PageProps = {
