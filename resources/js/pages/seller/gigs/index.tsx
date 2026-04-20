@@ -3,6 +3,7 @@ import { ImagePlus, Eye, Lock, Pencil, PlusIcon, Power, Trash2 } from 'lucide-re
 import { useEffect, useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { toast } from '@/components/flash-toaster';
 import SellerLevelBadge from '@/components/seller-level-badge';
 import type { SellerLevelBadgeData } from '@/components/seller-level-badge';
 import { Badge } from '@/components/ui/badge';
@@ -680,15 +681,20 @@ export default function SellerGigsIndex({
     };
 
     const handleStatusToggle = (gig: GigItem) => {
+        const nextStatus = gig.status === 'active' ? 'inactive' : 'active';
         router.post(
             `/seller/gigs/${gig.id}?_method=PUT`,
             {
                 ...buildGigFormState(gig),
-                status: gig.status === 'active' ? 'inactive' : 'active',
+                status: nextStatus,
+                status_toggle_only: true,
             },
             {
                 preserveScroll: true,
                 forceFormData: true,
+                onSuccess: () => {
+                    toast('success', nextStatus === 'active' ? 'Gig activated successfully.' : 'Gig deactivated successfully.');
+                },
             },
         );
     };

@@ -202,7 +202,7 @@ class SellerGigController extends Controller
             }
         });
 
-        return back()->with('success', 'Gig updated successfully.');
+        return back()->with('success', $request->boolean('status_toggle_only') ? null : 'Gig updated successfully.');
     }
 
     public function destroy(Request $request, Gig $gig): RedirectResponse
