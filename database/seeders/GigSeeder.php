@@ -129,13 +129,11 @@ class GigSeeder extends Seeder
 
     private function buildTags(string $subcategoryName, string $categoryName): array
     {
-        // Derive tags from the actual category and subcategory names — no hardcoded pool
         $words = array_merge(
             explode(' ', strtolower($subcategoryName)),
             explode(' ', strtolower($categoryName)),
         );
 
-        // Filter out short filler words and slugify each word
         return array_values(array_unique(
             array_filter(
                 array_map(fn ($w) => preg_replace('/[^a-z0-9\-]/', '', str_replace(' ', '-', $w)), $words),
