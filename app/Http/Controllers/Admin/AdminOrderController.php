@@ -147,12 +147,9 @@ class AdminOrderController extends Controller
     public function update(Request $request, Order $order): RedirectResponse
     {
         $data = $request->validate([
-            'status' => ['required', Rule::in(['pending', 'active', 'delivered', 'completed', 'cancelled'])],
+            'status'         => ['required', Rule::in(['pending', 'active', 'delivered', 'completed', 'cancelled'])],
             'payment_status' => ['required', Rule::in(['pending', 'paid', 'released', 'refunded', 'failed'])],
-            'escrow_held' => ['required', 'boolean'],
-            'delivered_at' => ['nullable', 'date'],
-            'completed_at' => ['nullable', 'date'],
-            'cancelled_at' => ['nullable', 'date'],
+            'escrow_held'    => ['required', 'boolean'],
         ]);
 
         $order->update($data);

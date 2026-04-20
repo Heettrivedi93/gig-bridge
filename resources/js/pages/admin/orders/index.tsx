@@ -815,63 +815,33 @@ export default function AdminOrdersIndex({
 
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="delivered_at">
-                                        Delivered At
-                                    </Label>
+                                    <Label htmlFor="delivered_at">Delivered At</Label>
                                     <input
                                         id="delivered_at"
                                         type="datetime-local"
                                         value={form.data.delivered_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'delivered_at',
-                                                e.target.value,
-                                            )
-                                        }
-                                        className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                    />
-                                    <InputError
-                                        message={form.errors.delivered_at}
+                                        disabled
+                                        className="rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground outline-none cursor-not-allowed"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="completed_at">
-                                        Completed At
-                                    </Label>
+                                    <Label htmlFor="completed_at">Completed At</Label>
                                     <input
                                         id="completed_at"
                                         type="datetime-local"
                                         value={form.data.completed_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'completed_at',
-                                                e.target.value,
-                                            )
-                                        }
-                                        className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                    />
-                                    <InputError
-                                        message={form.errors.completed_at}
+                                        disabled
+                                        className="rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground outline-none cursor-not-allowed"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="cancelled_at">
-                                        Cancelled At
-                                    </Label>
+                                    <Label htmlFor="cancelled_at">Cancelled At</Label>
                                     <input
                                         id="cancelled_at"
                                         type="datetime-local"
                                         value={form.data.cancelled_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'cancelled_at',
-                                                e.target.value,
-                                            )
-                                        }
-                                        className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                                    />
-                                    <InputError
-                                        message={form.errors.cancelled_at}
+                                        disabled
+                                        className="rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground outline-none cursor-not-allowed"
                                     />
                                 </div>
                             </div>
