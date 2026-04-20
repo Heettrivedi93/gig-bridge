@@ -13,12 +13,12 @@ class LoginResponse implements LoginResponseContract
 
         $flash = ['success' => 'Welcome back!'];
 
-        if (empty($user->phone)) {
-            $flash['info'] = 'To receive SMS notifications, please add your mobile number on your profile settings page.';
-        }
-
         if ($user->hasRole('super_admin')) {
             return redirect()->route('admin.dashboard')->with($flash);
+        }
+
+        if (empty($user->phone)) {
+            $flash['info'] = 'To receive SMS notifications, please add your mobile number on your profile settings page.';
         }
 
         return redirect()->intended(config('fortify.home', '/dashboard'))->with($flash);
