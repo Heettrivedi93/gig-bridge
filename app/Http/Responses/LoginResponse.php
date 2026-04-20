@@ -11,10 +11,16 @@ class LoginResponse implements LoginResponseContract
     {
         $user = Auth::user();
 
-        if ($user->hasRole('super_admin')) {
-            return redirect()->route('admin.dashboard')->with('success', 'Welcome back!');
+        $flash = ['success' => 'Welcome back!'];
+
+        if (empty($user->phone)) {
+            $flash['info'] = 'To receive SMS notifications, please add your mobile number on your profile settings page.';
         }
 
-        return redirect()->intended(config('fortify.home', '/dashboard'))->with('success', 'Welcome back!');
+        if ($user->hasRole('super_admin')) {
+            return redirect()->route('admin.dashboard')->with($flash);
+        }
+
+        return redirect()->intended(config('fortify.home', '/dashboard'))->with($flash);
     }
 }
