@@ -89,7 +89,7 @@ export default function Security({
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="current_password">
-                                    Current password
+                                    Current password <span className="text-destructive">*</span>
                                 </Label>
 
                                 <PasswordInput
@@ -105,7 +105,7 @@ export default function Security({
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">New password</Label>
+                                <Label htmlFor="password">New password <span className="text-destructive">*</span></Label>
 
                                 <PasswordInput
                                     id="password"
@@ -121,7 +121,7 @@ export default function Security({
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm password
+                                    Confirm password <span className="text-destructive">*</span>
                                 </Label>
 
                                 <PasswordInput

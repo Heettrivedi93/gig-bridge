@@ -104,7 +104,7 @@ function CategoryForm({
             )}
 
             <div className="grid gap-2">
-                <Label htmlFor="cat-name">Name</Label>
+                <Label htmlFor="cat-name">Name <span className="text-destructive">*</span></Label>
                 <Input
                     id="cat-name"
                     value={data.name}

@@ -181,7 +181,7 @@ export default function Profile({
 
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Name</Label>
+                            <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
                             <Input
                                 id="name"
                                 value={form.data.name}
@@ -199,7 +199,7 @@ export default function Profile({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email address</Label>
+                            <Label htmlFor="email">Email address <span className="text-destructive">*</span></Label>
                             <Input
                                 id="email"
                                 type="email"

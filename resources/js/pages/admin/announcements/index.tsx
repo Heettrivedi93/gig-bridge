@@ -127,7 +127,7 @@ function AnnouncementForm({
     return (
         <form onSubmit={onSubmit} className="space-y-4">
             <div className="grid gap-2">
-                <Label htmlFor="announcement-message">Message</Label>
+                <Label htmlFor="announcement-message">Message <span className="text-destructive">*</span></Label>
                 <textarea
                     id="announcement-message"
                     value={data.message}
@@ -143,7 +143,7 @@ function AnnouncementForm({
 
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label>Audience</Label>
+                    <Label>Audience <span className="text-destructive">*</span></Label>
                     <Select
                         value={data.audience}
                         onValueChange={(value) =>

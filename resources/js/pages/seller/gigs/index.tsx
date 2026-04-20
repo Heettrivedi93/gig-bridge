@@ -198,7 +198,7 @@ function GigForm({
         <form onSubmit={onSubmit} className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor="gig-title">Gig title</Label>
+                    <Label htmlFor="gig-title">Gig title <span className="text-destructive">*</span></Label>
                     <Input
                         id="gig-title"
                         value={form.data.title}
@@ -230,7 +230,7 @@ function GigForm({
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="gig-description">Description</Label>
+                <Label htmlFor="gig-description">Description <span className="text-destructive">*</span></Label>
                 <textarea
                     id="gig-description"
                     rows={5}
@@ -246,7 +246,7 @@ function GigForm({
 
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="grid gap-2">
-                    <Label>Category</Label>
+                    <Label>Category <span className="text-destructive">*</span></Label>
                     <Select
                         value={form.data.category_id}
                         onValueChange={(value) => {
@@ -272,7 +272,7 @@ function GigForm({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label>Subcategory</Label>
+                    <Label>Subcategory <span className="text-destructive">*</span></Label>
                     <Select
                         value={form.data.subcategory_id}
                         onValueChange={(value) =>
@@ -411,7 +411,7 @@ function GigForm({
                             <div className="space-y-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor={`${tier.key}-title`}>
-                                        Title
+                                        Title <span className="text-destructive">*</span>
                                     </Label>
                                     <Input
                                         id={`${tier.key}-title`}
@@ -438,7 +438,7 @@ function GigForm({
 
                                 <div className="grid gap-2">
                                     <Label htmlFor={`${tier.key}-description`}>
-                                        Description
+                                        Description <span className="text-destructive">*</span>
                                     </Label>
                                     <textarea
                                         id={`${tier.key}-description`}
@@ -469,7 +469,7 @@ function GigForm({
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <div className="grid gap-2">
                                         <Label htmlFor={`${tier.key}-price`}>
-                                            Price
+                                            Price <span className="text-destructive">*</span>
                                         </Label>
                                         <Input
                                             id={`${tier.key}-price`}
@@ -499,7 +499,7 @@ function GigForm({
 
                                     <div className="grid gap-2">
                                         <Label htmlFor={`${tier.key}-delivery`}>
-                                            Delivery days
+                                            Delivery days <span className="text-destructive">*</span>
                                         </Label>
                                         <Input
                                             id={`${tier.key}-delivery`}
@@ -530,7 +530,7 @@ function GigForm({
                                         <Label
                                             htmlFor={`${tier.key}-revisions`}
                                         >
-                                            Revisions
+                                            Revisions <span className="text-destructive">*</span>
                                         </Label>
                                         <Input
                                             id={`${tier.key}-revisions`}

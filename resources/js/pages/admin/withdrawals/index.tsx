@@ -301,7 +301,7 @@ export default function AdminWithdrawalsIndex({ stats, requests }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label>Status</Label>
+                                <Label>Status <span className="text-destructive">*</span></Label>
                                 <Select
                                     value={form.data.status}
                                     onValueChange={(value) =>

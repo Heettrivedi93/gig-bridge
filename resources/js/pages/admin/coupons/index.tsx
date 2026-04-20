@@ -93,7 +93,7 @@ function CouponForm({
         <form onSubmit={onSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor="coupon-code">Coupon code</Label>
+                    <Label htmlFor="coupon-code">Coupon code <span className="text-destructive">*</span></Label>
                     <Input
                         id="coupon-code"
                         value={data.code}
@@ -144,7 +144,7 @@ function CouponForm({
 
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label>Discount type</Label>
+                    <Label>Discount type <span className="text-destructive">*</span></Label>
                     <Select
                         value={data.discount_type}
                         onValueChange={(value) =>
@@ -165,7 +165,7 @@ function CouponForm({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="coupon-discount">Discount value</Label>
+                    <Label htmlFor="coupon-discount">Discount value <span className="text-destructive">*</span></Label>
                     <Input
                         id="coupon-discount"
                         type="number"

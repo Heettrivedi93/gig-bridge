@@ -323,7 +323,7 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                     <form onSubmit={handleUpdate} className="space-y-5 pt-1">
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="user-name">Name</Label>
+                                <Label htmlFor="user-name">Name <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="user-name"
                                     value={form.data.name}
@@ -336,7 +336,7 @@ export default function AdminUsersIndex({ users, permissionsByRole }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="user-email">Email</Label>
+                                <Label htmlFor="user-email">Email <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="user-email"
                                     type="email"

@@ -1390,7 +1390,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                 htmlFor="revision_note"
                                 className="text-sm font-medium"
                             >
-                                Revision note
+                                Revision note <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="revision_note"
@@ -1443,7 +1443,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                 htmlFor="cancellation_reason"
                                 className="text-sm font-medium"
                             >
-                                Reason
+                                Reason <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="cancellation_reason"
@@ -1493,7 +1493,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                     <form onSubmit={submitReview} className="space-y-4">
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">
-                                Rating
+                                Rating <span className="text-destructive">*</span>
                             </label>
                             <div className="grid grid-cols-5 gap-2">
                                 {[1, 2, 3, 4, 5].map((rating) => {
@@ -1532,7 +1532,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                 htmlFor="comment"
                                 className="text-sm font-medium"
                             >
-                                Comment
+                                Comment <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="comment"
@@ -1678,7 +1678,7 @@ export default function BuyerOrdersIndex({ orders, paypal, refund_policy }: Prop
                                 htmlFor="dispute_reason"
                                 className="text-sm font-medium"
                             >
-                                Reason
+                                Reason <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="dispute_reason"

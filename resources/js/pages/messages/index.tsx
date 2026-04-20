@@ -449,7 +449,7 @@ export default function MessagesIndex({
                                 </div>
 
                                 <div className="mt-4 grid gap-2">
-                                    <Label htmlFor="message-body">Message</Label>
+                                    <Label htmlFor="message-body">Message <span className="text-destructive">*</span></Label>
                                     <textarea
                                         id="message-body"
                                         rows={5}
@@ -513,7 +513,7 @@ export default function MessagesIndex({
 
                     <form onSubmit={startConversation} className="space-y-4">
                         <div className="grid gap-2">
-                            <Label>Recipient</Label>
+                            <Label>Recipient <span className="text-destructive">*</span></Label>
                             <Select
                                 value={newMessageForm.data.receiver_id}
                                 onValueChange={(value) => {

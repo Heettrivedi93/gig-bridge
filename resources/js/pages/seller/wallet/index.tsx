@@ -288,7 +288,7 @@ export default function SellerWalletIndex({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="withdrawal-amount">Amount</Label>
+                            <Label htmlFor="withdrawal-amount">Amount <span className="text-destructive">*</span></Label>
                             <Input
                                 id="withdrawal-amount"
                                 type="number"
@@ -310,7 +310,7 @@ export default function SellerWalletIndex({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="withdrawal-method">Method</Label>
+                            <Label htmlFor="withdrawal-method">Method <span className="text-destructive">*</span></Label>
                             <Input
                                 id="withdrawal-method"
                                 value={withdrawalForm.data.method}

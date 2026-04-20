@@ -721,7 +721,7 @@ export default function AdminOrdersIndex({
 
                             <div className="grid gap-4 md:grid-cols-3">
                                 <div className="grid gap-2">
-                                    <Label>Status</Label>
+                                    <Label>Status <span className="text-destructive">*</span></Label>
                                     <Select
                                         value={form.data.status}
                                         onValueChange={(value) =>
@@ -749,7 +749,7 @@ export default function AdminOrdersIndex({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Payment Status</Label>
+                                    <Label>Payment Status <span className="text-destructive">*</span></Label>
                                     <Select
                                         value={form.data.payment_status}
                                         onValueChange={(value) =>
@@ -781,7 +781,7 @@ export default function AdminOrdersIndex({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Escrow</Label>
+                                    <Label>Escrow <span className="text-destructive">*</span></Label>
                                     <Select
                                         value={
                                             form.data.escrow_held

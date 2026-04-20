@@ -1104,7 +1104,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                 htmlFor="delivery_file"
                                 className="text-sm font-medium"
                             >
-                                Delivery file
+                                Delivery file <span className="text-destructive">*</span>
                             </label>
                             <input
                                 id="delivery_file"
@@ -1191,7 +1191,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                 htmlFor="cancellation_reason"
                                 className="text-sm font-medium"
                             >
-                                Reason
+                                Reason <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="cancellation_reason"
@@ -1244,7 +1244,7 @@ export default function SellerOrdersIndex({ orders }: Props) {
                                 htmlFor="dispute_reason"
                                 className="text-sm font-medium"
                             >
-                                Reason
+                                Reason <span className="text-destructive">*</span>
                             </label>
                             <textarea
                                 id="dispute_reason"

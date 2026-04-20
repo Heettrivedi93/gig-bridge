@@ -70,7 +70,7 @@ function PlanForm({
         <form onSubmit={onSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor="plan-name">Plan Name</Label>
+                    <Label htmlFor="plan-name">Plan Name <span className="text-destructive">*</span></Label>
                     <Input
                         id="plan-name"
                         value={data.name}
@@ -83,7 +83,7 @@ function PlanForm({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="plan-price">Price</Label>
+                    <Label htmlFor="plan-price">Price <span className="text-destructive">*</span></Label>
                     <Input
                         id="plan-price"
                         type="number"
@@ -100,7 +100,7 @@ function PlanForm({
 
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor="plan-duration">Duration (days)</Label>
+                    <Label htmlFor="plan-duration">Duration (days) <span className="text-destructive">*</span></Label>
                     <Input
                         id="plan-duration"
                         type="number"
@@ -116,7 +116,7 @@ function PlanForm({
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="plan-limit">Gig Limit</Label>
+                    <Label htmlFor="plan-limit">Gig Limit <span className="text-destructive">*</span></Label>
                     <Input
                         id="plan-limit"
                         type="number"
