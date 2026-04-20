@@ -8,6 +8,7 @@ import {
     Search,
     ShieldAlert,
     ShoppingBag,
+    Star,
     Store,
     Wallet2,
 } from 'lucide-react';
@@ -89,6 +90,15 @@ export function AppSidebar() {
                       title: 'My Disputes',
                       href: '/disputes',
                       icon: ShieldAlert,
+                  } satisfies NavItem,
+              ]
+            : []),
+        ...(isSeller && canAccess('seller.orders.access')
+            ? [
+                  {
+                      title: 'My Reviews',
+                      href: '/seller/reviews',
+                      icon: Star,
                   } satisfies NavItem,
               ]
             : []),

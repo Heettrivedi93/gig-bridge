@@ -20,6 +20,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SellerReviewController;
 use App\Http\Controllers\SellerGigController;
 use App\Http\Controllers\SellerOrderController;
 use App\Http\Controllers\SellerPlanController;
@@ -83,6 +84,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware('can:seller.payments.access')->group(function () {
             Route::get('payments', [SellerPlanController::class, 'history'])->name('payments.index');
             Route::get('payments/{payment}/invoice.pdf', [SellerPlanController::class, 'downloadInvoicePdf'])->name('payments.invoice.pdf');
+        });
+
+        Route::middleware('can:seller.orders.access')->group(function () {
+            Route::get('reviews', [SellerReviewController::class, 'index'])->name('reviews.index');
         });
     });
 
