@@ -121,6 +121,7 @@ Use these sections in order for buyer/seller journeys.
 
 ### 4.2 Seller: gig lifecycle
 
+
 1. Seller creates a **Gig**: title, description, category, subcategory, multiple images, optional tags, status (active/inactive).
 2. Seller defines **three packages** per gig: Basic / Standard / Premium — each with title, description, price, delivery days, revision count.
 3. Gig appears in catalog subject to category visibility and seller subscription limits.
