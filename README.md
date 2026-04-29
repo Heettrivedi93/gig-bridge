@@ -136,6 +136,7 @@ Use these sections in order for buyer/seller journeys.
 
 ### 4.4 Payment and escrow (business flow)
 
+
 | Step | Actor | What happens |
 |------|--------|----------------|
 | 1 | Buyer | Confirms order and billing identity (**billing_name**, **billing_email** + PayPal); checkout starts. |
